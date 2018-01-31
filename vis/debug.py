@@ -1,20 +1,29 @@
 import bdb
+import socket
 import sys
 
 from util.socketIO import SingleCallbackSocketIO
 from vis.engine import VisualizationEngine
 
 
-def _get_available_port(host):
+def _get_available_port(host, start, end):
     """
     Finds an unused port number on the given host.
     Args:
         host (str): The host address.
+        start (int): The first port in range to check.
+        end (int): The last port in range to check.
 
     Returns:
         int: An available port number.
     """
-    raise NotImplementedError
+    for port in range(start, end+1):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        result = sock.connect_ex((host, port))
+        if result != 0:
+            sock.close()
+            return port
+        sock.close()
 
 
 class VisualDebugger(bdb.Bdb):
@@ -25,7 +34,7 @@ class VisualDebugger(bdb.Bdb):
 
     def __init__(self):
         super(VisualDebugger, self).__init__()
-        port = _get_available_port('localhost')
+        port = _get_available_port('localhost', 3000, 5000)
         self.viz_engine = VisualizationEngine()
         self.server = None  # spin up Node.js server as subprocess on the given port
         self.socket = SingleCallbackSocketIO('localhost', port)  # blocks until the port is opened
