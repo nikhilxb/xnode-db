@@ -1,6 +1,5 @@
 import bdb
 import sys
-import time
 
 from util.socketIO import SingleCallbackSocketIO
 from vis.engine import VisualizationEngine
