@@ -15,7 +15,6 @@ def _get_available_port(host):
     Returns:
         int: An available port number.
     """
-    return 3000
     raise NotImplementedError
 
 
