@@ -1,6 +1,8 @@
 import bdb
+import sys
+import time
 
-from socketIO_client import SocketIO
+from util.socketIO import SingleCallbackSocketIO
 from vis.engine import VisualizationEngine
 
 
@@ -13,29 +15,35 @@ def _get_available_port(host):
     Returns:
         int: An available port number.
     """
+    return 3000
     raise NotImplementedError
 
 
 class VisualDebugger(bdb.Bdb):
-    QUIT = 'debugger-quit'
-    LOAD_SYMBOL = 'load-symbol'
+    SET_QUIT = 'debugger-quit'
+    SET_CONTINUE = 'debugger-continue'
+    SET_STEP = 'debugger-step'
+    LOAD_SYMBOL = 'debugger-load-symbol'
 
     def __init__(self):
         super(VisualDebugger, self).__init__()
         port = _get_available_port('localhost')
         self.viz_engine = VisualizationEngine()
         self.server = None  # spin up Node.js server as subprocess on the given port
-        self.socket = SocketIO('localhost', port)  # blocks until the port is opened
+        self.socket = SingleCallbackSocketIO('localhost', port)  # blocks until the port is opened
         self.add_socket_callbacks()
         self.keep_waiting = False
 
     def add_socket_callbacks(self):
         """Adds callbacks to self.socket to handle requests from server."""
-        self.socket.on(self.QUIT, self.set_quit)
+        self.socket.on(self.SET_QUIT, self.set_quit)
+        self.socket.on(self.SET_STEP, self.set_step)
+        self.socket.on(self.SET_CONTINUE, self.set_continue)
         self.socket.on(self.LOAD_SYMBOL, self.load_symbol)
 
     def load_symbol_callback(self, *args):
         """A socket.io-style callback wrapper for load_symbol."""
+        self.keep_waiting = True
         return self.load_symbol(args[0])
 
     def load_symbol(self, symbol_id):
@@ -51,10 +59,11 @@ class VisualDebugger(bdb.Bdb):
         return self.viz_engine.to_json(symbol_dict)
 
     def wait_for_request(self):
-        """Waits for a request from the server on a loop until the debugger is quitting."""
+        """Waits for a request from the server, looping if the callback is not terminal."""
         self.keep_waiting = True
         while self.keep_waiting and not self.quitting:
-            self.socket.wait()
+            self.keep_waiting = False
+            self.socket.wait(one_callback=True)
 
     # Required overrides from bdb
     def user_call(self, frame, argument_list):
@@ -80,3 +89,8 @@ class VisualDebugger(bdb.Bdb):
         first ask confirmation).  With a filename:lineno argument,
         clear all breaks at that line in that file."""
         raise NotImplementedError
+
+
+def set_trace():
+    VisualDebugger().set_trace(sys._getframe().f_back)
+
