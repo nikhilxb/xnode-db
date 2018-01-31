@@ -1,6 +1,7 @@
 import bdb
 import socket
 import sys
+import atexit
 
 from util.socketIO import SingleCallbackSocketIO
 from vis.engine import VisualizationEngine
@@ -39,6 +40,10 @@ class VisualDebuggerServerHandle:
         self.program_port = _get_available_port('localhost', program_port_range)
         self.client_port = _get_available_port('0.0.0.0', client_port_range)
         self.process = Popen(['node', '..\\..\\trash.js', str(self.program_port)])
+        atexit.register(self.cleanup)
+
+    def cleanup(self):
+        self.process.kill()
 
 
 class VisualDebugger(bdb.Bdb):
