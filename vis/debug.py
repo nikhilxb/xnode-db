@@ -6,18 +6,18 @@ from util.socketIO import SingleCallbackSocketIO
 from vis.engine import VisualizationEngine
 
 
-def _get_available_port(host, start, end):
+def _get_available_port(host, port_range):
     """
     Finds an unused port number on the given host.
     Args:
         host (str): The host address.
-        start (int): The first port in range to check.
-        end (int): The last port in range to check.
+        port_range (int, int): The port range to check.
 
     Returns:
         int: An available port number.
     """
-    for port in range(start, end+1):
+    port_start, port_end = port_range
+    for port in range(port_start, port_end+1):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         result = sock.connect_ex((host, port))
         if result != 0:
@@ -32,14 +32,28 @@ class VisualDebugger(bdb.Bdb):
     SET_STEP = 'debugger-step'
     LOAD_SYMBOL = 'debugger-load-symbol'
 
-    def __init__(self):
+    _server = None
+
+    def __init__(self, program_server_port_range=(3000, 5000), server_client_port_range=(8000, 9000)):
+        """
+        Initializes a new VisualDebugger object, which uses a server subprocess to relay information to clients.
+        Programs should not instantiate multiple VisualDebugger objects.
+        Args:
+            program_server_port_range (int, int): The range of ports to sweep over for program-server communication.
+            server_client_port_range (int, int): The range of ports to sweep over for server-client communication.
+        """
         super(VisualDebugger, self).__init__()
-        port = _get_available_port('localhost', 3000, 5000)
+        program_server_port = _get_available_port('localhost', program_server_port_range)
+        server_client_port = _get_available_port('0.0.0.0', server_client_port_range)
+        if self._server is None:
+            self._server = self.spin_server(program_server_port, server_client_port)  # instantiate server
+        self.socket = SingleCallbackSocketIO('localhost', program_server_port)  # blocks until the port is opened
         self.viz_engine = VisualizationEngine()
-        self.server = None  # spin up Node.js server as subprocess on the given port
-        self.socket = SingleCallbackSocketIO('localhost', port)  # blocks until the port is opened
         self.add_socket_callbacks()
         self.keep_waiting = False
+
+    def spin_server(self, program_server_port, server_client_port):
+        raise NotImplementedError
 
     def add_socket_callbacks(self):
         """Adds callbacks to self.socket to handle requests from server."""
