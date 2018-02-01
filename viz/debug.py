@@ -4,7 +4,7 @@ import sys
 import atexit
 
 from util.socketIO import SingleCallbackSocketIO
-from vis.engine import VisualizationEngine
+from viz.engine import VisualizationEngine
 from subprocess import Popen
 
 
