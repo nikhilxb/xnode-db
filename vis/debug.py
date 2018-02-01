@@ -37,9 +37,10 @@ class VisualDebuggerServerHandle:
             program_port_range (int, int): Range of ports for program-server communication.
             client_port_range (int, int): Range of ports for server-client communication.
         """
+        # TODO un-hardcode these strings, especially the program location
         self.program_port = _get_available_port('localhost', program_port_range)
         self.client_port = _get_available_port('0.0.0.0', client_port_range)
-        self.process = Popen(['node', '..\\..\\trash.js', str(self.program_port)])
+        self.process = Popen(['node', '..\\server\\server.js', str(self.program_port), str(self.client_port)])
         atexit.register(self.cleanup)
 
     def cleanup(self):
@@ -47,9 +48,10 @@ class VisualDebuggerServerHandle:
 
 
 class VisualDebugger(bdb.Bdb):
+    # TODO move these to a file shared with the server
     SET_QUIT = 'debugger-quit'
     SET_CONTINUE = 'debugger-continue'
-    SET_STEP = 'debugger-step'
+    SET_STEP = 'debugger-step-over'
     LOAD_SYMBOL = 'debugger-load-symbol'
 
     _server = None
