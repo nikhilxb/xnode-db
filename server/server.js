@@ -23,7 +23,7 @@ var async   = require("async");    // Asynchronous operations
 const PROGRAM_PORT = process.argv[2] || 7000;
 
 /** The port on which this server communicates with the client browser. Specified during invocation of node. */
-const CLIENT_PORT = process.arg[3] || 8000;
+const CLIENT_PORT = process.argv[3] || 8000;
 
 /** The socket currently being used to communicate with the Python debugger program. There should only be one socket
  *  to communicate on at any time, because the server is driven by a single debugger. */
@@ -96,9 +96,9 @@ app.get("/debug/load_symbol/:symbol_id", function(req, resp) {
         return;
     }
 
-    programSocket.on("dbg-emit-schema", function(data) {
-        console.log("Loaded symbol: " + data);
-        resp.send("Loaded symbol: " + data);
+    programSocket.on("dbg-emit-schema", function(symbol_id, schema) {
+        console.log("Loaded symbol: " + schema);
+        resp.send("Loaded symbol: " + schema);
     });
 
     var symbol_id = req.params.symbol_id;
@@ -130,7 +130,7 @@ app.get("/debug/stop", function(req, resp) {
 // =====================================================================================================================
 
 io.on("connection", function(socket) {
-    if(programSocket === null) {
+    if(programSocket !== null) {
         console.error("Tried to establish another program connection while already connected.");
         return;
     }
