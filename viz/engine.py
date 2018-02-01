@@ -1,3 +1,6 @@
+import json
+
+
 class VisualizationEngine:
     def __init__(self):
         self.cache = None  # some representation of previously generated objects
@@ -11,6 +14,7 @@ class VisualizationEngine:
         Returns:
             dict: A VizSchema representation of the symbol for visualization.
         """
+        return {symbol_id: 'hi nikhil'}
         raise NotImplementedError
 
     def to_json(self, symbol_dict):
@@ -25,4 +29,5 @@ class VisualizationEngine:
         Returns:
             str: The JSON representation of the VizSchema dictionary.
         """
+        return json.dumps(symbol_dict)
         raise NotImplementedError

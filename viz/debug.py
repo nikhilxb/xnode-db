@@ -49,10 +49,11 @@ class VisualDebuggerServerHandle:
 
 class VisualDebugger(bdb.Bdb):
     # TODO move these to a file shared with the server
-    SET_QUIT = 'debugger-quit'
-    SET_CONTINUE = 'debugger-continue'
-    SET_STEP = 'debugger-step-over'
-    LOAD_SYMBOL = 'debugger-load-symbol'
+    SET_QUIT = 'dbg-quit'
+    SET_CONTINUE = 'dbg-continue'
+    SET_STEP = 'dbg-step-over'
+    LOAD_SYMBOL = 'dbg-load-symbol'
+    EMIT_SCHEMA = 'dbg-emit-schema'
 
     _server = None
 
@@ -82,7 +83,7 @@ class VisualDebugger(bdb.Bdb):
     def load_symbol_callback(self, *args):
         """A socket.io-style callback wrapper for load_symbol."""
         self.keep_waiting = True
-        return self.load_symbol(args[0])
+        self.socket.emit(self.EMIT_SCHEMA, args[0], self.load_symbol(args[0]))
 
     def load_symbol(self, symbol_id):
         """
