@@ -96,13 +96,11 @@ app.get("/debug/load_symbol/:symbol_id", function(req, resp) {
         return;
     }
 
-    programSocket.on("dbg-emit-schema", function(symbol_id, schema) {
-        console.log("Loaded symbol: " + schema);
-        resp.send("Loaded symbol: " + schema);
-    });
-
     var symbol_id = req.params.symbol_id;
-    programSocket.emit("dbg-load-symbol", symbol_id);
+    programSocket.emit("dbg-load-symbol", symbol_id, function(schema) {
+        console.log("Loaded symbol via callback: " + schema);
+        resp.send("Loaded symbol via callback: " + schema);
+    });
 
 
 });

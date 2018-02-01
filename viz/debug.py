@@ -53,7 +53,6 @@ class VisualDebugger(bdb.Bdb):
     SET_CONTINUE = 'dbg-continue'
     SET_STEP = 'dbg-step-over'
     LOAD_SYMBOL = 'dbg-load-symbol'
-    EMIT_SCHEMA = 'dbg-emit-schema'
 
     _server = None
 
@@ -83,7 +82,8 @@ class VisualDebugger(bdb.Bdb):
     def load_symbol_callback(self, *args):
         """A socket.io-style callback wrapper for load_symbol."""
         self.keep_waiting = True
-        self.socket.emit(self.EMIT_SCHEMA, args[0], self.load_symbol(args[0]))
+        symbol_id, callback_fn = args[0], args[1]
+        callback_fn(self.load_symbol(symbol_id))
 
     def load_symbol(self, symbol_id):
         """
