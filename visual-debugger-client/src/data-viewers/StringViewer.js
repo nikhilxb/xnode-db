@@ -11,7 +11,7 @@ class StringViewer extends DataViewer {
     super.componentDidMount();
     this.setState({
       'charViewers': [],
-    })
+    });
   }
 
   toggleCharViewer(i) {
