@@ -4,7 +4,7 @@ class DataViewer extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      'vizschema': 'hello world!',
+      'vizschema': {'data': ''},
     };
   }
 
@@ -18,14 +18,8 @@ class DataViewer extends Component {
         return results.json();
       })
       .then(({ results }) => {
-        this.setState({'vizschema' : results});
-      })
-  }
-
-  render() {
-    return (
-      <div>{this.state.vizschema[0].cell}</div>
-    );
+        this.setState({'vizschema' : {'data': results[0].cell}});
+      });
   }
 }
 
