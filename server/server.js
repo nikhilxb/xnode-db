@@ -4,19 +4,39 @@
  * This file defines the main server program. The server receives API requests from the client over HTTP, which it
  * services by communicating with the Python debugger over socketIO.
  *
+ * The server is invoked through: node server.js (program-port) (client-port)
+ *
  * Notes:
  *     The server can be configured in the future to use HTTPS as such:
  *     https://stackoverflow.com/questions/11744975/enabling-https-on-express-js
  */
+
 var express = require("express");  // Web app framework
 var fs      = require("fs");       // Filesystem interaction
 var http    = require("http");     // Communication over http
 var async   = require("async");    // Asynchronous operations
 
+// Communication channels
+// ----------------------
+
+/** The port on which this server communicates with the Python debugger program. Specified during invocation of node. */
+const PROGRAM_PORT = process.argv[2] || 7000;
+
+/** The port on which this server communicates with the client browser. Specified during invocation of node. */
+const CLIENT_PORT = process.arg[3] || 8000;
+
+/** The socket currently being used to communicate with the Python debugger program. There should only be one socket
+ *  to communicate on at any time, because the server is driven by a single debugger. */
+var programSocket = null;
+
+// =====================================================================================================================
+// Setup Express server with socket IO.
+// =====================================================================================================================
+
 // Create server to use HTTP with socket IO
 var app = express();
 var server = http.createServer(app);
-var io = require("socket.io")(server);
+var io = require("socket.io")(PROGRAM_PORT);
 
 // Set directory to serve files from
 app.use(express.static("./public"));
@@ -71,8 +91,20 @@ app.get("/debug/step_out", function(req, resp) {
  * Triggers the debugger to CONTINUE.
  */
 app.get("/debug/load_symbol/:symbol_id", function(req, resp) {
+    if(programSocket === null) {
+        console.error("Tried to load symbol but not connected to program.");
+        return;
+    }
+
+    programSocket.on("dbg-emit-schema", function(data) {
+        console.log("Loaded symbol: " + data);
+        resp.send("Loaded symbol: " + data);
+    });
+
     var symbol_id = req.params.symbol_id;
-    resp.send("Load symbol: " + symbol_id + ".");
+    programSocket.emit("dbg-load-symbol", symbol_id);
+
+
 });
 
 /**
@@ -98,22 +130,22 @@ app.get("/debug/stop", function(req, resp) {
 // =====================================================================================================================
 
 io.on("connection", function(socket) {
-    console.log('Connection!');
-    socket.emit('give-data');
-    socket.on('sent-data', function(data) {
-        console.log(data);
-        if(data < 5){
-            setTimeout(function(){
-                socket.emit('give-data');
-            }, 1000);
-        } else {
-            socket.emit('kill-signal', 'bye bye');
-        }
-    })
+    if(programSocket === null) {
+        console.error("Tried to establish another program connection while already connected.");
+        return;
+    }
+    programSocket = socket;
+    console.log("Connected to debugging program.");
+
+    // Set data handler
+    socket.on("disconnect", function(){
+        programSocket = null;
+        console.log("Disconnected from debugging program.");
+    });
 });
 
 // =====================================================================================================================
 // Begin server operation.
 // =====================================================================================================================
 
-server.listen(8080);
+server.listen(CLIENT_PORT);

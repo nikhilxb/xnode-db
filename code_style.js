@@ -30,7 +30,11 @@
 // =====================================================================================================================
 
 
-/*  Subsection description. */
+// Subsection description.
+// -----------------------
+
+/** Short description of variable */
+var dummyVar = 0;
 
 /**
  * Short description of function.
