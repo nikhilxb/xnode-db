@@ -59,7 +59,7 @@ app.use(express.static("./public"));
  * Sends an acknowledgement string, so that a client can check whether the server is up and running.
  */
 app.get("/", function(req, resp) {
-    resp.send("Hello, from the Xnode debugging server on port !");
+    resp.send("Hello, from the Xnode debugging server on port!");
 });
 
 /**
@@ -67,7 +67,7 @@ app.get("/", function(req, resp) {
  * Triggers the debugger to CONTINUE (resumes execution until the next breakpoint is reached).
  * Sends the client the current namespace variable data.
  */
-app.get("/debug/continue", function(req, resp) {
+app.get("/api/debug/continue", function(req, resp) {
     if(programSocket === null) {
         console.error("Tried to CONTINUE but not connected to program.");
         return;
@@ -84,7 +84,7 @@ app.get("/debug/continue", function(req, resp) {
  * Triggers the debugger to STOP (terminate execution of the program).
  * Sends the client an acknowledgement message.
  */
-app.get("/debug/stop", function(req, resp) {
+app.get("/api/debug/stop", function(req, resp) {
     if(programSocket === null) {
         console.error("Tried to STOP but not connected to program.");
         return;

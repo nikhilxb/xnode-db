@@ -2,11 +2,10 @@ import json
 
 
 class VisualizationEngine:
-    """An object which statefully translates symbols corresponding to Python objects into a schema for visualization.
+    """This object translates Python variable symbols into visualization schema.
 
-    The VisualizationEngine is separated from the VisualDebugger so that all visualization tasks can be managed here.
-    Depending on the ultimate implementation, VisualizationEngine instances may persist between VisualDebugger
-    instances, making this decomposition useful not only for abstraction purposes.
+    The `VisualizationEngine` encapsulates the visualization tasks needed by the `VisualDebugger`.
+    It is stateful, so it may implement caching in the future to improve performance.
     """
     def __init__(self):
         """Initializes any internal state needed by the VisualizationEngine.
@@ -26,7 +25,7 @@ class VisualizationEngine:
         for key, value in namespace
 
 
-    def generate(self, symbol_id):
+    def generate(self, symbol):
         """Builds the VizSchema dictionary of a symbol with given ID for visualization purposes.
 
         The dictionary is a Python object, which needs to be transformed to a string via to_json if sent over a
@@ -38,7 +37,7 @@ class VisualizationEngine:
         Returns:
             dict: A VizSchema representation of the symbol.
         """
-        raise NotImplementedError
+        return repr(symbol)
 
     def to_json(self, symbol_dict):
         """Converts a VizSchema dictionary of a symbol into a corresponding JSON string.
