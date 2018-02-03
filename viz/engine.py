@@ -15,7 +15,16 @@ class VisualizationEngine:
         VisualizationEngine instances are created in a single run, or that only one is created and reused throughout
         the run.
         """
-        self.cache = None
+        self.id_to_obj = dict()
+        self.id_to_schema = dict()
+
+    def generate_namespace(self, namespace):
+        vizschema = dict()
+        for key, value in namespace.items():
+            self.cache[id(key)] = key
+            vizschema.append(id(key))
+        for key, value in namespace
+
 
     def generate(self, symbol_id):
         """Builds the VizSchema dictionary of a symbol with given ID for visualization purposes.

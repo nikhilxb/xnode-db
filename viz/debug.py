@@ -1,11 +1,11 @@
+import atexit
 import bdb
 import socket
 import sys
-import atexit
-
-from util.socketIO import SingleCallbackSocketIO
-from viz.engine import VisualizationEngine
 from subprocess import Popen
+
+from viz.engine import VisualizationEngine
+from viz._util import SingleCallbackSocketIO
 
 
 def _get_available_port(host, port_range):
@@ -51,6 +51,7 @@ class VisualDebuggerServerHandle:
         # TODO un-hardcode these strings, especially the program location
         self.program_port = _get_available_port('localhost', program_port_range)
         self.client_port = _get_available_port('0.0.0.0', client_port_range)
+        print(self.program_port, self.client_port)
         self.process = Popen(['node', '..\\server\\server.js', str(self.program_port), str(self.client_port)])
         atexit.register(self.cleanup)
 
@@ -75,10 +76,13 @@ class VisualDebugger(bdb.Bdb):
     # These strings are emitted by the server to the VisualDebugger over the socket between them. If one of these
     # strings is changed, it must also be changed in server.js (and vice versa).
     # ==================================================================================================================
-    SET_QUIT = 'dbg-quit'
-    SET_CONTINUE = 'dbg-continue'
-    SET_STEP = 'dbg-step-over'
-    LOAD_SYMBOL = 'dbg-load-symbol'
+    DBG_STOP = 'dbg-stop'
+    DBG_CONTINUE = 'dbg-continue'
+    DBG_STEP_OVER = 'dbg-step-over'
+    DBG_STEP_INTO = 'dbg-step-into'
+    DBG_STEP_OUT = 'dbg-step-out'
+    DBG_LOAD_SYMBOL = 'dbg-load-symbol'
+    DBG_LOAD_NAMESPACE = 'dbg-load-namespace'
 
     # ==================================================================================================================
     # A static reference to a VisualDebuggerServerHandle.
@@ -105,6 +109,9 @@ class VisualDebugger(bdb.Bdb):
         self.add_socket_callbacks()
         self.viz_engine = VisualizationEngine()
         self.keep_waiting = False
+        self.current_frame = None
+        self.current_stack = None
+        self.current_stack_index = None
 
     def add_socket_callbacks(self):
         """Adds callbacks to self.socket to handle requests from server.
@@ -113,10 +120,60 @@ class VisualDebugger(bdb.Bdb):
         string) is received on the VisualDebugger, it calls the associated function. Note that callbacks are
         synchronous, and requests received during a callback will be executed after the callback is complete.
         """
-        self.socket.on(self.SET_QUIT, self.set_quit)
-        self.socket.on(self.SET_STEP, self.set_step)
-        self.socket.on(self.SET_CONTINUE, self.set_continue)
-        self.socket.on(self.LOAD_SYMBOL, self.load_symbol_callback)
+        self.socket.on(self.DBG_STOP, self.quit_callback)
+        self.socket.on(self.DBG_STEP_INTO, self.step_into_callback)
+        self.socket.on(self.DBG_STEP_OUT, self.step_out_callback)
+        self.socket.on(self.DBG_STEP_OVER, self.step_over_callback)
+        self.socket.on(self.DBG_CONTINUE, self.continue_callback)
+        self.socket.on(self.DBG_LOAD_SYMBOL, self.load_symbol_callback)
+        self.socket.on(self.DBG_LOAD_NAMESPACE, self.debug_command_callback)
+
+    def forget(self):
+        self.current_frame = None
+        self.current_stack = None
+        self.current_stack_index = None
+
+    def reset(self):
+        super(VisualDebugger, self).reset()
+        self.forget()
+
+    def setup_at_break(self, frame):
+        self.forget()
+        self.current_stack, self.current_stack_index = self.get_stack(frame, None)
+        self.current_frame = self.current_stack[self.current_stack_index][0]
+
+    def quit_callback(self, *args):
+        args[0]()
+        self.set_quit()
+
+    def step_into_callback(self, *args):
+        self.set_step()
+        self.debug_command_callback(args[0])
+
+    def step_over_callback(self, *args):
+        self.set_next(self.current_frame)
+        self.debug_command_callback(args[0])
+
+    def step_out_callback(self, *args):
+        self.set_return(self.current_frame)
+        self.debug_command_callback(args[0])
+
+    def continue_callback(self, *args):
+        self.set_continue()
+        self.debug_command_callback(args[0])
+
+    def debug_command_callback(self, callback_fn):
+        context = self.get_context()
+        namespace = self.get_namespace()
+        callback_fn(context, namespace)
+
+    def get_context(self):
+        return self.format_stack_entry(self.current_stack[self.current_stack_index])
+
+    def get_namespace(self):
+        joined_namespace = dict(self.current_frame.f_globals)
+        joined_namespace.update(self.current_frame.f_locals)
+        return self.viz_engine.generate_from_namespace(joined_namespace)
 
     def load_symbol_callback(self, *args):
         """A socket.io-style callback wrapper for load_symbol.
@@ -165,6 +222,7 @@ class VisualDebugger(bdb.Bdb):
     def user_call(self, frame, argument_list):
         """Invoked when a function is called. Waits for server requests if the debugger should stop."""
         if self.stop_here(frame):
+            self.setup_at_break(frame)
             self.wait_for_request()
 
     def user_exception(self, frame, exc_info):
@@ -173,14 +231,17 @@ class VisualDebugger(bdb.Bdb):
         # Taken from pdb; unsure how important this is. TODO look into this more
         exc_type, exc_value, exc_traceback = exc_info
         frame.f_locals['__exception__'] = exc_type, exc_value
+        self.setup_at_break(frame)
         self.wait_for_request()
 
     def user_line(self, frame):
         """Invoked when the debugger stops or breaks on a line. Waits for a request from the server."""
+        self.setup_at_break(frame)
         self.wait_for_request()
 
     def user_return(self, frame, return_value):
         """Called when a return trap is set at frame. Waits for a request from the server."""
+        self.setup_at_break(frame)
         self.wait_for_request()
 
     def do_clear(self, arg):
