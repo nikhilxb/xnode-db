@@ -159,8 +159,8 @@ app.get("/debug/load_symbol/:symbol_id", function(req, resp) {
     }
 
     var symbol_id = req.params.symbol_id;
-    programSocket.emit("dbg-load-symbol", symbol_id, function(symbol) {
-        resp.send(symbol);
+    programSocket.emit("dbg-load-symbol", symbol_id, function(symbol_data, new_shells) {
+        resp.send(symbol_data);
         console.log("Sent symbol \"" + symbol_id + "\" data for LOAD SYMBOL.");
     });
 });
