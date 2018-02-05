@@ -5,7 +5,7 @@ import sys
 from subprocess import Popen
 
 from viz.engine import VisualizationEngine
-from viz._util import SingleCallbackSocketIO
+from viz._util.socketIO import SingleCallbackSocketIO
 
 
 def _get_available_port(host, port_range):
@@ -173,7 +173,7 @@ class VisualDebugger(bdb.Bdb):
     def get_namespace(self):
         joined_namespace = dict(self.current_frame.f_globals)
         joined_namespace.update(self.current_frame.f_locals)
-        return self.viz_engine.generate_from_namespace(joined_namespace)
+        return self.viz_engine.generate_namespace_schemas(joined_namespace)
 
     def load_symbol_callback(self, *args):
         """A socket.io-style callback wrapper for load_symbol.
