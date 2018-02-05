@@ -101,7 +101,7 @@ app.get("/api/debug/stop", function(req, resp) {
  * Triggers the debugger to STEP OVER (execute one line of code without entering a function call).
  * Sends the client the current namespace variable data.
  */
-app.get("/debug/step_over", function(req, resp) {
+app.get("/api/debug/step_over", function(req, resp) {
     if(programSocket === null) {
         console.error("Tried to STEP OVER but not connected to program.");
         return;
@@ -118,7 +118,7 @@ app.get("/debug/step_over", function(req, resp) {
  * Triggers the debugger to STEP INTO (execute one line of code and enter a function call if appropriate).
  * Sends the client the current namespace variable data.
  */
-app.get("/debug/step_into", function(req, resp) {
+app.get("/api/debug/step_into", function(req, resp) {
     if(programSocket === null) {
         console.error("Tried to STEP INTO but not connected to program.");
         return;
@@ -135,7 +135,7 @@ app.get("/debug/step_into", function(req, resp) {
  * Triggers the debugger to STEP OUT (resumes execution until right after the current function has returned).
  * Sends the client the current namespace variable data.
  */
-app.get("/debug/step_out", function(req, resp) {
+app.get("/api/debug/step_out", function(req, resp) {
     if(programSocket === null) {
         console.error("Tried to STEP OUT but not connected to program.");
         return;
@@ -152,7 +152,7 @@ app.get("/debug/step_out", function(req, resp) {
  * Triggers the debugger to LOAD SYMBOL using the specified symbol ID.
  * Sends the client the symbol's current data.
  */
-app.get("/debug/load_symbol/:symbol_id", function(req, resp) {
+app.get("/api/debug/load_symbol/:symbol_id", function(req, resp) {
     if(programSocket === null) {
         console.error("Tried to LOAD SYMBOL but not connected to program.");
         return;
@@ -169,7 +169,7 @@ app.get("/debug/load_symbol/:symbol_id", function(req, resp) {
  * POST /debug/set_symbol/:symbol_id
  * Triggers the debugger to SET SYMBOL using the specified symbol ID.
  */
-app.post("/debug/set_symbol/:symbol_id", function(req, resp) {
+app.post("/api/debug/set_symbol/:symbol_id", function(req, resp) {
     if(programSocket === null) {
         console.error("Tried to SET SYMBOL but not connected to program.");
         return;

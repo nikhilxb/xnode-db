@@ -82,7 +82,8 @@ class VisualDebugger(bdb.Bdb):
     DBG_STEP_INTO = 'dbg-step-into'
     DBG_STEP_OUT = 'dbg-step-out'
     DBG_LOAD_SYMBOL = 'dbg-load-symbol'
-    DBG_LOAD_NAMESPACE = 'dbg-load-namespace'
+    DBG_GET_NAMESPACE = 'dbg-get-namespace'
+    DBG_GET_CONTEXT = 'dbg-get-context'
 
     # ==================================================================================================================
     # A static reference to a VisualDebuggerServerHandle.
@@ -112,6 +113,7 @@ class VisualDebugger(bdb.Bdb):
         self.current_frame = None
         self.current_stack = None
         self.current_stack_index = None
+        self.callbacks_for_next_bp = []
 
     def add_socket_callbacks(self):
         """Adds callbacks to self.socket to handle requests from server.
@@ -126,69 +128,137 @@ class VisualDebugger(bdb.Bdb):
         self.socket.on(self.DBG_STEP_OVER, self.step_over_callback)
         self.socket.on(self.DBG_CONTINUE, self.continue_callback)
         self.socket.on(self.DBG_LOAD_SYMBOL, self.load_symbol_callback)
-        self.socket.on(self.DBG_LOAD_NAMESPACE, self.debug_command_callback)
+        self.socket.on(self.DBG_GET_NAMESPACE, self.get_namespace_shells_callback)
+        self.socket.on(self.DBG_GET_CONTEXT, self.get_context_callback)
 
-    def forget(self):
+    def forget_frame(self):
+        """Wipes the debugger's knowledge of the current frame and stack.
+
+        Implementation comes from pdb.forget.
+        """
         self.current_frame = None
         self.current_stack = None
         self.current_stack_index = None
 
     def reset(self):
+        """Resets the debugger state completely.
+
+        Extends bdb's default behavior to also clear the `VisualDebugger`'s knowledge of the current frame."""
         super(VisualDebugger, self).reset()
-        self.forget()
+        self.forget_frame()
 
     def setup_at_break(self, frame):
-        self.forget()
+        """Set the debugger's state to reflect the current frame and execute any waiting callbacks.
+
+        This function is called when the debugger hits a break, and prepares its state so that future actions,
+        like requesting symbols from the namespace, execute correctly. Any callbacks sent by the server that were
+        supposed to execute at the next breakpoint, such as those requesting updated namespace information,
+        are executed thereafter.
+        Args:
+            frame (frame): The frame at which the debugger is stopping.
+        """
+        self.forget_frame()
         self.current_stack, self.current_stack_index = self.get_stack(frame, None)
         self.current_frame = self.current_stack[self.current_stack_index][0]
+        for callback in self.callbacks_for_next_bp:
+            callback()
+        self.callbacks_for_next_bp.clear()
 
     def quit_callback(self, *args):
+        """A socket.io-style callback for the quit command.
+
+        Assumes the first given argument is a callback function, which is executed before quitting.
+        """
         args[0]()
         self.set_quit()
 
     def step_into_callback(self, *args):
+        """A socket.io-style callback for the step-into command.
+
+        Assumes the first given argument is a callback function, which is set to execute at the next breakpoint.
+        """
         self.set_step()
-        self.debug_command_callback(args[0])
+        self.callbacks_for_next_bp.append(self.server_command_callback_wrapper(args[0]))
 
     def step_over_callback(self, *args):
+        """A socket.io-style callback for the step-over command.
+
+        Assumes the first given argument is a callback function, which is set to execute at the next breakpoint.
+        """
         self.set_next(self.current_frame)
-        self.debug_command_callback(args[0])
+        self.callbacks_for_next_bp.append(self.server_command_callback_wrapper(args[0]))
 
     def step_out_callback(self, *args):
+        """A socket.io-style callback for the step-out command.
+
+        Assumes the first given argument is a callback function, which is set to execute at the next breakpoint.
+        """
         self.set_return(self.current_frame)
-        self.debug_command_callback(args[0])
+        self.callbacks_for_next_bp.append(self.server_command_callback_wrapper(args[0]))
 
     def continue_callback(self, *args):
+        """A socket.io-style callback for the step-out command.
+
+        Assumes the first given argument is a callback function, which is set to execute at the next breakpoint.
+        """
         self.set_continue()
-        self.debug_command_callback(args[0])
+        self.callbacks_for_next_bp.append(self.server_command_callback_wrapper(args[0]))
 
-    def debug_command_callback(self, callback_fn):
-        context = self.get_context()
-        namespace = self.get_namespace()
-        callback_fn(context, namespace)
+    def get_namespace_shells_callback(self, *args):
+        """A socket.io-style callback for getting the shells of all symbols in the namespace.
 
-    def get_context(self):
-        return self.format_stack_entry(self.current_stack[self.current_stack_index])
+        The server might at any time request the shells of all objects in the namespace (for example, when a new
+        client connects, it would make this request). This function is called when such a request is made.
 
-    def get_namespace(self):
-        joined_namespace = dict(self.current_frame.f_globals)
-        joined_namespace.update(self.current_frame.f_locals)
-        return self.viz_engine.generate_namespace_schemas(joined_namespace)
+        Assumes the first given argument is a callback function, which is executed with the generated namespace
+        representation as its argument.
+        """
+        self.keep_waiting = True
+        callback_fn = args[0]
+        callback_fn(self.viz_engine.to_json(self.get_namespace_shells()))
+
+    def get_context_callback(self, *args):
+        """A socket.io-style callback for getting the program's current context.
+
+        The server might at any time request the status of the program, such as line number (all newly-connecting
+        clients would need this information). This function is called when such a request is made.
+
+        Assumes the first given argument is a callback function, which is executed with the context object as its
+        argument.
+        """
+        self.keep_waiting = True
+        callback_fn = args[0]
+        callback_fn(self.get_context())
+
+    def server_command_callback_wrapper(self, callback_fn):
+        """Wraps a callback function which expects a debugger context and a namespace as a 0-argument function.
+
+        When the server asks the debugger to update the runtime (via a step or continue), it sends a callback to be
+        executed after the debugger has stopped again. This callback takes two arguments: a context object (which
+        represents the state of the runtime, including file and line number) and a namespace object (which associates
+        symbol IDs with shell dictionaries describing them). These functions are not executed until the next
+        breakpoint, at which point every enqueued callback is run. All of these callbacks must have 0 arguments (for
+        generality), so we create a 0-argument version of the runtime update callback here.
+        """
+        def _callback():
+            context = self.get_context()
+            namespace = self.get_namespace_shells()
+            callback_fn(context, namespace)
+        return _callback
 
     def load_symbol_callback(self, *args):
         """A socket.io-style callback wrapper for load_symbol.
 
-        When the server asks to load the visualization of a symbol, it sends the symbol id and a callback function
+        When the server asks to load the visualization of a symbol, it sends the symbol ID and a callback function
         (which relays the loaded symbol to the client). The VisualDebugger loads the symbol and then calls the
         callback. Responding to this request should not cause the VisualDebugger to stop reading from the socket.
         """
         self.keep_waiting = True
         symbol_id, callback_fn = args[0], args[1]
-        callback_fn(self.load_symbol(symbol_id))
+        callback_fn(*self.load_symbol(symbol_id))
 
     def load_symbol(self, symbol_id):
-        """
-        Loads and returns the JSON representation of a requested symbol.
+        """Loads and returns the JSON representation of a requested symbol.
 
         Args:
             symbol_id (str): The name of the requested symbol.
@@ -196,9 +266,31 @@ class VisualDebugger(bdb.Bdb):
         Returns:
             str: A JSON-style representation of the symbol.
         """
-        # The actual work of visualization is done by the VisualizationEngine instance owned by the VisualDebugger.
-        symbol_dict = self.viz_engine.generate(symbol_id)
-        return self.viz_engine.to_json(symbol_dict)
+        # The actual work of visualization is done by the `VisualizationEngine` instance owned by the `VisualDebugger`.
+        symbol_data, new_shells = self.viz_engine.get_symbol_data(symbol_id)
+        return self.viz_engine.to_json(symbol_data), self.viz_engine.to_json(new_shells)
+
+    def get_context(self):
+        """Returns some object, for now a string, capturing the state of the program.
+
+        The client will need to show users where the program has stopped, and some context information is requried.
+        This information is sent as part of a typical callback after
+        Returns:
+            str: The file and line number of the Python program's current line.
+        """
+        return self.format_stack_entry(self.current_stack[self.current_stack_index])
+
+    def get_namespace_shells(self):
+        """Returns a dictionary mapping string symbol IDs to dictionary shell representations.
+
+        See `VisualizationEngine` for more information about the shell representation format.
+
+        Returns:
+            dict: Shells for all symbols in the namespace.
+        """
+        joined_namespace = dict(self.current_frame.f_globals)
+        joined_namespace.update(self.current_frame.f_locals)
+        return self.viz_engine.get_namespace_shells(joined_namespace)
 
     def wait_for_request(self):
         """Waits for a request from the server, looping if the callback is not terminal.
@@ -261,7 +353,7 @@ class VisualDebugger(bdb.Bdb):
 def set_trace():
     """A convenience function which instantiates a VisualDebugger object and sets trace at the current frame.
 
-    This mimics the function of the same name in pdb, and minimizes changes to style and practice requried in
+    This mimics the function of the same name in pdb, and minimizes changes to style and practice required in
     switching from pdb to viz.debug. Crowding the runtime with multiple VisualDebugger objects is not terribly
     problematic, as at most one debugging server is created in each run.
     """
