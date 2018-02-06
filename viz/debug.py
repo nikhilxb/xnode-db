@@ -3,9 +3,9 @@ import bdb
 import socket
 import sys
 from subprocess import Popen
+from socketIO_client import SocketIO
 
 from viz.engine import VisualizationEngine
-from viz._util.socketIO import SingleCallbackSocketIO
 
 
 def _get_available_port(host, port_range):
@@ -33,6 +33,28 @@ def _get_available_port(host, port_range):
             sock.close()
             return port
         sock.close()
+
+
+class SingleRequestSocketIO(SocketIO):
+    """A SocketIO client object that can terminate waiting after receiving a single request.
+
+    The Python socketIO_client library does not implement this functionality by default. We need it for the
+    `VisualDebugger`, which after receiving step and continue commands should not endlessly wait on the server but
+    instead continue normal code flow until another breakpoint is hit.
+    """
+    def __init__(self, *args, **kwargs):
+        self.has_called_back = False
+        super(SingleRequestSocketIO, self).__init__(*args, **kwargs)
+
+    def _on_event(self, data_parsed, namespace):
+        self.has_called_back = True
+        super(SingleRequestSocketIO, self)._on_event(data_parsed, namespace)
+
+    def _should_stop_waiting(self, for_namespace=False, for_callbacks=False, one_callback=False):
+        if one_callback and self.has_called_back:
+            self.has_called_back = False
+            return True
+        return super(SingleRequestSocketIO, self)._should_stop_waiting()
 
 
 class VisualDebuggerServerHandle:
@@ -106,7 +128,7 @@ class VisualDebugger(bdb.Bdb):
         if self._server is None:
             VisualDebugger._server = VisualDebuggerServerHandle(program_port_range, client_port_range)
         # TODO un-hardcode this string
-        self.socket = SingleCallbackSocketIO('localhost', self._server.program_port)
+        self.socket = SingleRequestSocketIO('localhost', self._server.program_port)
         self.add_socket_callbacks()
         self.viz_engine = VisualizationEngine()
         self.keep_waiting = False
