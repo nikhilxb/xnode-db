@@ -105,3 +105,6 @@ ENV/
 
 # Node
 *node_modules/
+
+# Java
+*.class

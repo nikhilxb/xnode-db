@@ -19,10 +19,12 @@
  *     https://stackoverflow.com/questions/11744975/enabling-https-on-express-js
  */
 
-var express = require("express");  // Web app framework
-var fs      = require("fs");       // Filesystem interaction
-var http    = require("http");     // Communication over http
-var async   = require("async");    // Asynchronous operations
+var express  = require("express");   // Web app framework
+var fs       = require("fs");        // Filesystem interaction
+var http     = require("http");      // Serving over http protocol
+var async    = require("async");     // Asynchronous operations
+var socketio = require("socket.io"); // Inter-process socket communication
+
 
 // Communication channels
 // ----------------------
@@ -34,8 +36,10 @@ const PROGRAM_PORT = process.argv[2] || 7000;
 const CLIENT_PORT = process.argv[3] || 8000;
 
 /** The socket currently being used to communicate with the Python debugger program. There should only be one socket
- *  to communicate on at any time, because the server is driven by a single debugger. */
+ *  to communicate on at any time, because the server is driven by a single debugger. It is the job of the debugger
+ *  program to open a socket connection to this server, and reopen the connection on failure. */
 var programSocket = null;
+
 
 // =====================================================================================================================
 // Setup Express server with socket IO.
@@ -44,10 +48,10 @@ var programSocket = null;
 // Create server to use HTTP with socket IO
 var app = express();
 var server = http.createServer(app);
-var io = require("socket.io")(PROGRAM_PORT);
+var io = socketio(PROGRAM_PORT);
 
 // Set directory to serve files from
-app.use(express.static("./public"));
+app.use(express.static(path.join(__dirname, "public")));
 
 
 // =====================================================================================================================
@@ -57,9 +61,10 @@ app.use(express.static("./public"));
 /**
  * GET /
  * Sends an acknowledgement string, so that a client can check whether the server is up and running.
+ * TODO: Serve the React app from this URI.
  */
 app.get("/", function(req, resp) {
-    resp.send("Hello, from the Xnode debugging server on port!");
+    resp.send("Hello, from the Xnode debugging server on port ${fff}!");
 });
 
 /**
@@ -199,6 +204,7 @@ io.on("connection", function(socket) {
         console.log("Disconnected from debugging program.");
     });
 });
+
 
 // =====================================================================================================================
 // Begin server operation.
