@@ -4,7 +4,7 @@
  * This file defines the main server program. The server receives API requests from the client over HTTP, which it
  * services by communicating with the Python debugger over socketIO.
  *
- * The server is spun up by the first call to `set_trace` in server, which invokes the command:
+ * The server is spun up by the first call to `set_trace` in debugging program, which invokes the command:
  *
  *     node server.js (program-port) (client-port)
  *
@@ -63,7 +63,7 @@ app.get("/", function(req, resp) {
 });
 
 /**
- * GET /debug/continue
+ * GET /api/debug/continue
  * Triggers the debugger to CONTINUE (resumes execution until the next breakpoint is reached).
  * Sends the client the current namespace variable data.
  */
@@ -80,7 +80,7 @@ app.get("/api/debug/continue", function(req, resp) {
 });
 
 /**
- * GET /debug/continue"
+ * GET /api/debug/continue"
  * Triggers the debugger to STOP (terminate execution of the program).
  * Sends the client an acknowledgement message.
  */
@@ -97,7 +97,7 @@ app.get("/api/debug/stop", function(req, resp) {
 });
 
 /**
- * GET /debug/step_over
+ * GET /api/debug/step_over
  * Triggers the debugger to STEP OVER (execute one line of code without entering a function call).
  * Sends the client the current namespace variable data.
  */
@@ -114,7 +114,7 @@ app.get("/api/debug/step_over", function(req, resp) {
 });
 
 /**
- * GET /debug/step_into
+ * GET /api/debug/step_into
  * Triggers the debugger to STEP INTO (execute one line of code and enter a function call if appropriate).
  * Sends the client the current namespace variable data.
  */
@@ -131,7 +131,7 @@ app.get("/api/debug/step_into", function(req, resp) {
 });
 
 /**
- * GET /debug/step_out
+ * GET /api/debug/step_out
  * Triggers the debugger to STEP OUT (resumes execution until right after the current function has returned).
  * Sends the client the current namespace variable data.
  */
@@ -148,7 +148,7 @@ app.get("/api/debug/step_out", function(req, resp) {
 });
 
 /**
- * GET /debug/load_symbol/:symbol_id
+ * GET /api/debug/load_symbol/:symbol_id
  * Triggers the debugger to LOAD SYMBOL using the specified symbol ID.
  * Sends the client the symbol's current data.
  */
@@ -166,7 +166,7 @@ app.get("/api/debug/load_symbol/:symbol_id", function(req, resp) {
 });
 
 /**
- * POST /debug/set_symbol/:symbol_id
+ * POST /api/debug/set_symbol/:symbol_id
  * Triggers the debugger to SET SYMBOL using the specified symbol ID.
  */
 app.post("/api/debug/set_symbol/:symbol_id", function(req, resp) {

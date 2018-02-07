@@ -53,7 +53,7 @@ def func1(arg1, arg2=None):
         arg2 (mod.ExampleClass, optional): Description of argument 2. Defaults to ``None``.
 
     Return:
-        ret1 (bool): Description of return value 1.
+        (bool): Description of return value 1.
     """
     # This is how to write longer style comments within method bodies.
     # Docstrings are used for interface comments and hash symbols are used for

@@ -46,7 +46,7 @@ var dummyVar = 0;
  *     arg1 (int): Description of argument 1.
  * 
  * Return:
- *     ret1 (bool): Description of return 1.
+ *     (bool): Description of return 1.
  */
  function func1(arg1) {
     // This is how to write longer style comments within method bodies.
