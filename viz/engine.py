@@ -3,36 +3,48 @@ from collections import defaultdict
 import inspect
 
 
-class TypeInfo:
-    """Retains useful fields and functions for a particular data type.
+class VisualizationType:
+    """Encapsulates the visualization-relevant properties of a specific object type (string, number, etc).
 
-    The `VisualizationEngine` performs different processing for an object based on its type; for example,
-    the data object for a list's visualization is a list of its contents, while the corresponding object for a dict
-    is a dictionary. Rather than fill the `VisualizationEngine` class with nasty switch statements, we create one
-    TypeInfo for each object type and then iterate through them, retrieving type-specific properties programmatically
-    rather than manually via a switch.
+    The `VisualizationEngine` can output schemas for many different types of objects, such as dictionaries, lists,
+    strings, and so on. Each of these schemas is different; the information needed to render a dict in the client will
+    not be of the same format as that needed to render a list. Thus, the `VisualizationEngine`, when generating
+    object schemas, needs to be able to identify the object's type and create the proper schema for it. This could in
+    theory be done with long switch statements, where an object of unknown type is passed from conditional to
+    conditional until its type is identified, at which point some type-specific behavior occurs. This is ugly,
+    and becomes problematic when multiple functions (such as get_symbol_shell and get_symbol_data) must all make the
+    same type checks. Rather than have to copy switch statements around and make things difficult when we want to add
+    new recognizable types, we instead create a single `VisualizationType` object for each type understood by the
+    engine. Each `VisualizationType` object is associated with one type, and can determine if other objects belong to
+    that type as well as produce their data objects for visualization. For example, let us say
+        `BOOL = VisualizationType(type_name='bool', test_fn=lambda x: type(x) is bool, is_primitive=True)`
+    Now, when the engine is asked to produce a string describing a new object `obj`, it can call `BOOL.test_fn(obj)`.
+    If it returns True, then `obj` is a boolean, and the engine can produce its string with `BOOL.str_fn(obj)`.
+    Otherwise, it can repeat the process with other `VisualizationType` objects until a matching type is found.
     """
-    def __init__(self, name, str_fn, id_fn, is_primitive, data_fn=None):
+    def __init__(self, type_name, test_fn, data_fn=None, str_fn=str, is_primitive=False):
         """Stores the given parameters as fields.
 
-        Fields should not be changed after instantiation, as only one `TypeInfo` should exist for each object type
-        and multiple symbols will reference the same `TypeInfo`.
+        Fields should not be changed after instantiation, as only one `VisualizationType` should exist for each object
+        type and multiple symbols will reference the same `VisualizationType`.
         Args:
-            name (str): The string name of the data type, as understood by the client.
+            type_name (str): The string name of the object type, as understood by the client.
+            test_fn (fn): A function of the form (obj) => boo, which indicates whether obj belongs to the type
+                governed by this `VisualizationType` instance.
+            data_fn (fn): A function of the form (`VisualizationEngine`, obj) => (object, set), which takes an engine
+                (typically passed from within an engine as `self`) and an object and returns the data object for obj
+                and the set of all symbol IDs referred to in that data object. obj should be of the type represented
+                by the `VisualizationType`. Can be None for primitives.
             str_fn (fn): A function of the form (obj) => str, which translates the given object to a string that can
-                be rendered in the client.
-            id_fn (fn): A function of the form (obj) => bool, which indicates whether obj is of the `TypeInfo`'s type.
-            is_primitive (bool): Whether the data type represented by the TypeInfo is primitive.
-            data_fn (fn): A function of the form (`VisualizationEngine`, obj) => object, set, which takes an engine
-                (typically passed from within an engine as `self`) and an object and returns the data object for that
-                object and the set of all symbol IDs referred to in that data object.
+                be rendered in the client. obj should be of the type represented by the `VisualizationType`.
+            is_primitive (bool): Whether the data type represented by the `VisualizationType` is primitive.
         """
-        self.name = name
-        self.str_fn = str_fn
-        self.id_fn = id_fn
-        self.is_primitive = is_primitive
-        assert is_primitive or data_fn is not None, 'Non-primitive types must define a data_fn.'
+        self.type_name = type_name
+        self.test_fn = test_fn
         self.data_fn = data_fn
+        self.str_fn = str_fn
+        self.is_primitive = is_primitive
+        assert is_primitive or self.data_fn is not None, 'Non-primitive types must define a data_fn.'
 
 
 class VisualizationEngine:
@@ -51,8 +63,9 @@ class VisualizationEngine:
 
     # Key associated with a symbol's shell representation, a dictionary of the form:
     # {
-    #   'type': The type of the symbol; this matches the `TypeInfo.name` field and must be understood by the client.
-    #           Any change to the names of the `TypeInfo` objects must be reflected in the client.
+    #   'type': The type of the symbol; this matches the `VisualizationType.type_name` field and must be understood by
+    #           the client. Any change to the type_names of the `VisualizationType` objects must be reflected in the
+    #           client.
     #   'str': A string representation of the symbol that can be showed in the client, particularly in the variable list
     #           and when the object has not been expanded.
     #   'name': A string name, possibly null, for the object, to be shown in the client.
@@ -67,15 +80,16 @@ class VisualizationEngine:
     DATA = 'data'
 
     # Key associated with a set of strings of the form "REF_PREFIX" + ID, where ID is a symbol ID. This set contains
-    # all of the objects referenced in the symbol's data object, and is defined in get_symbol_data along with the data
-    # object.
+    # the symbol IDs all of the objects referenced in the symbol's data object, and is defined in get_symbol_data
+    # along with the data object.
     REFS = 'refs'
 
     # Key associated with a reference to the symbol's Python object.
     OBJ = 'obj'
 
-    # Key associated with the `TypeInfo` instance corresponding to the symbol's type. There exists only one
-    # `TypeInfo` object for each data type, and two different symbols of the same type reference the same `TypeInfo`.
+    # Key associated with the `VisualizationType` instance corresponding to the symbol's type. There exists only one
+    # `VisualizationType` object for each data type, so two different symbols of the same type reference the same
+    # `VisualizationType`.
     TYPE_INFO = 'type-info'
 
     # ==================================================================================================================
@@ -83,7 +97,7 @@ class VisualizationEngine:
     # ----------------------------------
     # The engine must act differently when visualizing objects of different types, including generating different
     # string representations and different data objects. Rather than litter the code with switch statements,
-    # we retain information about each type in `TypeInfo` objects, initialized here.
+    # we retain information about each type in `VisualizationType` objects, initialized here.
     # ==================================================================================================================
 
     # Data generation functions for each data type.
@@ -92,7 +106,8 @@ class VisualizationEngine:
     # here; each takes as input a `VisualizationEngine` and the symbol's Python object and returns the data object
     # and a set of string IDs of those symbols referenced in the data object.
 
-    def _dict_data_fn(self, obj):
+    # TODO formalize these schemas, and potentially send all information
+    def _genereate_data_dict(self, obj):
         """Data generation function for dictionaries."""
         data = dict()
         refs = set()
@@ -100,7 +115,7 @@ class VisualizationEngine:
             data[self._datafy_obj(key, refs)] = self._datafy_obj(value, refs)
         return data, refs
 
-    def _seq_data_fn(self, obj):
+    def _generate_data_sequence(self, obj):
         """Data generation function for sequential objects (list, tuple, set)."""
         data = list()
         refs = set()
@@ -108,93 +123,75 @@ class VisualizationEngine:
             data.append(self._datafy_obj(item, refs))
         return data, refs
 
-    # TODO these generation functions
-    def _fn_data_fn(self, obj):
+    def _generate_data_fn(self, obj):
         """Data generation function for functions."""
-        return dict(), set()
+        data_unformatted = dict()
+        data_unformatted['varnames'] = obj.__code__.co_varnames
+        data_unformatted['argcount'] = obj.__code__.co_argcount
+        data_unformatted['constants'] = obj.__code__.co_consts
+        data_unformatted['filename'] = obj.__code__.co_filename
 
-    def _module_data_fn(self, obj):
+        data = dict()
+        refs = set()
+        for key, value in data_unformatted:
+            data[self._datafy_obj(key, refs)] = self._datafy_obj(value, refs)
+        return data, refs
+
+    def _generate_data_module(self, obj):
         """Data generation function for modules."""
-        return dict(), set()
+        data = dict()
+        refs = set()
+        for key in dir(obj):
+            data[self._datafy_obj(key, refs)] = self._datafy_obj(getattr(obj, key), refs)
+        return data, refs
 
-    def _class_data_fn(self, obj):
+    def _generate_data_class(self, obj):
         """Data generation function for classes."""
-        return dict(), set()
+        data = dict()
+        refs = set()
+        for key in dir(obj):
+            data[self._datafy_obj(key, refs)] = self._datafy_obj(getattr(obj, key), refs)
+        return data, refs
 
-    def _instance_data_fn(self, obj):
+    def _generate_data_instance(self, obj):
         """Data generation function for object instances which do not fall into other categories."""
-        return dict(), set()
+        data = dict()
+        refs = set()
+        for key in dir(obj):
+            data[self._datafy_obj(key, refs)] = self._datafy_obj(getattr(obj, key), refs)
+        return data, refs
 
-    # `TypeInfo` object constants.
+    # `VisualizationType` object constants.
     # --------------------------------
 
-    NUMBER = TypeInfo('number',
-                      str,
-                      lambda obj: type(obj) is int or type(obj) is float,
-                      True)
-    STRING = TypeInfo('string',
-                      str,
-                      lambda obj: type(obj) is str,
-                      True)
-    BOOL = TypeInfo('bool',
-                    str,
-                    lambda obj: type(obj) is bool,
-                    True)
-    DICT = TypeInfo('dict',
-                    str,
-                    lambda obj: type(obj) is dict,
-                    False,
-                    data_fn=_dict_data_fn)
-    LIST = TypeInfo('list',
-                    str,
-                    lambda obj: type(obj) is list,
-                    False,
-                    data_fn=_seq_data_fn)
-    SET = TypeInfo('set',
-                   str,
-                   lambda obj: type(obj) is set,
-                   False,
-                   data_fn=_seq_data_fn)
-    TUPLE = TypeInfo('tuple',
-                     str,
-                     lambda obj: type(obj) is tuple,
-                     False,
-                     data_fn=_seq_data_fn)
-    FUNCTION = TypeInfo('fn',
-                        str,
-                        inspect.isfunction,
-                        False,
-                        data_fn=_fn_data_fn)
-    MODULE = TypeInfo('module',
-                      str,
-                      inspect.ismodule,
-                      False,
-                      data_fn=_module_data_fn)
-    CLASS = TypeInfo('class',
-                     str,
-                     inspect.isclass,
-                     False,
-                     data_fn=_class_data_fn)
-    INSTANCE = TypeInfo('obj',
-                        str,
-                        lambda obj: True,
-                        False,
-                        data_fn=_instance_data_fn)
+    NUMBER = VisualizationType('number', test_fn=lambda obj: type(obj) is int or type(obj) is float, is_primitive=True)
+    STRING = VisualizationType('string', test_fn=lambda obj: type(obj) is str, is_primitive=True)
+    BOOL = VisualizationType('bool', test_fn=lambda obj: type(obj) is bool, is_primitive=True)
+    DICT = VisualizationType('dict', test_fn=lambda obj: type(obj) is dict, data_fn=_genereate_data_dict)
+    LIST = VisualizationType('list', test_fn=lambda obj: type(obj) is list, data_fn=_generate_data_sequence)
+    SET = VisualizationType('set', test_fn=lambda obj: type(obj) is set, data_fn=_generate_data_sequence)
+    TUPLE = VisualizationType('tuple', test_fn=lambda obj: type(obj) is tuple, data_fn=_generate_data_sequence)
+    FUNCTION = VisualizationType('fn', test_fn=inspect.isfunction, data_fn=_generate_data_fn)
+    MODULE = VisualizationType('module', test_fn=inspect.ismodule, data_fn=_generate_data_module)
+    CLASS = VisualizationType('class', test_fn=inspect.isclass, data_fn=_generate_data_class)
+    INSTANCE = VisualizationType('obj', test_fn=lambda obj: True, data_fn=_generate_data_instance)
 
-    # A list of all `TypeInfo` objects, in the order in which identity should be determined.
+    # A list of all `VisualizationType` objects, in the order in which identity should be determined. Notably,
+    # our catchall INSTANCE should be last, as it returns True on any object.
     TYPES = [NUMBER, STRING, BOOL, DICT, LIST, SET, TUPLE, FUNCTION, MODULE, CLASS, INSTANCE]
 
     # Utility functions for data generation.
     # --------------------------------
 
     def _is_primitive(self, obj):
-        """Returns True if obj is a primitive, as defined by the engine's `TypeInfo` objects."""
+        """Returns True if obj is of a primitive type, as defined by the engine's `VisualizationType` objects."""
         for type_info in self.TYPES:
-            if type_info.id_fn(obj):
+            if type_info.test_fn(obj):
                 return type_info.is_primitive
         return False
 
-    # TODO escaping
+    # TODO we need to have a system for escaping strings, to ensure that strings starting with REF_PREFIX are not
+    # considered references mistakenly.
     def _escape_str(self, s):
         """Reformats a string to eliminate ambiguity between strings and symbol ID references."""
         return s
@@ -216,12 +213,12 @@ class VisualizationEngine:
             str or int or float: Serializable-safe representation of obj, possibly as a symbol ID reference.
         """
         if self._is_primitive(obj):
-            return self._escape_str(obj) if self.STRING.id_fn(obj) else obj
+            return self._escape_str(obj) if self.STRING.test_fn(obj) else obj
         else:
-            symbol_id = self._id(obj)
+            symbol_id = self._get_symbol_id(obj)
             self.cache[symbol_id][self.OBJ] = obj
             refs.add(symbol_id)
-            return '@id:' + symbol_id
+            return self.REF_PREFIX + symbol_id
 
     # ==================================================================================================================
     # Escaping constants.
@@ -231,7 +228,8 @@ class VisualizationEngine:
     # field is a symbol ID reference or an actual string object, and so some escaping must be done to remove ambiguity.
     # ==================================================================================================================
 
-    # A prefix to be appended to strings which are symbol ID references.
+    # A prefix to be appended to strings in data objects which are symbol ID references.
+    # TODO come up with a better system for this
     REF_PREFIX = '@id:'
 
     def __init__(self):
@@ -242,7 +240,7 @@ class VisualizationEngine:
         """
         self.cache = defaultdict(dict)
 
-    def _id(self, obj):
+    def _get_symbol_id(self, obj):
         """Returns the symbol ID (a string unique for the object's lifetime) of a given object.
 
         Care must be taken when objects are allowed to die and the engine's state is not accordingly updated,
@@ -251,7 +249,7 @@ class VisualizationEngine:
             obj (object): A Python object to be identified.
 
         Returns:
-            str: symbol ID.
+            (str): symbol ID.
         """
         return str(id(obj))
 
@@ -271,15 +269,15 @@ class VisualizationEngine:
             namespace (dict): A mapping of string names to Python objects.
 
         Returns:
-            dict: A dictionary mapping symbol ID strings to shell dictionaries (see get_symbol_shell and above
+            (dict): A dictionary mapping symbol ID strings to shell dictionaries (see get_symbol_shell and above
                 documentation for more info).
         """
         self.reset_cache()
         namespace_shells = dict()
-        for key, value in namespace.items():
-            symbol_id = self._id(value)
-            self.cache[symbol_id][self.OBJ] = value
-            namespace_shells[symbol_id] = self.get_symbol_shell(symbol_id, key)
+        for obj_name, obj in namespace.items():
+            symbol_id = self._get_symbol_id(obj)
+            self.cache[symbol_id][self.OBJ] = obj
+            namespace_shells[symbol_id] = self.get_symbol_shell(symbol_id, name=obj_name)
         return namespace_shells
 
     def get_symbol_shell(self, symbol_id, name=None):
@@ -298,41 +296,44 @@ class VisualizationEngine:
         socket to a server. get_symbol_shell is decomposed from to_json so that the dict can be used within the
         Python environment as well.
         Args:
-            symbol_id (str): A unique identifier for the symbol, as defined by self._id.
+            symbol_id (str): A unique identifier for the symbol, as defined by self._get_symbol_id.
+            name (str): An optional name for the symbol, to be displayed in the client.
 
         Returns:
-            dict: The symbol's shell dictionary.
+            (dict): The symbol's shell dictionary.
         """
         if symbol_id not in self.cache:
             raise KeyError('Symbol id {} not found in cache.'.format(symbol_id))
         if self.OBJ not in self.cache[symbol_id]:
             raise KeyError('No object reference found for symbol {}'.format(symbol_id))
         if self.SHELL not in self.cache[symbol_id]:
-            symbol_type_info = self._type_info(symbol_id)
+            symbol_type_info = self._get_type_info(symbol_id)
             symbol_obj = self.cache[symbol_id][self.OBJ]
             self.cache[symbol_id][self.SHELL] = {
-                                                'type': symbol_type_info.name,
+                                                'type': symbol_type_info.type_name,
                                                 'str': symbol_type_info.str_fn(symbol_obj),
                                                 'name': name,
                                                 'data': symbol_obj if symbol_type_info.is_primitive else None,
                                               }
         return self.cache[symbol_id][self.SHELL]
 
-    def _type_info(self, symbol_id):
-        """Returns the `TypeInfo` object associated with a particular symbol ID.
+    def _get_type_info(self, symbol_id):
+        """Returns the `VisualizationType` object associated with a particular symbol ID.
 
-        If the symbol ID has not yet been associated with a `TypeInfo` object in the cache, the association is made
+        If the symbol ID has not yet been associated with a `VisualizationType` object in the cache, the association is made
         here. Otherwise, the cached value is returned.
         Args:
-            symbol_id (str): ID for a symbol, as defined by self._id.
+            symbol_id (str): ID for a symbol, as defined by self._get_symbol_id.
 
         Returns:
-            TypeInfo: the `TypeInfo` object associated with the symbol's type.
+            (VisualizationType): the `VisualizationType` object associated with the symbol's type.
         """
+        if symbol_id not in self.cache:
+            raise KeyError('Symbol id {} not found in cache.'.format(symbol_id))
         if self.TYPE_INFO not in self.cache[symbol_id]:
             obj = self.cache[symbol_id][self.OBJ]
             for type_info in self.TYPES:
-                if type_info.id_fn(obj):
+                if type_info.test_fn(obj):
                     self.cache[symbol_id][self.TYPE_INFO] = type_info
                     break
         return self.cache[symbol_id][self.TYPE_INFO]
@@ -350,11 +351,11 @@ class VisualizationEngine:
         stores all symbol IDs referenced by the data object, and the shells of each such symbol are returned along
         with the data object.
         Args:
-            symbol_id (str): The requested symbol's ID, as defined by self._id.
+            symbol_id (str): The requested symbol's ID, as defined by self._get_symbol_id.
 
         Returns:
-            object: A serializable representation of the given symbol.
-            dict: A dictionary mapping symbol IDs (particuarly, those found in the data object) to shells.
+            (object): A serializable representation of the given symbol.
+            (dict): A dictionary mapping symbol IDs (particuarly, those found in the data object) to shells.
         """
         if self.SHELL not in self.cache[symbol_id]:
             raise KeyError('Attempted to load data for {} before shell loaded.'.format(symbol_id))
@@ -370,12 +371,12 @@ class VisualizationEngine:
 
         This function does not cache its output and will not check the cache before generating.
         Args:
-            symbol_id (str): A string ID for the requested symbol, as defined by self._id.
+            symbol_id (str): A string ID for the requested symbol, as defined by self._get_symbol_id.
 
         Returns:
-            object: The symbol's data object.
+            (object): The symbol's data object.
         """
-        symbol_type_info = self._type_info(symbol_id)
+        symbol_type_info = self._get_type_info(symbol_id)
         symbol_obj = self.cache[symbol_id][self.OBJ]
         return symbol_type_info.data_fn(self, symbol_obj)
 
@@ -394,6 +395,6 @@ class VisualizationEngine:
             obj (object): A Python object output by the `VisualizationEngine`.
 
         Returns:
-            str: The JSON representation of the input object.
+            (str): The JSON representation of the input object.
         """
         return json.dumps(obj)
