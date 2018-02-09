@@ -70,7 +70,8 @@ class VisualizationEngine:
     #           and when the object has not been expanded.
     #   'name': A string name, possibly null, for the object, to be shown in the client.
     #   'data': Either the value of the object (for primitives) or None (for non-primitives). When the client seeks
-    #           to "fill" a schema shell, they will have to request that data from the debugger first.
+    #           to "fill" a schema shell, they will have to request that data from the debugger first. See
+    #           VIZ_SCHEMA.js for more info about what these data objects will look like.
     # }
     SHELL = 'shell'
 
