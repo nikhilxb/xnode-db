@@ -11,7 +11,7 @@
         "type": [TYPE],
         "str": "86",
         "name": "myset",  // optional, else just exist in symbol table not var list or is in dropdown
-        "data": null  // optional: starts null if is non-primitive, nonexistent if string, existent if primitive
+        "data": null  // optional: starts null if is non-primitive, otherwise loaded by default if primitive
     }
 }
 
@@ -42,7 +42,8 @@
 }
 
 
-// CONSTRAINT: Since storing numbers directly, any subclass of, say, `int` will not display instance fields.
+// CONSTRAINT: Since storing numbers directly, any subclass of, say, `int` will not display instance fields when loaded
+// in-plae (outside of the namespace).
 {
     "type": "number",
     "str": "3.14",
