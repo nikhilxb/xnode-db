@@ -22,7 +22,7 @@ class VisualizationType:
     If it returns True, then `obj` is a boolean, and the engine can produce its string with `BOOL.str_fn(obj)`.
     Otherwise, it can repeat the process with other `VisualizationType` objects until a matching type is found.
     """
-    def __init__(self, type_name, test_fn, data_fn=None, str_fn=str, is_primitive=False):
+    def __init__(self, type_name, test_fn, data_fn, str_fn=str, is_primitive=False):
         """Stores the given parameters as fields.
 
         Fields should not be changed after instantiation, as only one `VisualizationType` should exist for each object
@@ -34,7 +34,7 @@ class VisualizationType:
             data_fn (fn): A function of the form (`VisualizationEngine`, obj) => (object, set), which takes an engine
                 (typically passed from within an engine as `self`) and an object and returns the data object for obj
                 and the set of all symbol IDs referred to in that data object. obj should be of the type represented
-                by the `VisualizationType`. Can be None for primitives.
+                by the `VisualizationType`.
             str_fn (fn): A function of the form (obj) => str, which translates the given object to a string that can
                 be rendered in the client. obj should be of the type represented by the `VisualizationType`.
             is_primitive (bool): Whether the data type represented by the `VisualizationType` is primitive.
@@ -71,7 +71,7 @@ class VisualizationEngine:
     #   'name': A string name, possibly null, for the object, to be shown in the client.
     #   'data': Either the value of the object (for primitives) or None (for non-primitives). When the client seeks
     #           to "fill" a schema shell, they will have to request that data from the debugger first. See
-    #           VIZ_SCHEMA.js for more info about what these data objects will look like.
+    #           VIZ-SCHEMA.js for more info about what these data objects will look like.
     # }
     SHELL = 'shell'
 
@@ -108,7 +108,11 @@ class VisualizationEngine:
     # and a set of string IDs of those symbols referenced in the data object.
 
     # TODO formalize these schemas, and potentially send all information
-    def _genereate_data_dict(self, obj):
+    def _generate_data_primitive(self, obj):
+        """Data generation function for numbers."""
+        return {"contents": obj}, set()
+
+    def _generate_data_dict(self, obj):
         """Data generation function for dictionaries."""
         data = dict()
         refs = set()
@@ -165,13 +169,17 @@ class VisualizationEngine:
     # `VisualizationType` object constants.
     # --------------------------------
 
-    NUMBER = VisualizationType('number', test_fn=lambda obj: type(obj) is int or type(obj) is float, is_primitive=True)
-    STRING = VisualizationType('string', test_fn=lambda obj: type(obj) is str, is_primitive=True)
-    BOOL = VisualizationType('bool', test_fn=lambda obj: type(obj) is bool, is_primitive=True)
-    DICT = VisualizationType('dict', test_fn=lambda obj: type(obj) is dict, data_fn=_genereate_data_dict)
-    LIST = VisualizationType('list', test_fn=lambda obj: type(obj) is list, data_fn=_generate_data_sequence)
-    SET = VisualizationType('set', test_fn=lambda obj: type(obj) is set, data_fn=_generate_data_sequence)
-    TUPLE = VisualizationType('tuple', test_fn=lambda obj: type(obj) is tuple, data_fn=_generate_data_sequence)
+    NUMBER = VisualizationType('number', test_fn=lambda obj: issubclass(type(obj), (float, int)),
+                               data_fn=_generate_data_primitive, is_primitive=True)
+    STRING = VisualizationType('string', test_fn=lambda obj: issubclass(type(obj), str),
+                               data_fn=_generate_data_primitive, is_primitive=True)
+    BOOL = VisualizationType('bool', test_fn=lambda obj: issubclass(type(obj), bool),
+                             data_fn=_generate_data_primitive, is_primitive=True)
+    DICT = VisualizationType('dict', test_fn=lambda obj: issubclass(type(obj), dict), data_fn=_generate_data_dict)
+    LIST = VisualizationType('list', test_fn=lambda obj: issubclass(type(obj), list), data_fn=_generate_data_sequence)
+    SET = VisualizationType('set', test_fn=lambda obj: issubclass(type(obj), set), data_fn=_generate_data_sequence)
+    TUPLE = VisualizationType('tuple', test_fn=lambda obj: issubclass(type(obj), tuple),
+                              data_fn=_generate_data_sequence)
     FUNCTION = VisualizationType('fn', test_fn=inspect.isfunction, data_fn=_generate_data_fn)
     MODULE = VisualizationType('module', test_fn=inspect.ismodule, data_fn=_generate_data_module)
     CLASS = VisualizationType('class', test_fn=inspect.isclass, data_fn=_generate_data_class)
@@ -314,8 +322,13 @@ class VisualizationEngine:
                                                 'type': symbol_type_info.type_name,
                                                 'str': symbol_type_info.str_fn(symbol_obj),
                                                 'name': name,
-                                                'data': symbol_obj if symbol_type_info.is_primitive else None,
+                                                'data': None,
                                               }
+            # If the object is of a primitive type (string, number, bool, etc), then we load and return its data
+            # dictionary with the shell. We must do this after the shell construction, as get_symbol_data relies on
+            # the shell to exist.
+            if self._is_primitive(symbol_obj):
+                self.cache[symbol_id][self.SHELL]['data'] = self.get_symbol_data(symbol_id)[0]
         return self.cache[symbol_id][self.SHELL]
 
     def _get_type_info(self, symbol_id):
