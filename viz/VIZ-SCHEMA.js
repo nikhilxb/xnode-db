@@ -27,7 +27,6 @@
 {
 	"type": "list", // tuple, set
     "str": "List[3]",
-    "name": "namespacevar",  // optional
 	"data": {
 		// Python-independent information needed to render visualization
 		"viewer": {
@@ -36,7 +35,7 @@
 		},
 		// Curated Python object attributes that might be seen or used by client but not used in viewer visualization
 		"attributes": {
-			// every non function attribute
+			// every non function attribute of the object
 		}
 	}
 }
@@ -52,19 +51,20 @@
 	        "contents": 3.14,
 	    },
 	    "attributes": {
-	    	// non-function attributes
+			// every non function attribute of the object
 	    }
 	}
 }
 
 {
-    "type": "string",
+    "type": "string",  // bool
     "str": "Hello world!"
     "data": {
     "viewer": {
         "contents": "Hello world!",
     },
     "attributes": {
+		// every non function attribute of the object
     }
 }
 
@@ -75,10 +75,12 @@
     "viewer": {
         "contents": {
         	"stringkey":"value",
-        	"xnode$1234":[1,2, 3], // any non string key, must have indirection
+        	"xnode$1234":[1, 2, 3], // any non-string key, must have indirection
     	},
+    	"length": 2
     },
     "attributes": {
+        // every non function attribute of the object
     }
 }
 
@@ -97,21 +99,35 @@
     	},
     },
     "attributes": {
-    	// all attributes, including functions (mark static vs not)
+    	// ALL attributes, including functions
     }
 }
 
 {
-    "type": "module", // object
+    "type": "module",
     "str": "module<torch.autograd>"  // str of object
     "data": {
     "viewer": {
         "contents": {
-        	"stringkey":"value",
-        	"xnode$1234":[1,2, 3], // any non string key, must have indirection
+            // every non function attribute of the object
     	},
     },
     "attributes": {
+        // every non function attribute of the object
+    }
+}
+
+{
+    "type": "object",
+    "str": "<class whatever>"  // str of object
+    "data": {
+    "viewer": {
+        "contents": {
+            // every attribute of the object that differs from its parent
+    	},
+    },
+    "attributes": {
+        // every non function attribute of the object
     }
 }
 
@@ -120,14 +136,13 @@
     "str": "<fn function_name>"
     "data": {
     "viewer": {
-        "contents": {
-        	"args":["hi", "hi"],
-        	"kwargs":{"kwarg1": "xnode$1234"},
-        	"filename": "hihi.py",
-        	"lineno": 2
-    	},
+        "args":["hi", "hi"],
+        "kwargs":{"kwarg1": "xnode$1234"},
+        "filename": "hihi.py",
+        "lineno": 2,
     },
     "attributes": {
+		// every non function attribute of the object
     }
 }
 

@@ -93,67 +93,113 @@ class VisualizationEngine:
     # Data generation functions for each data type.
     # ---------------------------------------------
     # A symbol's data object is generated differently based on the symbol's type. We define those generation functions
-    # here; each takes as input a `VisualizationEngine` and the symbol's Python object and returns the data object
-    # and a set of string IDs of those symbols referenced in the data object.
+    # here; each takes as input a `VisualizationEngine` and the symbol's Python object and returns the data object (a
+    # dictionary) and a set of string IDs of those symbols referenced in the data object.
 
     # TODO formalize these schemas, and potentially send all information
     def _generate_data_primitive(self, obj):
-        """Data generation function for numbers."""
-        return {"contents": obj}, set()
+        """Data generation function for primitives."""
+        refs = set()
+        return {
+            self.VIEWER_KEY: {
+                'contents': obj,
+            },
+            self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs),
+        }, refs
 
     def _generate_data_dict(self, obj):
         """Data generation function for dictionaries."""
-        data = dict()
+        contents = dict()
         refs = set()
         for key, value in obj.items():
-            data[self._datafy_obj(key, refs)] = self._datafy_obj(value, refs)
-        return data, refs
+            contents[self._datafy_obj(key, refs)] = self._datafy_obj(value, refs)
+        return {
+            self.VIEWER_KEY: {
+                'contents': contents,
+                'length': len(obj),
+            },
+            self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs),
+        }, refs
 
     def _generate_data_sequence(self, obj):
         """Data generation function for sequential objects (list, tuple, set)."""
-        data = list()
+        contents = list()
         refs = set()
         for item in obj:
-            data.append(self._datafy_obj(item, refs))
-        return data, refs
+            contents.append(self._datafy_obj(item, refs))
+        return {
+            self.VIEWER_KEY: {
+                'contents': contents,
+                'length': len(obj),
+            },
+            self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs),
+        }, refs
 
     def _generate_data_fn(self, obj):
         """Data generation function for functions."""
-        data_unformatted = dict()
-        data_unformatted['varnames'] = obj.__code__.co_varnames
-        data_unformatted['argcount'] = obj.__code__.co_argcount
-        data_unformatted['constants'] = obj.__code__.co_consts
-        data_unformatted['filename'] = obj.__code__.co_filename
-
-        data = dict()
         refs = set()
-        for key, value in data_unformatted:
-            data[self._datafy_obj(key, refs)] = self._datafy_obj(value, refs)
-        return data, refs
+        viewer_data = {
+            'filename': self._datafy_obj(obj.__code__.co_filename, refs),
+            'lineno': self._datafy_obj(obj.__code__.co_firstlineno, refs),
+        }
+        argnames = obj.__code__.co_varnames
+        default_arg_values = obj.__defaults__
+        viewer_data['args'] = argnames[:-len(default_arg_values)]
+        viewer_data['kwargs'] = {
+            self._datafy_obj(argname, refs): self._datafy_obj(value, refs) for argname, value in
+            zip(argnames[-len(default_arg_values)], default_arg_values)
+        }
+        return {
+            self.VIEWER_KEY: viewer_data,
+            self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)
+        }, refs
 
     def _generate_data_module(self, obj):
         """Data generation function for modules."""
-        data = dict()
         refs = set()
-        for key in dir(obj):
-            data[self._datafy_obj(key, refs)] = self._datafy_obj(getattr(obj, key), refs)
-        return data, refs
+        contents = self._get_data_object_attributes(obj, refs, exclude_fns=False)
+        return {
+            self.VIEWER_KEY: {
+                'contents': contents,
+            },
+            self.ATTRIBUTES_KEY: contents,
+        }, refs
 
     def _generate_data_class(self, obj):
         """Data generation function for classes."""
-        data = dict()
+        contents = {
+            'staticfields': dict(),
+            'functions': dict(),
+        }
         refs = set()
-        for key in dir(obj):
-            data[self._datafy_obj(key, refs)] = self._datafy_obj(getattr(obj, key), refs)
-        return data, refs
+        for attr in dir(obj):
+            value = getattr(obj, attr)
+            if self.FUNCTION.test_fn(value):
+                contents['functions'][self._datafy_obj(attr, refs)] = self._datafy_obj(value, refs)
+            else:
+                contents['staticfields'][self._datafy_obj(attr, refs)] = self._datafy_obj(value, refs)
+        return {
+            self.VIEWER_KEY: {
+                'contents': contents,
+            },
+            self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs, exclude_fns=False)
+        }, refs
 
     def _generate_data_instance(self, obj):
         """Data generation function for object instances which do not fall into other categories."""
-        data = dict()
+        instance_class = type(obj)
+        instance_class_attrs = dir(instance_class)
+        contents = dict()
         refs = set()
-        for key in dir(obj):
-            data[self._datafy_obj(key, refs)] = self._datafy_obj(getattr(obj, key), refs)
-        return data, refs
+        for attr in dir(obj):
+            if attr not in instance_class_attrs or getattr(instance_class, attr, None) != getattr(obj, attr):
+                contents[self._datafy_obj(attr, refs)] = self._datafy_obj(getattr(obj, attr), refs)
+        return {
+            self.VIEWER_KEY: {
+                'contents': contents,
+            },
+            self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)
+        }, refs
 
     # `VisualizationType` object constants.
     # -------------------------------------
@@ -181,6 +227,30 @@ class VisualizationEngine:
 
     # Utility functions for data generation.
     # --------------------------------------
+
+    def _get_data_object_attributes(self, obj, refs, exclude_fns=True):
+        """Creates the dictionary containing a symbol's attributes to be sent in the symbol's data object.
+
+        Each symbol (currently) matches to a single Python object, which has some attributes which may not be used in
+        visualization, or might need to be preprocessed beforehand. For the client to be a useful debugger,
+        we would still like to show these non-visualized properties to the user as a list of key-value pairs. Those
+        pairs are generated here and escaped for safe communication with the client.
+
+        Args:
+            obj (object): Python object whose attributes dict should be generated.
+            refs (set): A set to which new symbol ID reference strings should be added as encountered in dictionary
+                generation.
+            exclude_fns (bool): Exclude functions from the attributes dict if `True`.
+
+        Returns:
+
+        """
+        attributes = dict()
+        for attr in dir(obj):
+            if exclude_fns and self.FUNCTION.test_fn(getattr(obj, attr)):
+                continue
+            attributes[self._datafy_obj(attr, refs)] = self._datafy_obj(getattr(obj, attr), refs)
+        return attributes
 
     def _is_primitive(self, obj):
         """Returns True if obj is of a primitive type, as defined by the engine's `VisualizationType` objects."""
@@ -220,16 +290,29 @@ class VisualizationEngine:
             return self.REF_PREFIX + symbol_id
 
     # ==================================================================================================================
-    # Escaping constants.
-    # ----------------------------------
-    # The `VisualizationEngine` must communicate in a way the client can understand, but the Python -> JSON string
-    # conversion introduces sources of potential confusion. It is not clear whether a string in a schema's 'data'
-    # field is a symbol ID reference or an actual string object, and so some escaping must be done to remove ambiguity.
+    # Schema constants.
+    # -----------------
+    # Constant values which are understood by the client. Any string which is generated by the `VisualizationEngine`
+    # and must be understood by the client should be declared here. Changing any of these strings in the client or
+    # here requires a change in the other code as well.
     # ==================================================================================================================
 
-    # A prefix to be appended to strings in data objects which are symbol ID references.
+    # A prefix to be appended to strings in data objects which are symbol ID references. The `VisualizationEngine`
+    # must communicate in a way the client can understand, but the Python -> JSON string conversion introduces
+    # sources of potential confusion. It is not clear whether a string in a schema's 'data' field is a symbol ID
+    # reference or an actual string object, and so some escaping must be done to remove ambiguity.
     # TODO: Come up with a better system for this
     REF_PREFIX = '@id:'
+
+    # The string in a symbol's data object whose value is a dictionary of key-value pairs used by the data viewer to
+    # render the object. This dictionary follows the schema outlined in VIZ-SCHEMA.js.
+    VIEWER_KEY = 'viewer'
+
+    # The string in the symbol's data object whose value is a dictionary of key-value pairs to be presented in the
+    # client's variable list. These are the attributes of the Python object (with functions excluded for brevity for
+    # non-class objects), and are not interpretable by the client. They should just be presented as facts rather than
+    # used for visualization.
+    ATTRIBUTES_KEY = 'attributes'
 
     def __init__(self):
         """Initializes any internal state needed by the VisualizationEngine.
