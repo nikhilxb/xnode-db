@@ -172,7 +172,7 @@ class VisualizationEngine:
     TUPLE    = VisualizationType('tuple', test_fn=lambda obj: issubclass(type(obj), tuple),
                                  data_fn=_generate_data_sequence)
     FUNCTION = VisualizationType('fn', test_fn=inspect.isfunction,
-                                 data_fn=_generate_data_fn)
+                                 data_fn=_generate_data_function)
     MODULE   = VisualizationType('module', test_fn=inspect.ismodule,
                                  data_fn=_generate_data_module)
     CLASS    = VisualizationType('class', test_fn=inspect.isclass,
