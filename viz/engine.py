@@ -43,15 +43,20 @@ class VisualizationEngine:
     """Encapsulates the translation of Python variable symbols into visualization schema. It is stateful, so it may
     implement caching in the future to improve performance.
     """
+    def __init__(self):
+        """Constructor. Initializes symbol cache to store and efficient serve generated data schemas and references.
+        See "Symbol cache keys" section for more details.
+        """
+        self.cache = defaultdict(dict)
 
     # ==================================================================================================================
-    # Information cached about each symbol.
-    # -------------------------------------
-    # The `VisualizationEngine` cache is of the form {symbol_id -> {key -> value}}, where the keys are exactly those
-    # below and the value types are dependent on the key; those values are described below.
+    # Symbol cache keys.
+    # ------------------
+    # The `VisualizationEngine` cache is of the form {symbol_id -> {key -> value}}. Each `symbol_id` is mapped to a dict
+    # of stored information, the keys for which are defined below.
     # ==================================================================================================================
 
-    # A symbol's shell representation is a dict of the form:
+    # Key for a symbol's shell representation, which is a dict of the form:
     # {
     #   'type': The type of the symbol; this matches the `VisualizationType.type_name` field and must be understood by
     #           the client. Any change to the type_name must be reflected in the client.
@@ -64,37 +69,32 @@ class VisualizationEngine:
     # }
     SHELL = 'shell'
 
-    # Key associated with a symbol's data object. Undefined until get_symbol_data has cached a value. The value
-    # after caching depends on the type of the symbol, but generally contains all potentially useful information
-    # about the symbol. This value is returned when a client seeks to "fill" a shell.
+    # Key for a symbol's data schema. Undefined (not in the dict) until `get_symbol_data` has populated it. This lazy
+    # population prevents extraneous work of generating a symbol's data schema (often a highly nested structure) until
+    # it is specifically requested.
     DATA = 'data'
 
-    # Key associated with a set of strings of the form "REF_PREFIX" + ID, where ID is a symbol ID. This set contains
-    # the symbol IDs all of the objects referenced in the symbol's data object, and is defined in get_symbol_data
-    # along with the data object.
+    # Key for a `set` of IDs for all symbols referenced in this symbol's data schema. Each symbol ID is a string of the
+    # form "{REF_PREFIX}{id}", where id is a unique number for the symbol. Undefined (not in the dict) until
+    # `get_symbol_data` has populated it.
     REFS = 'refs'
 
-    # Key associated with a reference to the symbol's Python object.
+    # Key for this symbol's Python object handle, so that the object can manipulated and indexed when requested.
     OBJ = 'obj'
 
-    # Key associated with the `VisualizationType` instance corresponding to the symbol's type. There exists only one
-    # `VisualizationType` object for each data type, so two different symbols of the same type reference the same
-    # `VisualizationType`.
+    # Key for this symbol's `VisualizationType` instance. There exists only one `VisualizationType` for each type, so
+    # two symbols of the same type reference the same `VisualizationType`.
     TYPE_INFO = 'type-info'
 
     # ==================================================================================================================
-    # Type-specific information.
+    # Type-specific definitions.
     # --------------------------
-    # The engine must act differently when visualizing objects of different types, including generating different
-    # string representations and different data objects. Rather than litter the code with switch statements,
-    # we retain information about each type in `VisualizationType` objects, initialized here.
+    # Create the `VisualizationType` objects for each symbol type, as well as the functions needed by each.
     # ==================================================================================================================
 
-    # Data generation functions for each data type.
-    # ---------------------------------------------
-    # A symbol's data object is generated differently based on the symbol's type. We define those generation functions
-    # here; each takes as input a `VisualizationEngine` and the symbol's Python object and returns the data object (a
-    # dictionary) and a set of string IDs of those symbols referenced in the data object.
+    # Data generation functions.
+    # --------------------------
+    # These type-specific functions generate the `data, refs` for a symbol object.
 
     # TODO formalize these schemas, and potentially send all information
     def _generate_data_primitive(self, obj):
@@ -108,7 +108,7 @@ class VisualizationEngine:
         }, refs
 
     def _generate_data_dict(self, obj):
-        """Data generation function for dictionaries."""
+        """Data generation function for dicts."""
         contents = dict()
         refs = set()
         for key, value in obj.items():
@@ -135,7 +135,7 @@ class VisualizationEngine:
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs),
         }, refs
 
-    def _generate_data_fn(self, obj):
+    def _generate_data_function(self, obj):
         """Data generation function for functions."""
         refs = set()
         viewer_data = {
@@ -201,25 +201,30 @@ class VisualizationEngine:
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)
         }, refs
 
-    # `VisualizationType` object constants.
-    # -------------------------------------
-
+    # `VisualizationType` objects.
+    # ----------------------------
     NUMBER   = VisualizationType('number', test_fn=lambda obj: issubclass(type(obj), (float, int)),
                                  data_fn=_generate_data_primitive, is_primitive=True)
     STRING   = VisualizationType('string', test_fn=lambda obj: issubclass(type(obj), str),
                                  data_fn=_generate_data_primitive, is_primitive=True)
     BOOL     = VisualizationType('bool', test_fn=lambda obj: issubclass(type(obj), bool),
                                  data_fn=_generate_data_primitive, is_primitive=True)
-    DICT     = VisualizationType('dict', test_fn=lambda obj: issubclass(type(obj), dict), data_fn=_generate_data_dict)
+    DICT     = VisualizationType('dict', test_fn=lambda obj: issubclass(type(obj), dict),
+                                 data_fn=_generate_data_dict)
     LIST     = VisualizationType('list', test_fn=lambda obj: issubclass(type(obj), list),
                                  data_fn=_generate_data_sequence)
-    SET      = VisualizationType('set', test_fn=lambda obj: issubclass(type(obj), set), data_fn=_generate_data_sequence)
+    SET      = VisualizationType('set', test_fn=lambda obj: issubclass(type(obj), set),
+                                 data_fn=_generate_data_sequence)
     TUPLE    = VisualizationType('tuple', test_fn=lambda obj: issubclass(type(obj), tuple),
                                  data_fn=_generate_data_sequence)
-    FUNCTION = VisualizationType('fn', test_fn=inspect.isfunction, data_fn=_generate_data_fn)
-    MODULE   = VisualizationType('module', test_fn=inspect.ismodule, data_fn=_generate_data_module)
-    CLASS    = VisualizationType('class', test_fn=inspect.isclass, data_fn=_generate_data_class)
-    INSTANCE = VisualizationType('obj', test_fn=lambda obj: True, data_fn=_generate_data_instance)
+    FUNCTION = VisualizationType('fn', test_fn=inspect.isfunction,
+                                 data_fn=_generate_data_function)
+    MODULE   = VisualizationType('module', test_fn=inspect.ismodule,
+                                 data_fn=_generate_data_module)
+    CLASS    = VisualizationType('class', test_fn=inspect.isclass,
+                                 data_fn=_generate_data_class)
+    INSTANCE = VisualizationType('obj', test_fn=lambda obj: True,
+                                 data_fn=_generate_data_instance)
 
     # A list of all `VisualizationType` objects, in the order in which type should be tested. For example, the
     # INSTANCE should be last, as it returns True on any object and is the most general type.
@@ -259,9 +264,9 @@ class VisualizationEngine:
                 return type_info.is_primitive
         return False
 
-    # TODO: We need to have a system for escaping strings, to ensure that strings starting with REF_PREFIX are not
-    # considered references mistakenly.
     def _escape_str(self, s):
+        # TODO: We need to have a system for escaping strings, to ensure that strings starting with REF_PREFIX are not
+        # considered references mistakenly.
         """Reformats a string to eliminate ambiguity between strings and symbol ID references."""
         return s
 
@@ -274,12 +279,13 @@ class VisualizationEngine:
         escaping strings so as not to confuse them with symbol ID references and converting Python object pointers to
         symbol IDs. Any new symbol IDs are associated with their respective Python objects in the `VisualizationEngine`
         cache.
+
         Args:
             obj (object): An object to make safe for inclusion in the data object.
             refs (set): A set of symbol reference strings to which encountered object references should be added.
 
         Returns:
-            str or int or float: Serializable-safe representation of obj, possibly as a symbol ID reference.
+            (str or int or float): Serializable-safe representation of obj, possibly as a symbol ID reference.
         """
         if self._is_primitive(obj):
             return self._escape_str(obj) if self.STRING.test_fn(obj) else obj
@@ -313,14 +319,6 @@ class VisualizationEngine:
     # non-class objects), and are not interpretable by the client. They should just be presented as facts rather than
     # used for visualization.
     ATTRIBUTES_KEY = 'attributes'
-
-    def __init__(self):
-        """Initializes any internal state needed by the VisualizationEngine.
-
-        State is maintained via a dictionary (a defaultdict for convenience) that maps symbol IDs to dictionaries
-        containing information about those symbols. See above for more detail.
-        """
-        self.cache = defaultdict(dict)
 
     def _get_symbol_id(self, obj):
         """Returns the symbol ID (a string unique for the object's lifetime) of a given object.
