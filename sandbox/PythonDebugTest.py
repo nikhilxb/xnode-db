@@ -37,5 +37,11 @@ z[0] = 86
 b = {"hi": 5, "bye": a, (1,2,3):z}
 
 herro = Herro(a)
-herro.instancefn = lambda x: x
 print("HI")
+
+class L(list):
+    def __init__(self):
+        print("Herro")
+
+lst = L()
+lst.append(2)
