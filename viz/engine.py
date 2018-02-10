@@ -1,5 +1,6 @@
 import json
 from collections import defaultdict
+import types
 import inspect
 
 
@@ -192,7 +193,9 @@ class VisualizationEngine:
         contents = dict()
         refs = set()
         for attr in dir(obj):
-            if attr not in instance_class_attrs or getattr(instance_class, attr, None) != getattr(obj, attr):
+            value = getattr(obj, attr)
+            if not self.FUNCTION.test_fn(value) and (
+                            attr not in instance_class_attrs or getattr(instance_class, attr, None) != value):
                 contents[self._datafy_obj(attr, refs)] = self._datafy_obj(getattr(obj, attr), refs)
         return {
             self.VIEWER_KEY: {
@@ -217,7 +220,10 @@ class VisualizationEngine:
                                  data_fn=_generate_data_sequence)
     TUPLE    = VisualizationType('tuple', test_fn=lambda obj: issubclass(type(obj), tuple),
                                  data_fn=_generate_data_sequence)
-    FUNCTION = VisualizationType('fn', test_fn=inspect.isfunction,
+    FUNCTION = VisualizationType('fn', test_fn=lambda obj: type(obj) in (types.FunctionType, types.MethodType,
+                                                                         types.BuiltinFunctionType,
+                                                                         types.BuiltinFunctionType,
+                                                                         type(all.__call__)),
                                  data_fn=_generate_data_function)
     MODULE   = VisualizationType('module', test_fn=inspect.ismodule,
                                  data_fn=_generate_data_module)
@@ -227,8 +233,9 @@ class VisualizationEngine:
                                  data_fn=_generate_data_instance)
 
     # A list of all `VisualizationType` objects, in the order in which type should be tested. For example, the
-    # INSTANCE should be last, as it returns True on any object and is the most general type.
-    TYPES = [NUMBER, STRING, BOOL, DICT, LIST, SET, TUPLE, FUNCTION, MODULE, CLASS, INSTANCE]
+    # INSTANCE should be last, as it returns `True` on any object and is the most general type. `BOOL` should be
+    # before `NUMBER`, as bool is a subclass of number.
+    TYPES = [BOOL, NUMBER, STRING, DICT, LIST, SET, TUPLE, FUNCTION, MODULE, CLASS, INSTANCE]
 
     # Utility functions for data generation.
     # --------------------------------------
@@ -358,6 +365,10 @@ class VisualizationEngine:
             symbol_id = self._get_symbol_id(obj)
             self.cache[symbol_id][self.OBJ] = obj
             namespace_shells[symbol_id] = self.get_symbol_shell(symbol_id, name=obj_name)
+            if self._is_primitive(obj):
+                data_obj, new_shells = self.get_symbol_data(symbol_id)
+                self.cache[symbol_id][self.SHELL]['data'] = data_obj
+                namespace_shells.update(new_shells)
         return namespace_shells
 
     def get_symbol_shell(self, symbol_id, name=None):
@@ -395,11 +406,6 @@ class VisualizationEngine:
                                                 'name': name,
                                                 'data': None,
                                               }
-            # If the object is of a primitive type (string, number, bool, etc), then we load and return its data
-            # dictionary with the shell. We must do this after the shell construction, as get_symbol_data relies on
-            # the shell to exist.
-            if self._is_primitive(symbol_obj):
-                self.cache[symbol_id][self.SHELL]['data'] = self.get_symbol_data(symbol_id)[0]
         return self.cache[symbol_id][self.SHELL]
 
     def _get_type_info(self, symbol_id):
