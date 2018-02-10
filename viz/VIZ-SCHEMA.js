@@ -204,7 +204,8 @@
 	"data": {
 		"viewer": {
             "contents": ["xnode$98750", "xnode$97750"], // list of graphop.graphcontainer grouped by this container.
-            "container": "xnode$3032099235"
+            "container": "xnode$3032099235",
+            "temporal": true
 		},
 		"attributes": {
 			// every non function attribute

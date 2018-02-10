@@ -281,8 +281,8 @@ class VisualDebugger(bdb.Bdb):
         generality), so we create a 0-argument version of the runtime update callback here.
         """
         def _callback():
-            context = self._get_context()
-            namespace = self._get_namespace_shells()
+            context = self.viz_engine.to_json(self._get_context())
+            namespace = self.viz_engine.to_json(self._get_namespace_shells())
             callback_fn(context, namespace)
         return _callback
 
