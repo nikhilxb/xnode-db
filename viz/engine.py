@@ -3,7 +3,7 @@ from collections import defaultdict
 import types
 import inspect
 from torch import _TensorBase
-from viz.graphbuilder import GraphData, GraphContainer, GraphOp
+from viz.graphtracker import GraphData, GraphContainer, GraphOp
 
 
 class VisualizationType:
