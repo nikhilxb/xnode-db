@@ -89,7 +89,7 @@ class VisualizationEngine:
 
     # ==================================================================================================================
     # Schema generation.
-    # --------------------------
+    # ------------------
     # Create the `VisualizationType` objects to represent each symbol type and write the logic which translates
     # Python objects into visualization schema dicts.
     # ==================================================================================================================
@@ -113,7 +113,7 @@ class VisualizationEngine:
         contents = dict()
         refs = set()
         for key, value in obj.items():
-            contents[self._datafy_obj(key, refs)] = self._datafy_obj(value, refs)
+            contents[self._sanitize_for_data_object(key, refs)] = self._sanitize_for_data_object(value, refs)
         return {
             self.VIEWER_KEY: {
                 'contents': contents,
@@ -127,7 +127,7 @@ class VisualizationEngine:
         contents = list()
         refs = set()
         for item in obj:
-            contents.append(self._datafy_obj(item, refs))
+            contents.append(self._sanitize_for_data_object(item, refs))
         return {
             self.VIEWER_KEY: {
                 'contents': contents,
@@ -140,16 +140,16 @@ class VisualizationEngine:
         """Data generation function for functions."""
         refs = set()
         viewer_data = {
-            'filename': self._datafy_obj(obj.__code__.co_filename, refs),
-            'lineno': self._datafy_obj(obj.__code__.co_firstlineno, refs),
+            'filename': self._sanitize_for_data_object(obj.__code__.co_filename, refs),
+            'lineno': self._sanitize_for_data_object(obj.__code__.co_firstlineno, refs),
         }
         argnames = obj.__code__.co_varnames
         default_arg_values = obj.__defaults__
         viewer_data['args'] = argnames[:-len(default_arg_values)]
         viewer_data['kwargs'] = {
-            self._datafy_obj(argname, refs): self._datafy_obj(value, refs) for argname, value in
-            zip(argnames[-len(default_arg_values)], default_arg_values)
-        }
+            self._sanitize_for_data_object(argname, refs): self._sanitize_for_data_object(value, refs)
+            for argname, value in zip(argnames[-len(default_arg_values)], default_arg_values)
+            }
         return {
             self.VIEWER_KEY: viewer_data,
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)
@@ -176,9 +176,11 @@ class VisualizationEngine:
         for attr in dir(obj):
             value = getattr(obj, attr)
             if self.FUNCTION.test_fn(value):
-                contents['functions'][self._datafy_obj(attr, refs)] = self._datafy_obj(value, refs)
+                contents['functions'][self._sanitize_for_data_object(attr, refs)] = \
+                    self._sanitize_for_data_object(value, refs)
             else:
-                contents['staticfields'][self._datafy_obj(attr, refs)] = self._datafy_obj(value, refs)
+                contents['staticfields'][self._sanitize_for_data_object(attr, refs)] = \
+                    self._sanitize_for_data_object(value, refs)
         return {
             self.VIEWER_KEY: {
                 'contents': contents,
@@ -196,7 +198,8 @@ class VisualizationEngine:
             value = getattr(obj, attr)
             if not self.FUNCTION.test_fn(value) and (
                             attr not in instance_class_attrs or getattr(instance_class, attr, None) != value):
-                contents[self._datafy_obj(attr, refs)] = self._datafy_obj(getattr(obj, attr), refs)
+                contents[self._sanitize_for_data_object(attr, refs)] = \
+                    self._sanitize_for_data_object(getattr(obj, attr), refs)
         return {
             self.VIEWER_KEY: {
                 'contents': contents,
@@ -258,7 +261,7 @@ class VisualizationEngine:
         attributes = dict()
         for attr in dir(obj):
             if exclude_fns and self.FUNCTION.test_fn(getattr(obj, attr)): continue
-            attributes[self._datafy_obj(attr, refs)] = self._datafy_obj(getattr(obj, attr), refs)
+            attributes[self._sanitize_for_data_object(attr, refs)] = self._sanitize_for_data_object(getattr(obj, attr), refs)
         return attributes
 
     def _is_primitive(self, obj):
@@ -274,10 +277,10 @@ class VisualizationEngine:
         """Reformats a string to eliminate ambiguity between strings and symbol ID references."""
         return s
 
-    def _datafy_obj(self, key_or_value, refs):
+    def _sanitize_for_data_object(self, key_or_value, refs):
         """Takes in a Python object and returns a version which is safe to use in a data object.
 
-        _datafy_obj translates any key or value which needs to be in a symbol's data object into a JSON-safe version.
+        _sanitize_for_data_object translates any key or value which needs to be in a symbol's data object into a JSON-safe version.
         Everything put into a symbol's data object must be data-fied first. For primitives, this does nothing but
         escapes strings so that they are not confused with symbol references. For non-primitive objects, a symbol ID
         reference string which refers to the input object is returned.
@@ -322,6 +325,62 @@ class VisualizationEngine:
     ATTRIBUTES_KEY = 'attributes'
 
     # ==================================================================================================================
+    # Utility functions for public methods.
+    # ==================================================================================================================
+
+    def _get_symbol_id(self, obj):
+        """Returns the symbol ID (a string unique for the object's lifetime) of a given object.
+
+        As currently implemented, IDs are only guaranteed to be unique within a single snapshot of the namespace. At the
+        next breakpoint, an object may have died and a new object reclaimed the ID (really implemented as just a base
+        memory address).
+
+        Args:
+            obj (object): A Python object to be identified.
+
+        Returns:
+            (str): symbol ID.
+        """
+        return str(id(obj))
+
+    def _get_type_info(self, symbol_id):
+        """Returns the `VisualizationType` object associated with a particular symbol ID.
+
+        If the symbol ID has not yet been associated with a `VisualizationType` object in the cache, the association is made
+        here. Otherwise, the cached value is returned.
+        Args:
+            symbol_id (str): ID for a symbol, as defined by self._get_symbol_id.
+
+        Returns:
+            (VisualizationType): the `VisualizationType` object associated with the symbol's type.
+        """
+        if symbol_id not in self.cache:
+            raise KeyError('Symbol id {} not found in cache.'.format(symbol_id))
+        if self.TYPE_INFO not in self.cache[symbol_id]:
+            obj = self.cache[symbol_id][self.OBJ]
+            for type_info in self.TYPES:
+                if type_info.test_fn(obj):
+                    self.cache[symbol_id][self.TYPE_INFO] = type_info
+                    break
+        return self.cache[symbol_id][self.TYPE_INFO]
+
+    def _load_symbol_data(self, symbol_id):
+        """Builds the data object for a symbol.
+
+        Used in `get_symbol_data` to build a symbol's data object if none was already cached. This function does not
+        cache its output and will not check the cache before generating.
+
+        Args:
+            symbol_id (str): A string ID for the requested symbol, as defined by self._get_symbol_id.
+
+        Returns:
+            (object): The symbol's data object.
+        """
+        symbol_type_info = self._get_type_info(symbol_id)
+        symbol_obj = self.cache[symbol_id][self.OBJ]
+        return symbol_type_info.data_fn(self, symbol_obj)
+
+    # ==================================================================================================================
     # Public functions.
     # -----------------
     # The functions which generate visualization-ready content about objects in the Python program. Typically,
@@ -360,11 +419,11 @@ class VisualizationEngine:
             symbol_type_info = self._get_type_info(symbol_id)
             symbol_obj = self.cache[symbol_id][self.OBJ]
             self.cache[symbol_id][self.SHELL] = {
-                                                'type': symbol_type_info.type_name,
-                                                'str': symbol_type_info.str_fn(symbol_obj),
-                                                'name': name,
-                                                'data': None,
-                                              }
+                'type': symbol_type_info.type_name,
+                'str': symbol_type_info.str_fn(symbol_obj),
+                'name': name,
+                'data': None,
+            }
         return self.cache[symbol_id][self.SHELL]
 
     def get_namespace_shells(self, namespace):
@@ -445,59 +504,3 @@ class VisualizationEngine:
     def reset_cache(self):
         """Clear the cache completely, resetting the engine to its starting state."""
         self.cache.clear()
-
-    # ==================================================================================================================
-    # Private functions.
-    # ==================================================================================================================
-
-    def _get_symbol_id(self, obj):
-        """Returns the symbol ID (a string unique for the object's lifetime) of a given object.
-
-        As currently implemented, IDs are only guaranteed to be unique within a single snapshot of the namespace. At the
-        next breakpoint, an object may have died and a new object reclaimed the ID (really implemented as just a base
-        memory address).
-
-        Args:
-            obj (object): A Python object to be identified.
-
-        Returns:
-            (str): symbol ID.
-        """
-        return str(id(obj))
-
-    def _get_type_info(self, symbol_id):
-        """Returns the `VisualizationType` object associated with a particular symbol ID.
-
-        If the symbol ID has not yet been associated with a `VisualizationType` object in the cache, the association is made
-        here. Otherwise, the cached value is returned.
-        Args:
-            symbol_id (str): ID for a symbol, as defined by self._get_symbol_id.
-
-        Returns:
-            (VisualizationType): the `VisualizationType` object associated with the symbol's type.
-        """
-        if symbol_id not in self.cache:
-            raise KeyError('Symbol id {} not found in cache.'.format(symbol_id))
-        if self.TYPE_INFO not in self.cache[symbol_id]:
-            obj = self.cache[symbol_id][self.OBJ]
-            for type_info in self.TYPES:
-                if type_info.test_fn(obj):
-                    self.cache[symbol_id][self.TYPE_INFO] = type_info
-                    break
-        return self.cache[symbol_id][self.TYPE_INFO]
-
-    def _load_symbol_data(self, symbol_id):
-        """Builds the data object for a symbol.
-
-        Used in `get_symbol_data` to build a symbol's data object if none was already cached. This function does not
-        cache its output and will not check the cache before generating.
-
-        Args:
-            symbol_id (str): A string ID for the requested symbol, as defined by self._get_symbol_id.
-
-        Returns:
-            (object): The symbol's data object.
-        """
-        symbol_type_info = self._get_type_info(symbol_id)
-        symbol_obj = self.cache[symbol_id][self.OBJ]
-        return symbol_type_info.data_fn(self, symbol_obj)
