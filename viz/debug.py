@@ -280,7 +280,7 @@ class VisualDebugger(bdb.Bdb):
 
         Args:
             callback_fn (fn): A (str) => None function from the server which expects the JSON string representation
-                of the dictionary mapping symbol IDs to shells for each symbol in the namespace.
+                of the dict mapping symbol IDs to shells for each symbol in the namespace.
         """
         callback_fn(self.viz_engine.to_json(self.get_namespace_shells()))
 
@@ -329,7 +329,7 @@ class VisualDebugger(bdb.Bdb):
         return self.format_stack_entry(self.current_stack[self.current_stack_index])
 
     def get_namespace_shells(self):
-        """Returns a dictionary mapping string symbol IDs to dictionary shell representations.
+        """Returns a dict mapping string symbol IDs to dict shell representations.
 
         Every variable in both the local and global namespaces is included. See `VisualizationEngine` for more
         information about the shell representation format.
