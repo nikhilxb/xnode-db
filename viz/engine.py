@@ -351,11 +351,11 @@ class VisualizationEngine:
     def get_namespace_shells(self, namespace):
         """Get shells for all objects defined in the given namespace dict.
 
-        The cache is updated to associate the objects in the given namespace with their symbol IDs.
-
-        This function should generally be used when the state of the runtime has changed. Future implementations may
+        This function should generally be used when the state of the runtime has changed. The cache is updated to
+        associate the objects in the given namespace with their symbol IDs. Future implementations may
         retain information from step to step, but currently the cache is wiped when this function is called to
         prevent accidental ID collisions between destroyed objects and new objects with the same ID.
+
         Args:
             namespace (dict): A mapping of string names to Python objects.
 
@@ -382,17 +382,16 @@ class VisualizationEngine:
         primitives, the contents of the object are not generally reflected in the shell representation (though some
         may be present in the 'str' field).
 
-        The function assumes that symbol_id exists already within the cache (added via either a get_symbol_data call
-        or a get_namespace_shells call) and that cache[symbol_id][OBJ] points to the symbol's associated Python
+        The function assumes that `symbol_id` exists already within the `cache` (added via `get_symbol_data()` or
+        or `get_namespace_shells()`) and that `cache[symbol_id][OBJ]` points to the symbol's associated Python
         object. If the shell has already been cached, it is simply returned; otherwise, this function will fill the
         cache[symbol_id][SHELL] field.
 
-        The returned dict is a Python object, which needs to be transformed to a string via to_json if sent over a
-        socket to a server. get_symbol_shell is decomposed from to_json so that the dict can be used within the
-        Python environment as well.
+        The returned dict is a Python object, which may need converted `to_json()` for sending to a Javascript server.
+
         Args:
-            symbol_id (str): A unique identifier for the symbol, as defined by self._get_symbol_id.
-            name (str): An optional name for the symbol, to be displayed in the client.
+            symbol_id (str): A unique identifier for the symbol, as defined by `_get_symbol_id()`.
+            name (str): Optional, a name for the symbol if defined, e.g. "myVar".
 
         Returns:
             (dict): The symbol's shell dict.
@@ -445,6 +444,7 @@ class VisualizationEngine:
         cache[symbol_id][SHELL]. It uses, and fills if empty, cache[symbol_id][DATA] and cache[symbol_id][REFS]. REFS
         stores all symbol IDs referenced by the data object, and the shells of each such symbol are returned along
         with the data object.
+
         Args:
             symbol_id (str): The requested symbol's ID, as defined by self._get_symbol_id.
 
@@ -479,7 +479,7 @@ class VisualizationEngine:
     def to_json(self, obj):
         """Converts a visualization dict to its corresponding JSON string.
 
-        obj can be any output of the engine's exposed calls -- in particular, it can be either a symbol's shell or a
+        `obj` can be any output of the engine's exposed calls -- in particular, it can be either a symbol's shell or a
         symbol's data object. There is currently no difference in behavior, but for some more complex types (like
         Tensors) it may be required.
 

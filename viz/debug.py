@@ -98,9 +98,17 @@ class VisualDebugger(bdb.Bdb):
     like stepping, continuing, and quitting.
     """
 
+    # A static reference to a VisualDebuggerServerHandle.
+    # It is possible and likely that multiple `VisualDebugger` objects are created in a single program (see
+    # `VisualDebuggerServerHandle` docstring). We would like to reuse the same debugging server for all of these
+    # objects, so we update the static reference once in the first-created `VisualDebugger` and then use it in any
+    # and all subsequently created `VisualDebugger` instances when they take over the program flow.
+    _server = None
+
+
     # ==================================================================================================================
     # Messages for server-debugger communication.
-    # ----------------------------------
+    # -------------------------------------------
     # These strings are emitted by the server to the VisualDebugger over the socket between them. If one of these
     # strings is changed, it must also be changed in server.js (and vice versa).
     # ==================================================================================================================
@@ -113,16 +121,6 @@ class VisualDebugger(bdb.Bdb):
     DBG_GET_NAMESPACE = 'dbg-get-namespace'         # return the shells of all Python objects in the current namespace
     DBG_GET_CONTEXT = 'dbg-get-context'             # return the context object defining the current program state
 
-    # ==================================================================================================================
-    # A static reference to a VisualDebuggerServerHandle.
-    # ----------------------------------
-    # It is possible and likely that multiple `VisualDebugger` objects are created in a single program (see
-    # `VisualDebuggerServerHandle` docstring). We would like to reuse the same debugging server for all of these
-    # objects, so we update the static reference once in the first-created `VisualDebugger` and then use it in any
-    # and all subsequently created `VisualDebugger` instances when they take over the program flow.
-    # ==================================================================================================================
-    _server = None
-    # ==================================================================================================================
 
     def __init__(self, program_port_range=(3000, 5000), client_port_range=(8000, 9000)):
         """Instantiates the debugging server if not already running, connects to it via a socket, and prepares for
@@ -135,26 +133,37 @@ class VisualDebugger(bdb.Bdb):
         super(VisualDebugger, self).__init__()
         if self._server is None:
             VisualDebugger._server = VisualDebuggerServerHandle(program_port_range, client_port_range)
+
         # TODO un-hardcode this string
         # This line will hang until the socket connection is established.
         self.socket = SingleRequestSocketIO('localhost', self._server.program_port)
         self._attach_socket_callbacks()
+
+        # Instance variables.
+        # -------------------
+
+        # The visualization engine that generates and caches all visualizations for this debugger.
         self.viz_engine = VisualizationEngine()
+
         # Indicates whether the debugger should wait for another request from the server, or stop listening.
         # Commands such as continue and step_over should not be waited after, so the program can continue until the
         # next breakpoint. Sending data, via a load_symbol_data call, should be waited after so that additional
         # requests may be handled.
         self.keep_waiting = True
+
         # An object describing the frame in which the program is currently halted; used to provide a point of
         # reference to debugging functions. For example, step_over must know the current frame so that it can
         # continue until it reaches the next line in that frame.
         self.current_frame = None
+
         # An object describing the program's current stack; used to generate program context and acquire the current
         # frame. Current_stack encodes information such as the currently running file and line number.
         self.current_stack = None
+
         # An index into current_stack, indicating where the program execution currently resides in it and where
         # context information should be extracted from.
         self.current_stack_index = None
+
         # A list of callback functions to be executed once at the next encountered breakpoint. When the server issues
         # a control flow command, it will typically ask that a callback be executed when the command terminates. Such
         # callbacks would be added to this list, called when the program has halted again.
@@ -209,17 +218,20 @@ class VisualDebugger(bdb.Bdb):
             callback()
         self.next_breakpoint_callbacks.clear()
 
+
     # ==================================================================================================================
     # Control flow callback functions.
-    # ----------------------------------
+    # --------------------------------
     # These callback functions manipulate the control flow of the program at the behest of the server. With the
     # exception of callback_stop, each takes a single argument, which is a function of the form (context, namespace)
     # => None. The function should be executed after the program has halted again, with the context object and
     # namespace dict being generated at that time. See get_context and get_namespace for information about those
     # objects.
     # ==================================================================================================================
+
     def callback_stop(self, callback_fn):
         """A socket.io-style callback for the stop command.
+
         Args:
             callback_fn (fn): A 0-argument function from the server to be executed before the program terminates.
         """
@@ -267,9 +279,10 @@ class VisualDebugger(bdb.Bdb):
             callback_fn(context, namespace)
         return _callback
 
+
     # ==================================================================================================================
     # Data transmission callback functions.
-    # ----------------------------------
+    # -------------------------------------
     # These functions return a piece of information requested by the server.
     # ==================================================================================================================
     def callback_get_namespace_shells(self, callback_fn):
@@ -285,7 +298,7 @@ class VisualDebugger(bdb.Bdb):
         callback_fn(self.viz_engine.to_json(self.get_namespace_shells()))
 
     def callback_get_context(self, callback_fn):
-        """A socket.io-style callback for getting the program's current context.
+        """A socket.io-style callback wrapper for getting the program's current context.
 
         The server might at any time request the status of the program, such as line number (all newly-connecting
         clients would need this information). This function is called when such a request is made.
@@ -297,7 +310,7 @@ class VisualDebugger(bdb.Bdb):
         callback_fn(self.get_context())
 
     def callback_load_symbol(self, symbol_id, callback_fn):
-        """A socket.io-style callback wrapper for load_symbol.
+        """A socket.io-style callback wrapper for load a specific symbol.
 
         When the server asks to load a symbol's data object, it sends the symbol ID and a callback function
         (which relays the loaded symbol to the client). The `VisualDebugger` loads the symbol and then calls the
@@ -310,9 +323,10 @@ class VisualDebugger(bdb.Bdb):
         """
         callback_fn(*self.load_symbol(symbol_id))
 
+
     # ==================================================================================================================
     # Data getters.
-    # ----------------------------------
+    # -------------
     # These functions return pieces of information about the current program.
     # ==================================================================================================================
     def get_context(self):
@@ -368,12 +382,12 @@ class VisualDebugger(bdb.Bdb):
 
     # ==================================================================================================================
     # `bdb` overrides.
-    # ----------------------------------
-    # `bdb` is a cruel mistress, and forces us to override these functions, which are called throughout
+    # ----------------
+    # `bdb` is a cruel mistress and forces us to override these functions, which are called throughout
     # program flow. These functions allow us to interject our own logic at breakpoints, letting us start
     # communicating with the server again to figure out what to do next. Implementation and invocation
-    # info is taken  from pdb. Pdb also also skips over any of these calls when the code is not from the main Python
-    # file; when we implement run(), TODO we will likely need to add support for this.
+    # info is taken from `pdb`. `pdb` also also skips over any of these calls when the code is not from the main Python
+    # file; when we implement `run()`, TODO: we will likely need to add support for this.
     # ==================================================================================================================
     def user_call(self, frame, argument_list):
         """Invoked when a function is called. Waits for server requests if the debugger should stop.
@@ -388,7 +402,7 @@ class VisualDebugger(bdb.Bdb):
     def user_exception(self, frame, exc_info):
         """Invoked when an exception occurs at or just below the debugger at a place where the debugger should stop.
 
-        This one I know less about; however, we should probably stop normal program flow and put the debugger in
+        TODO: This one I know less about; however, we should probably stop normal program flow and put the debugger in
         control in the event of an exception.
         """
         # Taken from pdb; unsure how important this is. TODO look into this more
@@ -400,8 +414,8 @@ class VisualDebugger(bdb.Bdb):
     def user_line(self, frame):
         """Invoked when the debugger stops or breaks on a line. Waits for a request from the server.
 
-        Any line where the debugger should stop, including after a step_(into|over), invokes this call, and we should
-        pause execution accordingly. This does not trigger at the end of a function; instead, user_return does.
+        Any line where the debugger should stop, including after a `step_[into, over]`, invokes this call, and we should
+        pause execution accordingly. This does not trigger at the end of a function; instead, `user_return()` does.
         """
         self.setup_at_break(frame)
         self.wait_for_request()
@@ -413,10 +427,11 @@ class VisualDebugger(bdb.Bdb):
         self.wait_for_request()
 
     def do_clear(self, arg):
-        """Clears breakpoints specified by arg.
+        """Clears breakpoints specified by `arg`.
 
-        A required implementation of `bdb`, used at least when a temporary breakpoint is hit. This is a strange
-        function, and its purpose is unclear; we should figure it out at some point.
+        A required implementation of `bdb`, used at least when a temporary breakpoint is hit.
+        TODO: This is a strange function, and its purpose is unclear; we should figure it out at some point.
+
         Args:
             arg (None): An optional argument specifying which breakpoints to clear, but not used here.
         """
@@ -425,8 +440,9 @@ class VisualDebugger(bdb.Bdb):
 
 
 # ======================================================================================================================
-# Module-level debugging functions.
+# User-program-invoked debugging function.
 # ======================================================================================================================
+
 def set_trace():
     """A convenience function which instantiates a `VisualDebugger` object and sets trace at the current frame.
 
