@@ -12,7 +12,8 @@
     "express": "^4.16.2",
     "fs": "0.0.1-security",
     "jshint": "^2.9.5",
-    "nodemon": "^1.14.11",
+    "nodemon": "^1.14.12",
+    "path": "^0.12.7",
     "socket.io": "1.7.4"
   }
 }
