@@ -94,8 +94,8 @@ class VisualDebugger(bdb.Bdb):
     controlled by the server (via a socket) rather than the command line. The `VisualDebugger` is used to control the
     program flow and to instruct its `VisualizationEngine` to transform requested symbols in the Python runtime to
     useful visualization schema. The VisualizationEngine manages the task of actually interacting with Python objects
-    for visualization purposes, limiting the scope of `VisualDebugger` functionality to typical debugger tasks,
-    like stepping, continuing, and quitting.
+    for visualization purposes, limiting the scope of `VisualDebugger` functionality to typical debugger tasks (e.g.
+    step, continue, quit, etc).
     """
 
     # A static reference to a VisualDebuggerServerHandle.
