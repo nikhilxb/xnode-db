@@ -11,15 +11,12 @@ from viz.engine import VisualizationEngine
 def _get_available_port(host, port_range):
     """Finds an unused port number on the given host.
 
-    We need to be able to find available ports for the `VisualDebuggerServer`; we at least need to be able to find the
-    port on which to open the socket.io connection from within the Python program so that the `VisualDebugger` object
-    has that information. We have also chosen to find the client port with this code so as not to rewrite this
-    functionality in the Node.js server. Passing the port as a parameter to the Node.js server simply replaces the
-    need to pass an acceptable port range (specified by the user in VisualDebugger instantiation) as a parameter
-    instead.
+    The `VisualDebuggerServerHandle` needs to find a local port over which it can communicate with the `VisualDebugger`
+    object that interfacts with the Python program. We have also chosen to find the client port with this code so as
+    not to rewrite this functionality in the Node.js server.
 
     Args:
-        host (str): The host address.
+        host (str): An IP address to scan for open ports.
         port_range (int, int): The port range to check (inclusive).
 
     Returns:
@@ -40,19 +37,26 @@ def _get_available_port(host, port_range):
 class SingleRequestSocketIO(SocketIO):
     """A SocketIO client object that can terminate waiting after receiving a single request.
 
-    The Python socketIO_client library does not implement this functionality by default. We need it for the
-    `VisualDebugger`, which after receiving step and continue commands should not endlessly wait on the server but
-    instead continue normal code flow until another breakpoint is hit.
+    A normal SocketIO client will wait and respond to requests until it hits a set timeout. The `VisualDebugger`
+    needs to be able to break out of waiting when step and continue commands are received so that program execution
+    can continue.
     """
     def __init__(self, *args, **kwargs):
+        """Add a field to track whether a callback has been received before opening the socket.
+
+        Users should also set the kwarg `one_callback` to `True` in init; otherwise, the instance will behave like
+        any other socket.io client.
+        """
         self.has_called_back = False
         super(SingleRequestSocketIO, self).__init__(*args, **kwargs)
 
     def _on_event(self, data_parsed, namespace):
+        """Called when a request has been made over the socket."""
         self.has_called_back = True
         super(SingleRequestSocketIO, self)._on_event(data_parsed, namespace)
 
     def _should_stop_waiting(self, for_namespace=False, for_callbacks=False, one_callback=False):
+        """A check socket.io runs regularly to determine if it should stop waiting for server requests."""
         if one_callback and self.has_called_back:
             self.has_called_back = False
             return True
@@ -68,6 +72,17 @@ class VisualDebuggerServerHandle:
     `VisualDebugger` created, we can instead connect the currently in-charge debugger to the first (and only) created
     server process. This object helps us create a consistent process that persists beyond a debugger instance.
     """
+
+    # TODO ensure these will work in remote cases
+    # The address on which to find a port and open the socket between the server and the debugger.
+    LOCAL_ADDRESS = 'localhost'
+
+    # The address on which to open the server to client requests.
+    CLIENT_ADDRESS = '0.0.0.0'
+
+    # TODO make this deployment-ready
+    SERVER_PROGRAM_PATH = r'..\server\server.js'
+
     def __init__(self, program_port_range, client_port_range):
         """Creates a new server process with the specified ports.
 
@@ -75,12 +90,11 @@ class VisualDebuggerServerHandle:
             program_port_range (int, int): Range of ports for program-server communication.
             client_port_range (int, int): Range of ports for server-client communication.
         """
-        # TODO un-hardcode these strings, especially the program location
-        self.program_port = _get_available_port('localhost', program_port_range)
-        self.client_port = _get_available_port('0.0.0.0', client_port_range)
+        self.program_port = _get_available_port(self.LOCAL_ADDRESS, program_port_range)
+        self.client_port = _get_available_port(self.CLIENT_ADDRESS, client_port_range)
         print('Debugging server started on port {}, communicating with program on port {}'.format(self.client_port,
                                                                                                   self.program_port))
-        self.process = Popen(['node', r'..\server\server.js', str(self.program_port), str(self.client_port)])
+        self.process = Popen(['node', self.SERVER_PROGRAM_PATH, str(self.program_port), str(self.client_port)])
         atexit.register(self.cleanup)
 
     def cleanup(self):
@@ -99,12 +113,9 @@ class VisualDebugger(bdb.Bdb):
     """
 
     # A static reference to a VisualDebuggerServerHandle.
-    # It is possible and likely that multiple `VisualDebugger` objects are created in a single program (see
-    # `VisualDebuggerServerHandle` docstring). We would like to reuse the same debugging server for all of these
-    # objects, so we update the static reference once in the first-created `VisualDebugger` and then use it in any
-    # and all subsequently created `VisualDebugger` instances when they take over the program flow.
+    # We would like to reuse the same debugging server regardless of the number of `VisualDebugger` objects created
+    # in the program, so we update the static reference exactly once in the first-created `VisualDebugger`.
     _server = None
-
 
     # ==================================================================================================================
     # Messages for server-debugger communication.
@@ -112,6 +123,7 @@ class VisualDebugger(bdb.Bdb):
     # These strings are emitted by the server to the VisualDebugger over the socket between them. If one of these
     # strings is changed, it must also be changed in server.js (and vice versa).
     # ==================================================================================================================
+
     DBG_STOP = 'dbg-stop'                           # terminate the program immediately
     DBG_CONTINUE = 'dbg-continue'                   # continue normal program flow until a new breakpoint is reached
     DBG_STEP_OVER = 'dbg-step-over'                 # step one line forward without stepping down into function calls
@@ -120,7 +132,6 @@ class VisualDebugger(bdb.Bdb):
     DBG_LOAD_SYMBOL = 'dbg-load-symbol'             # return the data object for a given symbol
     DBG_GET_NAMESPACE = 'dbg-get-namespace'         # return the shells of all Python objects in the current namespace
     DBG_GET_CONTEXT = 'dbg-get-context'             # return the context object defining the current program state
-
 
     def __init__(self, program_port_range=(3000, 5000), client_port_range=(8000, 9000)):
         """Instantiates the debugging server if not already running, connects to it via a socket, and prepares for
@@ -136,7 +147,7 @@ class VisualDebugger(bdb.Bdb):
 
         # TODO un-hardcode this string
         # This line will hang until the socket connection is established.
-        self.socket = SingleRequestSocketIO('localhost', self._server.program_port)
+        self.socket = SingleRequestSocketIO(self._server.LOCAL_ADDRESS, self._server.program_port)
         self._attach_socket_callbacks()
 
         # Instance variables.
@@ -218,19 +229,18 @@ class VisualDebugger(bdb.Bdb):
             callback()
         self.next_breakpoint_callbacks.clear()
 
-
     # ==================================================================================================================
     # Control flow callback functions.
     # --------------------------------
     # These callback functions manipulate the control flow of the program at the behest of the server. With the
     # exception of callback_stop, each takes a single argument, which is a function of the form (context, namespace)
     # => None. The function should be executed after the program has halted again, with the context object and
-    # namespace dict being generated at that time. See get_context and get_namespace for information about those
+    # namespace dict being generated at that time. See _get_context and get_namespace for information about those
     # objects.
     # ==================================================================================================================
 
     def callback_stop(self, callback_fn):
-        """A socket.io-style callback for the stop command.
+        """Stops execution of the program immediately.
 
         Args:
             callback_fn (fn): A 0-argument function from the server to be executed before the program terminates.
@@ -274,19 +284,19 @@ class VisualDebugger(bdb.Bdb):
         generality), so we create a 0-argument version of the runtime update callback here.
         """
         def _callback():
-            context = self.get_context()
-            namespace = self.get_namespace_shells()
+            context = self._get_context()
+            namespace = self._get_namespace_shells()
             callback_fn(context, namespace)
         return _callback
-
 
     # ==================================================================================================================
     # Data transmission callback functions.
     # -------------------------------------
     # These functions return a piece of information requested by the server.
     # ==================================================================================================================
+
     def callback_get_namespace_shells(self, callback_fn):
-        """A socket.io-style callback for getting the shells of all symbols in the namespace.
+        """Gets the lightweight shell representations of all symbols in the program's current namespace.
 
         The server might at any time request the shells of all objects in the namespace (for example, when a new
         client connects, it would make this request). This function is called when such a request is made.
@@ -295,10 +305,10 @@ class VisualDebugger(bdb.Bdb):
             callback_fn (fn): A (str) => None function from the server which expects the JSON string representation
                 of the dict mapping symbol IDs to shells for each symbol in the namespace.
         """
-        callback_fn(self.viz_engine.to_json(self.get_namespace_shells()))
+        callback_fn(self.viz_engine.to_json(self._get_namespace_shells()))
 
     def callback_get_context(self, callback_fn):
-        """A socket.io-style callback wrapper for getting the program's current context.
+        """Gets a string representation of the program's current state of execution.
 
         The server might at any time request the status of the program, such as line number (all newly-connecting
         clients would need this information). This function is called when such a request is made.
@@ -307,10 +317,10 @@ class VisualDebugger(bdb.Bdb):
             callback_fn (fn): A (str) => None function from the server which expects the string representation
                 of the program's current context object.
         """
-        callback_fn(self.get_context())
+        callback_fn(self._get_context())
 
     def callback_load_symbol(self, symbol_id, callback_fn):
-        """A socket.io-style callback wrapper for load a specific symbol.
+        """Load a symbol's data object and pass it into the given callback.
 
         When the server asks to load a symbol's data object, it sends the symbol ID and a callback function
         (which relays the loaded symbol to the client). The `VisualDebugger` loads the symbol and then calls the
@@ -321,15 +331,9 @@ class VisualDebugger(bdb.Bdb):
             callback_fn (fn): A (str, str) => None function which accepts a JSON string of the requested symbol's
                 data object and the JSON string mapping any symbols referenced by the data object to their shells.
         """
-        callback_fn(*self.load_symbol(symbol_id))
+        callback_fn(*self._load_symbol(symbol_id))
 
-
-    # ==================================================================================================================
-    # Data getters.
-    # -------------
-    # These functions return pieces of information about the current program.
-    # ==================================================================================================================
-    def get_context(self):
+    def _get_context(self):
         """Returns some object, for now a string, capturing the state of the program.
 
         The client will need to show users where the program has stopped, and some context information is required.
@@ -339,14 +343,15 @@ class VisualDebugger(bdb.Bdb):
         Returns:
             (str): The file and line number of the Python program's current line.
         """
-        # TODO send more information in context
+        # TODO send more information than just the filename and linenumber, like time spent running
         return self.format_stack_entry(self.current_stack[self.current_stack_index])
 
-    def get_namespace_shells(self):
+    def _get_namespace_shells(self):
         """Returns a dict mapping string symbol IDs to dict shell representations.
 
         Every variable in both the local and global namespaces is included. See `VisualizationEngine` for more
-        information about the shell representation format.
+        information about the shell representation format. This function is typically called as part of a callback when
+        the program stops at a new frame.
 
         Returns:
             (dict): Shells for all symbols in the namespace.
@@ -355,7 +360,7 @@ class VisualDebugger(bdb.Bdb):
         joined_namespace.update(self.current_frame.f_locals)
         return self.viz_engine.get_namespace_shells(joined_namespace)
 
-    def load_symbol(self, symbol_id):
+    def _load_symbol(self, symbol_id):
         """Loads and returns the JSON representation of a requested symbol.
 
         Args:
@@ -368,18 +373,6 @@ class VisualDebugger(bdb.Bdb):
         symbol_data, new_shells = self.viz_engine.get_symbol_data(symbol_id)
         return self.viz_engine.to_json(symbol_data), self.viz_engine.to_json(new_shells)
 
-    def wait_for_request(self):
-        """Waits for a request from the server, looping if the callback is not terminal.
-
-        Calling this function waits for at least one request on the socket. By default, the loop breaks after the
-        first callback is completed, but callbacks can optionally request to keep the loop going.
-        """
-        # We enter the loop at least once, but will break out if keep_waiting is not set to True in the request
-        # callback.
-        self.keep_waiting = True
-        while self.keep_waiting and not self.quitting:
-            self.socket.wait(one_callback=True)
-
     # ==================================================================================================================
     # `bdb` overrides.
     # ----------------
@@ -389,6 +382,7 @@ class VisualDebugger(bdb.Bdb):
     # info is taken from `pdb`. `pdb` also also skips over any of these calls when the code is not from the main Python
     # file; when we implement `run()`, TODO: we will likely need to add support for this.
     # ==================================================================================================================
+
     def user_call(self, frame, argument_list):
         """Invoked when a function is called. Waits for server requests if the debugger should stop.
 
@@ -397,7 +391,7 @@ class VisualDebugger(bdb.Bdb):
         """
         if self.stop_here(frame):
             self.setup_at_break(frame)
-            self.wait_for_request()
+            self._wait_for_request()
 
     def user_exception(self, frame, exc_info):
         """Invoked when an exception occurs at or just below the debugger at a place where the debugger should stop.
@@ -409,7 +403,7 @@ class VisualDebugger(bdb.Bdb):
         exc_type, exc_value, exc_traceback = exc_info
         frame.f_locals['__exception__'] = exc_type, exc_value
         self.setup_at_break(frame)
-        self.wait_for_request()
+        self._wait_for_request()
 
     def user_line(self, frame):
         """Invoked when the debugger stops or breaks on a line. Waits for a request from the server.
@@ -418,13 +412,13 @@ class VisualDebugger(bdb.Bdb):
         pause execution accordingly. This does not trigger at the end of a function; instead, `user_return()` does.
         """
         self.setup_at_break(frame)
-        self.wait_for_request()
+        self._wait_for_request()
 
     def user_return(self, frame, return_value):
         """Invoked when execution halts (because of a breakpoint) on a function return.
         """
         self.setup_at_break(frame)
-        self.wait_for_request()
+        self._wait_for_request()
 
     def do_clear(self, arg):
         """Clears breakpoints specified by `arg`.
@@ -437,6 +431,19 @@ class VisualDebugger(bdb.Bdb):
         """
         # TODO implement deletions of breakpoints at specific lines.
         self.clear_all_breaks()
+
+    def _wait_for_request(self):
+        """Waits for a request from the server, looping if the callback is not terminal.
+
+        Calling this function waits for at least one request on the socket. By default,
+        the loop breaks after the first callback is completed, but callbacks can optionally request to keep the loop
+        going.
+        """
+        # We enter the loop at least once, but will break out if keep_waiting is not set to True in the request
+        # callback.
+        self.keep_waiting = True
+        while self.keep_waiting and not self.quitting:
+            self.socket.wait(one_callback=True)
 
 
 # ======================================================================================================================
