@@ -285,6 +285,7 @@ class VisualDebugger(bdb.Bdb):
     # -------------------------------------
     # These functions return a piece of information requested by the server.
     # ==================================================================================================================
+
     def callback_get_namespace_shells(self, callback_fn):
         """A socket.io-style callback for getting the shells of all symbols in the namespace.
 
@@ -329,6 +330,7 @@ class VisualDebugger(bdb.Bdb):
     # -------------
     # These functions return pieces of information about the current program.
     # ==================================================================================================================
+
     def get_context(self):
         """Returns some object, for now a string, capturing the state of the program.
 
@@ -389,6 +391,7 @@ class VisualDebugger(bdb.Bdb):
     # info is taken from `pdb`. `pdb` also also skips over any of these calls when the code is not from the main Python
     # file; when we implement `run()`, TODO: we will likely need to add support for this.
     # ==================================================================================================================
+
     def user_call(self, frame, argument_list):
         """Invoked when a function is called. Waits for server requests if the debugger should stop.
 

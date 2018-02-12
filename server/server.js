@@ -1,7 +1,7 @@
 "use strict";
 
 /**
- * This file defines the main server program. The server receives API requests from the client over HTTP, which it
+ * This file defines the main server program. The server receives requests from the client over HTTP, which it
  * services by communicating with the Python debugger over socketIO.
  *
  * The server is spun up by the first call to `set_trace` in debugging program, which invokes the command:
@@ -19,11 +19,12 @@
  *     https://stackoverflow.com/questions/11744975/enabling-https-on-express-js
  */
 
-var express  = require("express");   // Web app framework
-var fs       = require("fs");        // Filesystem interaction
-var http     = require("http");      // Serving over http protocol
-var async    = require("async");     // Asynchronous operations
-var socketio = require("socket.io"); // Inter-process socket communication
+let express  = require("express");   // Web app framework
+let fs       = require("fs");        // Filesystem IO
+let path     = require("path");      // Filesystem paths
+let http     = require("http");      // Serving over http protocol
+let async    = require("async");     // Asynchronous operations
+let socketio = require("socket.io"); // Inter-process socket communication
 
 
 // Communication channels
@@ -38,7 +39,7 @@ const CLIENT_PORT = process.argv[3] || 8000;
 /** The socket currently being used to communicate with the Python debugger program. There should only be one socket
  *  to communicate on at any time, because the server is driven by a single debugger. It is the job of the debugger
  *  program to open a socket connection to this server, and reopen the connection on failure. */
-var programSocket = null;
+let programSocket = null;
 
 
 // =====================================================================================================================
@@ -46,35 +47,49 @@ var programSocket = null;
 // =====================================================================================================================
 
 // Create server to use HTTP with socket IO
-var app = express();
-var server = http.createServer(app);
-var io = socketio(PROGRAM_PORT);
+let app = express();
+let server = http.createServer(app);
+let io = socketio(PROGRAM_PORT);
+
+// =====================================================================================================================
+// Frontend request handlers.
+// =====================================================================================================================
 
 // Set directory to serve files from
-app.use(express.static(path.join(__dirname, "public")));
-
-
-// =====================================================================================================================
-// Client request handlers.
-// =====================================================================================================================
+app.use(express.static(path.join(__dirname, "client/public")));
 
 /**
  * GET /
  * Sends an acknowledgement string, so that a client can check whether the server is up and running.
  * TODO: Serve the React app from this URI.
  */
-app.get("/", function(req, resp) {
-    resp.send("Hello, from the Xnode debugging server on port ${fff}!");
+app.get("/info", function(req, resp) {
+    resp.send(`Hello, from the Xnode debugging server!
+               Using program port ${PROGRAM_PORT} and client port ${CLIENT_PORT}.`);
 });
+
+// =====================================================================================================================
+// API request handlers.
+// =====================================================================================================================
+
+let routerAPI = express.Router();
+app.use("/api", routerAPI);
+
+// API - Debugging request handlers.
+// ---------------------------------
+
+let routerAPIDebug = express.Router();
+routerAPI.use("/debug", routerAPIDebug);
 
 /**
  * GET /api/debug/continue
  * Triggers the debugger to CONTINUE (resumes execution until the next breakpoint is reached).
  * Sends the client the current namespace variable data.
  */
-app.get("/api/debug/continue", function(req, resp) {
+routerAPIDebug.get("/continue", function(req, resp) {
     if(programSocket === null) {
         console.error("Tried to CONTINUE but not connected to program.");
+        resp.sendStatus(503);  // "Service Unavailable"
         return;
     }
 
@@ -85,13 +100,14 @@ app.get("/api/debug/continue", function(req, resp) {
 });
 
 /**
- * GET /api/debug/continue"
+ * GET /api/debug/stop"
  * Triggers the debugger to STOP (terminate execution of the program).
  * Sends the client an acknowledgement message.
  */
-app.get("/api/debug/stop", function(req, resp) {
+routerAPIDebug.get("/stop", function(req, resp) {
     if(programSocket === null) {
         console.error("Tried to STOP but not connected to program.");
+        resp.sendStatus(503);  // "Service Unavailable"
         return;
     }
 
@@ -106,9 +122,10 @@ app.get("/api/debug/stop", function(req, resp) {
  * Triggers the debugger to STEP OVER (execute one line of code without entering a function call).
  * Sends the client the current namespace variable data.
  */
-app.get("/api/debug/step_over", function(req, resp) {
+routerAPIDebug.get("/step_over", function(req, resp) {
     if(programSocket === null) {
         console.error("Tried to STEP OVER but not connected to program.");
+        resp.sendStatus(503);  // "Service Unavailable"
         return;
     }
 
@@ -123,9 +140,10 @@ app.get("/api/debug/step_over", function(req, resp) {
  * Triggers the debugger to STEP INTO (execute one line of code and enter a function call if appropriate).
  * Sends the client the current namespace variable data.
  */
-app.get("/api/debug/step_into", function(req, resp) {
+routerAPIDebug.get("/step_into", function(req, resp) {
     if(programSocket === null) {
         console.error("Tried to STEP INTO but not connected to program.");
+        resp.sendStatus(503);  // "Service Unavailable"
         return;
     }
 
@@ -140,9 +158,10 @@ app.get("/api/debug/step_into", function(req, resp) {
  * Triggers the debugger to STEP OUT (resumes execution until right after the current function has returned).
  * Sends the client the current namespace variable data.
  */
-app.get("/api/debug/step_out", function(req, resp) {
+routerAPIDebug.get("/step_out", function(req, resp) {
     if(programSocket === null) {
         console.error("Tried to STEP OUT but not connected to program.");
+        resp.sendStatus(503);  // "Service Unavailable"
         return;
     }
 
@@ -157,9 +176,10 @@ app.get("/api/debug/step_out", function(req, resp) {
  * Triggers the debugger to LOAD SYMBOL using the specified symbol ID.
  * Sends the client the symbol's current data.
  */
-app.get("/api/debug/load_symbol/:symbol_id", function(req, resp) {
+routerAPIDebug.get("/load_symbol/:symbol_id", function(req, resp) {
     if(programSocket === null) {
         console.error("Tried to LOAD SYMBOL but not connected to program.");
+        resp.sendStatus(503);  // "Service Unavailable"
         return;
     }
 
@@ -174,14 +194,15 @@ app.get("/api/debug/load_symbol/:symbol_id", function(req, resp) {
  * POST /api/debug/set_symbol/:symbol_id
  * Triggers the debugger to SET SYMBOL using the specified symbol ID.
  */
-app.post("/api/debug/set_symbol/:symbol_id", function(req, resp) {
+routerAPIDebug.post("/set_symbol/:symbol_id", function(req, resp) {
     if(programSocket === null) {
         console.error("Tried to SET SYMBOL but not connected to program.");
+        resp.sendStatus(503);  // "Service Unavailable"
         return;
     }
 
     var symbol_id = req.params.symbol_id;
-    resp.send("Not implemented.");
+    resp.sendStatus(501);  // "Not Implemented"
     // TODO: Add set symbol functionality
 });
 
