@@ -3,7 +3,7 @@ from collections import defaultdict
 import types
 import inspect
 from torch import _TensorBase
-from viz.graphbuilder import GraphData, GraphContainer, GraphOp
+from viz.graphtracker import GraphData, GraphContainer, GraphOp
 
 
 class VisualizationType:
@@ -145,7 +145,7 @@ class VisualizationEngine:
             self.VIEWER_KEY: {
                 'contents': [self._datafy_obj(op, refs) for op in obj.contents],
                 'container': self._datafy_obj(obj.container, refs),
-                'temporal': self._datafy_obj(obj.temporal, refs),
+                'temporal': self._datafy_obj(obj.temporal_height >= 0, refs),
             },
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)
         }, refs
