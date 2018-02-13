@@ -217,7 +217,7 @@ io.on("connection", function(socket) {
         return;
     }
     programSocket = socket;
-    console.log("Connected to debugging program.");
+    console.log(`Connected to debugging program on port ${PROGRAM_PORT}`);
 
     // Set disconnect handler.
     socket.on("disconnect", function(){

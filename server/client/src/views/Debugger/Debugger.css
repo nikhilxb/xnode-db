@@ -1,28 +1,21 @@
 .Debugger {
-  text-align: center;
+    text-align: center;
 }
 
-.Debugger-logo {
-  animation: Debugger-logo-spin infinite 20s linear;
-  height: 80px;
+.Debugger-container {
+    display: flex;
 }
 
-.Debugger-header {
-  background-color: #222;
-  height: 150px;
-  padding: 20px;
-  color: white;
+.Debugger-sidebar {
+    max-width: 400px;
+    padding: 0px !important;
 }
 
-.Debugger-title {
-  font-size: 1.5em;
+.Debugger-sidebar-elem {
+    font-family: monospace !important;
 }
 
-.Debugger-intro {
-  font-size: large;
-}
-
-@keyframes Debugger-logo-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.Debugger-canvas {
+    background-color: rgb(248, 248, 248);
+    flex-grow: 1;
 }
