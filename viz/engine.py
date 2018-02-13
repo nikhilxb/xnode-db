@@ -335,7 +335,8 @@ class VisualizationEngine:
                     continue
             except RuntimeError:
                 continue
-            attributes[self._sanitize_for_data_object(attr, refs)] = self._sanitize_for_data_object(getattr(obj, attr), refs)
+            attributes[self._sanitize_for_data_object(attr, refs)] = \
+                self._sanitize_for_data_object(getattr(obj, attr), refs)
         return attributes
 
     def _is_primitive(self, obj):
