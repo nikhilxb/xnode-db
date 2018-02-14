@@ -142,9 +142,8 @@ class VisualDebugger(bdb.Bdb):
         if self._server is None:
             VisualDebugger._server = VisualDebuggerServerHandle(program_port_range, client_port_range)
 
-        # TODO un-hardcode this string
         # This line will hang until the socket connection is established.
-        self.socket = SingleRequestSocketIO(self._server.LOCAL_ADDRESS, self._server.program_port)
+        self.socket = SingleRequestSocketIO(self._server.LOCALHOST, self._server.program_port)
         self._attach_socket_callbacks()
 
         # Instance variables.

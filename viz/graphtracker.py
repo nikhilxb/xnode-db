@@ -1,279 +1,407 @@
 """
-This module allows users to create graph op nodes, graph data nodes, and graph containers for visualization. Data is
-"tracked" by wrapping it in a `GraphData` object, which acts as a passthrough wrapper that records the op that created
-the data and the values of the data that should be visualized. Function calls are "tracked" by `GraphOp` objects,
-which record the function that was called and the arguments it was given. Finally, containers are "tracked" with
-`GraphContainer` objects, which record their contents.
+Allows users to track their computation graph for visualization. Data is "tracked" by wrapping it in a `GraphData`
+object, which acts as a passthrough wrapper that records the op that created the data and the values of the data that
+should be visualized. Function calls are "tracked" by `GraphOp` objects, which record the function that was called
+and the arguments it was given. Finally, containers are "tracked" with `GraphContainer` objects, which record their
+contents.
+
+See viz.md for underlying principles and concepts.
 """
 import wrapt
+from collections import deque
 
 
-# A list of all ops and containers which do not currently have a parent container. This is used to identify ops added
-# to the graph since the last call to tick() (and should therefore be part of the next temporal container).
-_TOP_LEVELS = list()
+class Nestable:
+    """A parent class to `GraphOp` and `GraphContainer`, representing an object which might be nested in a hierarchy of
+    containers."""
+    def __init__(self):
+        # Each `Nestable` may have either 0 or 1 containers, though that container might have many items and a
+        # container of its own. Containers should also be `Nestable` instances.
+        self.container = None
+
+    def get_outermost_parent(self):
+        """Returns the first `Nestable` with no container, found by iterating through this `Nestable`'s container
+        hierarchy.
+
+        The "outermost parent" of a `Nestable` n is the first `Nestable` with no container found in the hierarchy of
+        n. This could be n itself, if n has no container.
+
+        Returns:
+            (Nestable): This instance's outermost parent.
+        """
+        return self if self.container is None else self.container.get_outermost_parent()
 
 
 # ======================================================================================================================
 # Graph operations.
 # -----------------
-# A `GraphOp` object records a single function call, and is created in one of two ways:
-#   1. A function and some arguments are passed to `atomic_call`, which executes the function with those arguments
-#       and creates a `GraphOp` recording the execution.
-#   2. A function is wrapped in an `AtomicTrackedCallable` object, which creates a new `GraphOp` every time the
-#       function is executed.
-# Newly created `GraphOp` instances are added to _TOP_LEVELS if they have no container.
+# A `GraphOp` object records a single function call and is created whenever a function wrapped by an `OpGenerator`
+# object is called.
 # ======================================================================================================================
 
-class GraphOp:
+class GraphOp(Nestable):
     """A record of a single function execution."""
     def __init__(self, fn, args, kwargs):
-        """Constructor. Adds the newly-created `GraphOp` to _TOP_LEVELS if it has no parent container.
+        """Constructor.
 
         Args:
             fn (fn): The function executed in the op.
             args (tuple): A sequence of positional arguments that were passed to the function at execution.
             kwargs (dict): A dictionary of keyword arguments passed to the function at execution.
         """
+        super(GraphOp, self).__init__()
         self.fn = fn
+
+        # Stores only `GraphData` inputs, as only these will be shown in the graph. Other args are turned to `None`
+        # to maintain proper argument positions.
         self.args = [obj if type(obj) is GraphData else None for obj in args]
+
+        # Stores only key-value pairs where the value is a `GraphData` object, as only these will be shown in the graph.
         self.kwargs = {
             kw: arg for kw, arg in kwargs.items() if type(arg) is GraphData
         }
-        self.container = None
-        _TOP_LEVELS.append(self)
 
+        # A `GraphOp` object always has temporal level 0, so any new temporal container will be able to encapsulate
+        # it (unless it is already in a temporal container of the same level). The concept is explained more in the
+        # Containers section.
+        self.temporal_level = 0
 
-def atomic_call(fn, viz_kvs, *args, return_op=False, **kwargs):
-    """Executes a function and creates a `GraphOp` recording the execution.
+    def get_tracked_args(self):
+        """Return a list of all recorded positional and keyword arguments that are wrapped in `GraphData`.
 
-    A single `GraphOp` is created the function's execution. The function should not in its internals create any
-    additional `GraphOp` objects; functions which create more `GraphOp` objects should be called with `abstract_call`
-    instead. It should also not output `GraphData` objects.
+        This is used to build the DAG, collecting all `GraphData` inputs so that their ancestors can be iterated over
+        and added to the graph.
 
-    Args:
-        fn (fn): The function to execute.
-        viz_kvs (list): A list of visualization dicts for the outputs of `fn`. The i-th entry of `viz_kvs` is a dict
-            whose values are attribute names of the i-th returned output of `fn` and whose keys are string names to
-            show for those attributes in visualization. See `GraphData` for more info.
-        args (tuple): A sequence of positional arguments to pass to fn.
-        return_op (bool): `True` if the new `GraphOp` should be returned along with the outputs of `fn`.
-        kwargs (dict): Keyword arguments to pass to `fn`.
-
-    Returns:
-        The outputs of `fn`, and the new `GraphOp` if `return_op` is `True`.
-    """
-    op = GraphOp(fn, args, kwargs)
-    ret = fn(*args, **kwargs)
-    if not isinstance(ret, tuple):
-        ret = (ret,)
-    output = tuple([GraphData(r, viz_kvs[i], creator_op=op, creator_pos=i) for i, r in enumerate(ret)])
-    if return_op:
-        return output + (op, )
-    else:
-        return output if len(output) > 1 else output[0]
-
-
-class AtomicTrackedCallable(wrapt.ObjectProxy):
-    """Wraps a callable object and tracks all calls of the object."""
-    def __init__(self, obj, viz_kvs):
-        super(AtomicTrackedCallable, self).__init__(obj)
-        self._self_viz_kvs = viz_kvs
-
-    def __call__(self, *args, **kwargs):
-        return atomic_call(self.__wrapped__, self._self_viz_kvs, *args, **kwargs)
+        Returns:
+            (list): All positional and keyword argument values that are tracked in `GraphData`.
+        """
+        tracked_args = [arg for arg in self.args if arg is not None]
+        tracked_args.extend(self.kwargs.values())
+        return tracked_args
 
 
 # ======================================================================================================================
 # Graph data.
 # -----------
-# A `GraphData` object records a single immutable function input or output in the computation graph.
+# A `GraphData` object records a single immutable function input or output in the computation graph. `GraphData` can
+# be used as if they were their wrapped object.
 # ======================================================================================================================
 
 class GraphData(wrapt.ObjectProxy):
     """Wraps a Python object, exposing all of its attributes while also creating new fields for graph visualization."""
-    def __init__(self, obj, props_to_surface, creator_op=None, creator_pos=-1):
+    def __init__(self, obj, props_to_surface=None, creator_op=None, creator_pos=-1):
         """Constructor. Initializes the wrapper around the object and stores object properties for visualization.
 
-        The wrapper is essentially a passthrough, thus allowing operations on the underlying object to be performed
-        directly on the `GraphData` instance; that is, one can use the `GraphData` wrapper as they would its wrapper
-        object. The wrapper just records the `GraphOp` which created the object, the object's position in the
-        `GraphOp`'s output tuple, and a viz_dict.
-
-        The viz_dict associates string keys with attributes of the wrapped object; only those attributes will be
-        surfaced in visualization. For example, a `GraphData` wrapping a Variable would likely have a viz_dict
-        containing {'forward': <wrapped Variable's forward tensor>, 'backward': <wrapped Variable's backward
-        tensor>}. In the client, the `GraphData` node for that Variable would expose two fields, named 'forward` and
-        `backward`, associated with those tensors.
-
-        Both the wrapped object and the `GraphData` wrapper itself should be considered immutable, as any changes
-        will not be recorded in the computation graph and thus the graph will be inaccurate.
+        The `GraphData` wrapper can be used exactly like its wrapped object. Both the wrapped object and the
+        `GraphData` wrapper itself should be considered immutable, as any changes will not be recorded in the
+        computation graph and thus will make the graph inaccurate.
 
         Args:
             obj (object): The immutable object wrapped by the `GraphData`.
-            props_to_surface (dict): A dictionary whose keys are user-selected names and whose values are the names
-                of attributes of the wrapped object. Only those attributes listed in this way are shown in the
-                debugger. A value of None indicates that the key should point to the wrapped object itself,
-                not any single attribute of it.
+            props_to_surface (dict or None): A dict whose keys are user-selected names and whose values are the names
+                of attributes of the wrapped Python object. The value of the named attribute will be shown under the
+                user-selected name when the `GraphData` is inspected in the client. See
+                `surface_prop_in_client` for more info and `OpGenerator.__call__()` for an example of usage.
             creator_op (GraphOp): The `GraphOp` which created the wrapped object.
             creator_pos (int): The position of the object in the creator_op's output tuple.
         """
         super(GraphData, self).__init__(obj)
+        # wrapt requires all wrapper properties to start with _self_
         self._self_creator_op = creator_op
         self._self_creator_pos = creator_pos
-        self._self_viz_dict = {
-            key: getattr(obj, attr) if attr is not None else obj
-            for key, attr in props_to_surface.items()
-        }
+        self._self_props_to_surface = dict()
+        if props_to_surface is not None:
+            for name_in_client, attr_name in props_to_surface.items():
+                self.surface_prop_in_client(name_in_client, attr_name)
+
+    def surface_prop_in_client(self, name_in_client, attr_name):
+        """Add a new property to the `GraphData`'s visualization in the client.
+
+        The client by default does not show all attributes of the wrapped object; this is helpful for objects like
+        `torch.Variable`, which have many unnecessary fields. These fields also do not have names that are useful for
+        the client to see. Instead, the `GraphData` object maintains a dictionary mapping descriptive property names
+        to names of the wrapped object's attributes. When the `GraphData` is visualized, only these attribute values
+        are shown, and under the user-selected name.
+
+        Args:
+            name_in_client (str): The property name, as will be shown in the client.
+            attr_name (str or None): The name of the wrapped Python object's attribute, whose value will be shown
+                associated with `name_in_client`. A value of `None` will associate the wrapped object itself with
+                `name_in_client`, rather than a single one of its attributes.
+        """
+        self._self_props_to_surface[name_in_client] = attr_name
+
+    def tick(self, temporal_level):
+        """Create a temporal container extending backwards and encapsulating any outer-level op or container of
+        `temporal_level` or lower.
+
+        See `_tick()` for implementation details.
+
+        Args:
+            temporal_level (int): ...
+        """
+        _tick(self, temporal_level)
 
     # Getters for the wrapper fields, since they have to have unusual names to comply with wrapt.ObjectProxy.
+    # -------------------------------------------------------------------------------------------------------
+
     def get_creator_op(self):
+        """
+        Returns:
+            (GraphOp): The op that created the `GraphData`.
+        """
         return self._self_creator_op
 
     def get_creator_pos(self):
+        """
+        Returns:
+            (int): The `GraphData`'s position in the creator op's output tuple.
+        """
         return self._self_creator_pos
 
-    def get_container(self):
-        return self._self_container
-
     def get_visualization_dict(self):
-        return self._self_viz_dict
+        """Returns a mapping of user-selected names to attributes of the wrapped Python object.
+
+        The dict values will not be string names of the attributes, but rather the values of the attributes themselves.
+
+        Returns:
+            (dict): A dict of the form {user-selected name: value to visualize}.
+        """
+        return {
+            key: getattr(self.__wrapped__, attr) if attr is not None else self.__wrapped__
+            for key, attr in self._self_props_to_surface.items()
+        }
 
 
 # ======================================================================================================================
 # Graph containers.
 # -----------------
 # A `GraphContainer` groups together `GraphOp` and other `GraphContainer` objects to provide abstraction in
-# visualization. Containers are either abstractive, grouping operations as a "black box," or temporal,
-# grouping together sequential flows. Containers can generally contain operations and other containers,
-# with some restrictions. Namely, a temporal container may contain either a combination of ops and abstractive
-# containers, or a collection of temporal containers of the same temporal height.
+# visualization. Containers are either abstractive, which collapses a subnetwork into a "black box" function,
+# or temporal, which conceals everything outside of it, showing only the single "flow" it contains. See viz.md for
+# information about the difference between the two, as well as the concept of "temporal subdivision" and "temporal
+# level".
 # ======================================================================================================================
 
-# TODO fill this section out better
 # TODO handle paralellism
-class GraphContainer:
+class GraphContainer(Nestable):
     """Represents a collection of grouped `GraphOp` and `GraphContainer` objects."""
-    def __init__(self, contents=None, temporal_level=-1, container=None):
+    def __init__(self, contents=None, temporal_level=0):
         """Constructor.
         Args:
-            contents (list or None): A list of `GraphOp` and `GraphContainer` objects grouped by the instance,
+            contents (set or None): A list of `GraphOp` and `GraphContainer` objects grouped by the instance,
                 or None if no items are grouped yet.
-            temporal_level (int): The "height" of the container in terms of temporal subdivisions. Abstractive
-                containers have temporal height -1, and the lowest-level temporal containers will have temporal height
-                0. Only temporal containers of height 0 may contain ops and abstractive containers.
-            container (GraphContainer or None): The parent container of the instance.
+            temporal_level (int): The temporal "height" of the container. Abstractive containers have temporal level
+                0, and temporal containers have level > 0. New temporal containers can encapsulate only containers of
+                level `temporal_level-1`.
         """
-        self.contents = contents if contents is not None else list()
-        self.container = container
+        super(GraphContainer, self).__init__()
+        self.contents = contents if contents is not None else set()
         self.temporal_level = temporal_level
 
+    def is_temporal(self):
+        return self.temporal_level > 0
 
-def abstract(contents):
-    """Wrap a list of uncontained `GraphOp` and `GraphContainer` instances in a new abstractive container.
+
+def _build_abstractive_container(outputs, inputs):
+    """Creates an abstractive container enveloping all ops between the container's proposed outputs and inputs.
+
+    Builds the DAG backwards from the outputs in a breadth-first search, stopping beams at any encountered
+    `GraphData` which is in the set of inputs. Whenever a new `GraphOp` is found during search, its outermost parent
+    is added to the new container (see the definition of "outermost parent" in `Nestable.get_outermost_parent()`. After
+    search terminates, all of the new container's contents have their `container` field updated to point to the new
+    container.
 
     Args:
-        contents:
+        outputs (list): `GraphData` objects which serve as the outputs of the new abstractive container.
+        inputs (set): `GraphData` objects which serve as the inputs of the new abstractive container.
+    """
+    container = GraphContainer()
+    ops_checked = set()
+    data_to_check = deque(outputs)
+    # `GraphData(10)` == `GraphData(10)`, even though the wrappers are different. To make sure we stop at the proper
+    # `GraphData` object, we compare `id()` instead of using `==`.
+    inputs = set(id(input) for input in inputs)
+    while len(data_to_check) > 0:
+        data = data_to_check.popleft()
+        if id(data) in inputs:
+            continue
+        creator_op = data.get_creator_op()
+        if creator_op is not None and creator_op not in ops_checked:
+            outermost_parent = creator_op.get_outermost_parent()
+            container.contents.add(outermost_parent)
+            data_to_check.extend(creator_op.get_tracked_args())
+            ops_checked.add(creator_op)
+    # Update newly contained objects after iterating through the graph to prevent the new container from containing
+    # itself (consider ops op1, op2, which share container c1. We are adding a new container c2. If we update the
+    # container of op1 during iteration, then c1's container becomes c2. When we check op2, its outermost container
+    # is now c2, meaning c2's container would become c2).
+    for item in container.contents:
+        item.container = container
+
+
+def _tick(output, temporal_level):
+    """Create a temporal container extending backwards from output and encapsulating any outer-level op or container
+    with `temporal_level`.
+
+    Every op and container has a temporal level; abstractive containers and ops have level 0, and temporal containers
+    have level > 0. Temporal containers of level n contain only items of temporal level n-1. If
+    `output`'s outermost parent (see `Nestable.get_outermost_parent()` for definition) is of temporal level
+    lower than  `temporal_level`, then `_tick(output, temporal_level-1)` is called before execution. This ensures that
+    the concept of "temporal subdivision" is maintained, and that temporal containers only contain items at exactly one
+    level below them.
+
+    Args:
+        output (GraphData): A `GraphData` from which to build the new temporal container.
+        temporal_level (int): The maximal temporal level that should be encapsulated by the new temporal container.
+    """
+    if output.get_creator_op() is not None \
+            and output.get_creator_op().get_outermost_parent().temporal_level < temporal_level:
+        _tick(output, temporal_level - 1)
+
+    container = GraphContainer(temporal_level=temporal_level+1)
+
+    ops_checked = set()
+    ops_to_check = deque([output.get_creator_op()])
+
+    while len(ops_to_check) > 0:
+        op = ops_to_check.popleft()
+        if op not in ops_checked and op is not None:
+            ops_checked.add(op)
+            highest = op.get_outermost_parent()
+            assert highest.temporal_level >= temporal_level
+            if highest.temporal_level == temporal_level:
+                container.contents.add(highest)
+                ops_to_check.extend([arg.get_creator_op() for arg in op.get_tracked_args()])
+    # Update container fields of new container's contents after iteration to prevent premature exiting (consider ops
+    # op1, op2, which are in temporal container c1 of level 1. We now are adding a temporal container c2 of height 2. If
+    # we update the container of c1 during iteration, then when iteration reaches op2, its outermost parent would be
+    # c2. Thus,it would not be enqueued and its ancestors would not be added to c2).
+    for item in container.contents:
+        item.container = container
+
+
+# ======================================================================================================================
+# Public API.
+# -----------------
+# The canonical ways of creating `GraphData`, `GraphOp`, and `GraphContainer` instances. Instances should not be
+# directly created, and should be created only using the following methods.
+# ======================================================================================================================
+
+def track_data(obj, props_to_surface):
+    """Wraps an object in a `GraphData` wrapper, tracking it in the graph.
+
+    This is the preferred way for users to add new objects to the graph, as it allows changes to the `GraphData`
+    class under the hood without changing the public API. It also discourages users from manually setting the
+    `GraphData.creator_op` and `GraphData.creator_pos` arguments, which could break the graph.
+
+    Args:
+        obj (object): Python object to add to the graph.
+        props_to_surface (dict): A dict whose keys are user-selected names and whose values are the names
+            of attributes of the wrapped Python object. Only those attributes listed in this way are shown in the
+            debugger. A value of None indicates that the key should point to the wrapped object itself,
+            not any single attribute of it.
 
     Returns:
-
+        (GraphData): A wrapped version of the object, which can be used as if it were unwrapped.
     """
-    container = GraphContainer(contents)
-    for obj in contents:
-        assert obj.container is None, 'All items to be abstracted must not already have a container.'
-        _TOP_LEVELS.remove(obj)
-    _TOP_LEVELS.append(container)
-    return container
+    return GraphData(obj, props_to_surface)
 
 
-def abstract_call(fn, *args, return_container=False, **kwargs):
-    """
-    """
-    start_abstract()
-    ret = fn(*args, **kwargs)
-    container = end_abstract()
-    if return_container:
-        return ret + (container, ) if isinstance(ret, tuple) else (ret, container)
-    return ret
+class OpGenerator(wrapt.ObjectProxy):
+    """Wraps a callable object, creating a `GraphOp` whenever called and wrapping each output in a `GraphData`."""
+    def __init__(self, obj, output_props_to_surface=None):
+        """Constructor.
 
-_ABSTRACT_STARTS = list()
+        Args:
+            obj (callable): A callable object, such as a function, whose executions should be recorded in the
+                computation graph.
+            output_props_to_surface (list or None): A dict determining what properties of each `GraphData`
+                created by the callable should be surfaced in visualization. The i-th entry of `output_props_to_surface`
+                is passed to the i-th output of the callable. For example:
+                `
+                a, b = Foo(), Foo()  # Foo is any arbitrary class
+                a.prop1 = 10
+                b.prop2 = 5
 
+                def f(x, y):
+                  new_x = Foo()
+                  new_x.prop1 += 10
+                  new_y = Foo()
+                  new_y.prop2 -= 5
+                  return new_x, new_y
 
-def start_abstract():
-    """
-    """
-    _ABSTRACT_STARTS.append(len(_TOP_LEVELS))
+                c = OpGenerator(f, output_props_to_surface=[{'Arbitrary Value': 'prop1'}, {'Another Value': 'prop2'}])
+                x, y = c(a, b)  # x and y are GraphData wrappers around Foo instances
+                `
+                Now, when `x` is visualized and inspected in the client, it shows "Arbitrary Value": 10. When `y` is
+                visualized and inspected, it shows "Another Value": 0. For functions whose outputs have different
+                types under different conditions, or may output different numbers of values,
+                setting `output_props_to_surface` to `None` will leave all `GraphData` outputs without any fields
+                visualized. Fields can then be set after creation with `GraphData.surface_prop_in_client()`.
+        """
+        super(OpGenerator, self).__init__(obj)
+        # wrapt requires all wrapper properties to start with _self_
+        self._self_output_props = output_props_to_surface
 
-
-def end_abstract():
-    start = _ABSTRACT_STARTS.pop()
-    contents = list(_TOP_LEVELS[start:])
-    return abstract(contents)
-
-
-class AbstractTrackedCallable(wrapt.ObjectProxy):
     def __call__(self, *args, **kwargs):
-        return abstract_call(self.__wrapped__, *args, **kwargs)
+        """Executes the wrapped function and creates a `GraphOp` recording the execution.
+
+        A single `GraphOp` is created to record the function's execution. The wrapped function should not in its
+        internals create any additional `GraphOp` objects; functions which create more `GraphOp` objects should be
+        wrapped with `AbstractContainerGenerator` instead.
+
+        Args:
+            args (tuple): A sequence of positional arguments to pass to the wrapped function.
+            kwargs (dict): Keyword arguments to pass to the wrapped function.
+
+        Returns:
+            The outputs of the wrapped function, each wrapped in a `GraphData` instance.
+        """
+        # TODO: should we dive into sequences and look for nested GraphData? If not, torch.cat doesn't really work
+        # (since it takes as argument a list), but could be made to work with a wrapper that takes in any number of
+        # inputs and collects them into a list before calling cat. If we do, how do we know when to stop diving,
+        # and what do we do about output_props?
+        op = GraphOp(self.__wrapped__, args, kwargs)
+        ret = self.__wrapped__(*args, **kwargs)
+        multiple_returns = isinstance(ret, tuple) and len(ret) > 1
+        if multiple_returns:
+            return tuple([GraphData(r if not isinstance(r, GraphData) else r.__wrapped__,
+                                    self._self_output_props[i] if self._self_output_props is not None else None,
+                                    creator_op=op,
+                                    creator_pos=i)
+                          for i, r in enumerate(ret)])
+        else:
+            return GraphData(ret if not isinstance(ret, GraphData) else ret.__wrapped__,
+                             self._self_viz_kvs[0],
+                             creator_op=op,
+                             creator_pos=0)
 
 
-# Temporal.
-# ---------
+class AbstractContainerGenerator(wrapt.ObjectProxy):
+    """Wraps a callable object, causing all `GraphOp` objects created during its execution to be contained in a new
+    abstractive `GraphContainer`."""
+    def __call__(self, *args, **kwargs):
+        """Executes the wrapped function and nests every `GraphOp` and `GraphContainer` it creates inside a new
+        `GraphContainer`.
 
-def tick(temporal_level=0):
-    assert len(_ABSTRACT_STARTS) == 0, 'A new temporal container cannot be started in the middle of an abstractive ' \
-                                       'container.'
-    lowest_level_in_top = min([getattr(o, 'temporal_level', -1) for o in _TOP_LEVELS])
-    if lowest_level_in_top >= temporal_level:
-        return
-    if lowest_level_in_top < temporal_level - 1:
-        tick(temporal_level - 1)
+        `AbstractContainerGenerator` expects that its wrapped function contains (perhaps further nested within other
+        functions) some `OpGenerator` functions that will produce `GraphOp` objects when called. Further, it expects
+        that at least some of the inputs and outputs of the wrapped function are `GraphData` objects. These objects are
+        then used to identify every `GraphOp` that exists between the inputs and the outputs in the DAG,
+        and wraps their outermost parents in a new abstractive container.
 
-    container = GraphContainer(temporal_level=temporal_level)
-    for top in _TOP_LEVELS:
-        if getattr(top, 'temporal_level', -1) < temporal_level:
-            container.contents.append(top)
-    for content in container.contents:
-        _TOP_LEVELS.remove(content)
-    _TOP_LEVELS.append(container)
-    return container
+        Args:
+            args (tuple): Positional arguments to the wrapped function.
+            kwargs (dict): Keyword arguments to the wrapped function.
 
+        Returns:
+            The unchanged output of the wrapped function.
+        """
+        inputs = set(obj for obj in args + tuple(kwargs.values()) if isinstance(obj, GraphData))
+        ret = self.__wrapped__(*args, **kwargs)
+        output_graphdata = [obj for obj in ret if isinstance(obj, GraphData)] \
+            if isinstance(ret, tuple) and len(ret) > 1 else [ret]
+        _build_abstractive_container(output_graphdata, inputs)
+        return ret
 
-def temporal_call(fn, *args, return_container=False, temporal_level=0, **kwargs):
-    """
-    """
-    ret = fn(*args, **kwargs)
-    container = tick(temporal_level)
-    if return_container:
-        return ret + (container, ) if isinstance(ret, tuple) else (ret, container)
-    return ret
-
-
-def test():
-    def fn1(arg1, arg2, kwarg1='cat', kwarg2='dog'):
-        return arg1, kwarg1, arg2, kwarg2
-
-    def fn2(*args, **kwargs):
-        return tuple(arg for arg in args) + tuple((kwarg, value) for kwarg, value in kwargs.items())
-
-    in1 = GraphData('pill', {'obj': None})
-    in2 = GraphData('pez', {'obj': None})
-    for t in range(2):
-        for i in range(2):
-            for _ in range(2):
-                atomic_call(fn2, [{'obj': None}] * 4, in1, in2, return_op=True, kwarg1='filbert', kwarg2=in2)
-            tick(0)
-        tick(1)
-    tick(2)
-    for i in range(2):
-        for _ in range(2):
-            atomic_call(fn2, [{'obj': None}] * 4, in1, in2, return_op=True, kwarg1='filbert', kwarg2=in2)
-        tick(0)
-    for _ in range(2):
-        atomic_call(fn2, [{'obj': None}] * 4, in1, in2, return_op=True, kwarg1='filbert', kwarg2=in2)
-    tick(2)
-    print(_TOP_LEVELS)
-    print(_TOP_LEVELS[1].contents)
-    print(_TOP_LEVELS[1].contents[0].contents[2].contents)
-
-
-if __name__ == '__main__':
-    test()

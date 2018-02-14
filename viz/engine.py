@@ -105,7 +105,7 @@ class VisualizationEngine:
         refs = set()
         return {
             self.VIEWER_KEY: {
-                'contents': self._datafy_obj(obj, refs),
+                'contents': self._sanitize_for_data_object(obj, refs),
             },
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs),
         }, refs
@@ -118,7 +118,7 @@ class VisualizationEngine:
                 # This is deliberately not datafied to prevent the lists from being turned into references.
                 'contents': obj.cpu().numpy().tolist(),
                 'type': list(obj.size()),
-                'size': self._datafy_obj(self.TENSOR_TYPES[obj.type()], refs)
+                'size': self._sanitize_for_data_object(self.TENSOR_TYPES[obj.type()], refs)
             },
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)
         }, refs
@@ -128,10 +128,10 @@ class VisualizationEngine:
         refs = set()
         return {
             self.VIEWER_KEY: {
-                'creatorop': self._datafy_obj(obj.get_creator_op(), refs),
-                'creatorpos': self._datafy_obj(obj.get_creator_pos(), refs),
+                'creatorop': self._sanitize_for_data_object(obj.get_creator_op(), refs),
+                'creatorpos': self._sanitize_for_data_object(obj.get_creator_pos(), refs),
                 'kvpairs': {
-                    self._datafy_obj(key, refs): self._datafy_obj(value, refs)
+                    self._sanitize_for_data_object(key, refs): self._sanitize_for_data_object(value, refs)
                     for key, value in obj.get_visualization_dict().items()
                 }
             },
@@ -143,9 +143,9 @@ class VisualizationEngine:
         refs = set()
         return {
             self.VIEWER_KEY: {
-                'contents': [self._datafy_obj(op, refs) for op in obj.contents],
-                'container': self._datafy_obj(obj.container, refs),
-                'temporal': self._datafy_obj(obj.temporal_height >= 0, refs),
+                'contents': [self._sanitize_for_data_object(op, refs) for op in obj.contents],
+                'container': self._sanitize_for_data_object(obj.container, refs),
+                'temporal': self._sanitize_for_data_object(obj.is_temporal(), refs),
             },
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)
         }, refs
@@ -155,12 +155,13 @@ class VisualizationEngine:
         refs = set()
         return {
             self.VIEWER_KEY: {
-                'function': self._datafy_obj(obj.fn, refs),
-                'args': [self._datafy_obj(arg, refs) for arg in obj.args],
+                'function': self._sanitize_for_data_object(obj.fn, refs),
+                'args': [self._sanitize_for_data_object(arg, refs) for arg in obj.args],
                 'kwargs': {
-                    self._datafy_obj(kwarg, refs): self._datafy_obj(value, refs) for kwarg, value in obj.kwargs.items()
+                    self._sanitize_for_data_object(kwarg, refs): self._sanitize_for_data_object(value, refs)
+                    for kwarg, value in obj.kwargs.items()
                 },
-                'container': self._datafy_obj(obj.container, refs),
+                'container': self._sanitize_for_data_object(obj.container, refs),
             },
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)
         }, refs
@@ -174,7 +175,7 @@ class VisualizationEngine:
         return {
             self.VIEWER_KEY: {
                 'contents': contents,
-                'length': self._datafy_obj(len(obj), refs),
+                'length': self._sanitize_for_data_object(len(obj), refs),
             },
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs),
         }, refs
@@ -188,7 +189,7 @@ class VisualizationEngine:
         return {
             self.VIEWER_KEY: {
                 'contents': contents,
-                'length': self._datafy_obj(len(obj), refs),
+                'length': self._sanitize_for_data_object(len(obj), refs),
             },
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs),
         }, refs
