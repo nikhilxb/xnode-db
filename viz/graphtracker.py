@@ -252,6 +252,8 @@ def _tick(output, temporal_level):
     the concept of "temporal subdivision" is maintained, and that temporal containers only contain items at exactly one
     level below them.
 
+    Should be called from `GraphData.tick()`.
+
     Args:
         output (GraphData): A `GraphData` from which to build the new temporal container.
         temporal_level (int): The temporal level of ops and containers that should be encapsulated by the new temporal
