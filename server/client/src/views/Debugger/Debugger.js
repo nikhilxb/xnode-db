@@ -3,22 +3,29 @@ import React, { Component } from 'react';
 
 // Material UI
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
-import RaisedButton from 'material-ui/RaisedButton';
+import getMuiTheme from 'material-ui/styles/getMuiTheme'
 import {List, ListItem} from 'material-ui/List';
+
+
+/** Custom theme object that affects visual properties (fonts, colors, spacing, etc.) of Material UI components.
+ *  For in depth description and list of overridable keys: http://www.material-ui.com/#/customization/themes */
+const muiTheme = getMuiTheme({
+
+});
 
 /**
  * This class ___.
  */
 class Debugger extends Component {
 
-    innerDivStyle = {paddingBottom: "16px", paddingTop: "16px"};
+    innerDivStyle = {paddingBottom: 4, paddingTop: 4};
 
     /**
      * Renders ___.
      */
     render() {
         return (
-            <MuiThemeProvider>
+            <MuiThemeProvider muiTheme={muiTheme}>
                 <div className="Debugger-container">
                     <div className="Debugger-sidebar">
                         <List >
