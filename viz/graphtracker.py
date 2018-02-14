@@ -101,9 +101,9 @@ class GraphData(wrapt.ObjectProxy):
             props_to_surface (dict or None): A dict whose keys are user-selected names and whose values are the names
                 of attributes of the wrapped Python object. The value of the named attribute will be shown under the
                 user-selected name when the `GraphData` is inspected in the client. See
-                `surface_prop_in_client` for more info and `OpGenerator.__call__()` for an example of usage.
+                `GraphData.surface_prop_in_client()` for more info and `OpGenerator.__call__()` for an example of usage.
             creator_op (GraphOp): The `GraphOp` which created the wrapped object.
-            creator_pos (int): The position of the object in the creator_op's output tuple.
+            creator_pos (int): The position of the object in the `creator_op`'s output tuple.
         """
         super(GraphData, self).__init__(obj)
         # wrapt requires all wrapper properties to start with _self_
@@ -133,12 +133,13 @@ class GraphData(wrapt.ObjectProxy):
 
     def tick(self, temporal_level):
         """Create a temporal container extending backwards and encapsulating any outer-level op or container of
-        `temporal_level` or lower.
+        `temporal_level`.
 
         See `_tick()` for implementation details.
 
         Args:
-            temporal_level (int): ...
+            temporal_level (int): The temporal level of ops and containers that should be encapsulated by the new
+                temporal container.
         """
         _tick(self, temporal_level)
 
@@ -253,7 +254,8 @@ def _tick(output, temporal_level):
 
     Args:
         output (GraphData): A `GraphData` from which to build the new temporal container.
-        temporal_level (int): The maximal temporal level that should be encapsulated by the new temporal container.
+        temporal_level (int): The temporal level of ops and containers that should be encapsulated by the new temporal
+            container.
     """
     if output.get_creator_op() is not None \
             and output.get_creator_op().get_outermost_parent().temporal_level < temporal_level:
@@ -297,10 +299,10 @@ def track_data(obj, props_to_surface):
 
     Args:
         obj (object): Python object to add to the graph.
-        props_to_surface (dict): A dict whose keys are user-selected names and whose values are the names
-            of attributes of the wrapped Python object. Only those attributes listed in this way are shown in the
-            debugger. A value of None indicates that the key should point to the wrapped object itself,
-            not any single attribute of it.
+        props_to_surface (dict or None): A dict whose keys are user-selected names and whose values are the names
+            of attributes of the wrapped Python object. The value of the named attribute will be shown under the
+            user-selected name when the `GraphData` is inspected in the client. See
+            `GraphData.surface_prop_in_client()` for more info and `OpGenerator.__call__()` for an example of usage.
 
     Returns:
         (GraphData): A wrapped version of the object, which can be used as if it were unwrapped.
@@ -379,8 +381,8 @@ class OpGenerator(wrapt.ObjectProxy):
 
 
 class AbstractContainerGenerator(wrapt.ObjectProxy):
-    """Wraps a callable object, causing all `GraphOp` objects created during its execution to be contained in a new
-    abstractive `GraphContainer`."""
+    """Wraps a callable object, causing all `GraphOp` and `GraphContainer` objects created during its execution to be
+    contained in a new abstractive `GraphContainer`."""
     def __call__(self, *args, **kwargs):
         """Executes the wrapped function and nests every `GraphOp` and `GraphContainer` it creates inside a new
         `GraphContainer`.

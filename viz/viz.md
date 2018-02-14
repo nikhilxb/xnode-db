@@ -1,4 +1,5 @@
  # Understanding the computation graph
+ **This is a rough work in progress, and should eventually encode all of our understanding of the graph.**
  ## Key insights
  - The graph is a history, capturing the operations and intermediate data which produced a single output.
  **It is not dynamic.**
@@ -33,19 +34,20 @@
  abstractive containers. If you call 
  `GraphData.tick(1)` from your encoding vector, it will create a temporal container at temporal level 2. This new
  temporal container will look to fill itself with elements of temporal level 1 -- namely, your RNN temporal containers.
- Starting from the encoding vector, the new temporal container will look for the _outermost parent_ of each node in the
- graph and add it to its contents if it is of temporal level 1. All of your encoder is now in this new temporal
- container. When you call `GraphData.tick(1)` from the last output of your decoder, it'll wrap up just the decoder, 
- since the outermost parent of the encoder nodes is now at temporal level 2.
+ Starting from the encoding vector, the new temporal container will look for the _outermost parent_ 
+ (see `Nestable.get_outermost_parent()`) of each node in the graph and add it to its contents if it is of temporal
+ level 1. All of your encoder is now in this new temporal container. When you call `GraphData.tick(1)` from the last 
+ output of your decoder, it'll wrap up just the decoder, since the outermost parent of the encoder nodes is now at 
+ temporal level 2.
  
  ### What about abstractive containers?
  Ops and containers can each belong to only one container -- so what if I wrap some ops in an abstractive container
  before calling `GraphData.tick(0)`? I earlier said we check if the ops are not already in a temporal container, but
- this "one container" rule makes that tricky. What if my abstractive container was already in a temporal container at 
- level 1? I wouldn't want to wrap it or its internals in another, new temporal container, because they already belong to
- one -- it's just not directly wrapping the ops themselves. The remedy here is to use the outermost parent again. When 
- we propagate through the graph on `GraphData.tick(0)`, we check the outermost parent of each op we see and wrap that 
- parent if its temporal level is 0. 
+ this "one container" rule makes that tricky. What if my abstractive container was already in a level 1 temporal 
+ container? I wouldn't want to wrap it or its internals in another, new temporal container, because they already belong 
+ to one -- it's just not directly wrapping the ops themselves. The remedy here is to use the outermost parent again. 
+ When we propagate through the graph on `GraphData.tick(0)`, we check the outermost parent of each op we see and wrap 
+ that parent if its temporal level is 0. 
  
  This also allows for abstractive containers to "swallow" time. An abstractive container can be wrapped around temporal
  containers; until you zoom in on the abstractive container, it will look like no temporal steps took place at all, and 
