@@ -12,7 +12,6 @@ const styles = {
 /**
  * This class ___.
  */
-@withStyles(styles)
 class VarList extends Component {
 
     /**
@@ -29,4 +28,4 @@ class VarList extends Component {
     }
 }
 
-export default VarList;
+export default withStyles(styles)(VarList);

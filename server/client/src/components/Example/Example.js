@@ -10,7 +10,6 @@ const styles = {
 /**
  * This class ___.
  */
-@withStyles(styles)
 class Example extends Component {
 
     /**
@@ -25,4 +24,4 @@ class Example extends Component {
     }
 }
 
-export default Example;
+export default withStyles(styles)(Example);

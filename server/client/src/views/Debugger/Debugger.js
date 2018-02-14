@@ -22,7 +22,6 @@ const styles = {
 /**
  * This class ___.
  */
-@withStyles(styles)
 class Debugger extends Component {
 
     /**
@@ -43,4 +42,4 @@ class Debugger extends Component {
     }
 }
 
-export default Debugger;
+export default withStyles(styles)(Debugger);
