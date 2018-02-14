@@ -1,5 +1,7 @@
 import React, { Component } from 'react';
+
 import { withStyles } from 'material-ui/styles';
+import List, {ListItem} from 'material-ui/List';
 
 const styles = {
     root: {
@@ -11,7 +13,7 @@ const styles = {
  * This class ___.
  */
 @withStyles(styles)
-class Example extends Component {
+class VarList extends Component {
 
     /**
      * Renders ___.
@@ -19,10 +21,12 @@ class Example extends Component {
     render() {
         return (
             <div className={this.props.classes.root}>
-                "Herro there"
+                <List>
+
+                </List>
             </div>
         );
     }
 }
 
-export default Example;
+export default VarList;
