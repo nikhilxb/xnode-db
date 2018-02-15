@@ -58,7 +58,8 @@ class Debugger extends Component {
 
     /**
      * Loads the symbol data with the specified symbol ID, as well as any referenced shells. These new schemas replace
-     * any existing ones in the `symbolTable` for the same symbols.
+     * any existing ones in the `symbolTable` for the same symbols. When the data is finished loading, execute the
+     * given callback, sending that data to the component (likely a DataViewer) that requested it.
      */
     loadSymbol(symbolID, callback) {
         new Promise((resolve, reject) => {

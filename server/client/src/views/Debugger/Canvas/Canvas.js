@@ -16,6 +16,7 @@ class Canvas extends Component {
         }
     }
 
+    // TODO remove this, just for demo purposes
     componentDidMount() {
         let viewers = this.state.viewers;
         viewers.push(<DataViewer key={"0"} symbolId={"0"} loadSymbol={this.props.loadSymbol} isTopLevel={true} />)

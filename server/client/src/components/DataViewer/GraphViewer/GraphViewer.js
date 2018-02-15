@@ -11,7 +11,7 @@ const nodeHeight = 75;
 const nodeWidth = 100;
 
 /**
- * This class ___.
+ * This class builds and contains all the components of a computation graph.
  */
 class GraphViewer extends Component {
     constructor(props, context) {
@@ -25,10 +25,14 @@ class GraphViewer extends Component {
 
     componentDidMount() {
         console.log('Graph head mounted.');
-        this.buildDAGFromSymbol(this.props.symbolId);
+        this.addSymbolToDAG(this.props.symbolId);
     }
 
-    buildDAGFromSymbol(toSymbolId, fromSymbolId=null) {
+    /**
+     * Adds the symbol with ID toSymbolId to the graph, if not already present. If added, the new symbol will call this
+     * function again for each node it links to.
+     */
+    addSymbolToDAG(toSymbolId, fromSymbolId=null) {
         if (toSymbolId === null) {
             return;
         }
@@ -43,7 +47,7 @@ class GraphViewer extends Component {
                 edges.push(newEdge);
             }
             let nodeComponents = this.state.nodeComponents;
-            let newDataViewer = <DataViewer key={toSymbolId} symbolId={toSymbolId} buildDAG={(to, from)=>this.buildDAGFromSymbol(to, from)} fetchShellAndData={this.props.fetchShellAndData} />;
+            let newDataViewer = <DataViewer key={toSymbolId} symbolId={toSymbolId} addToDAG={(to, from)=>this.addSymbolToDAG(to, from)} loadSymbol={this.props.loadSymbol} />;
             nodeComponents.push(newDataViewer);
             this.setState({
                 nodeIds: nodeIds,
@@ -53,6 +57,9 @@ class GraphViewer extends Component {
         }
     }
 
+    /**
+     * Renders all of the graph's op and data components, laid out by dagre.
+     */
     render() {
         var g = new dagre.graphlib.Graph({compound: true});
         g.setGraph({});

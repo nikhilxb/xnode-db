@@ -17,12 +17,12 @@ const styles = theme => ({
 });
 
 /**
- * This class ___.
+ * This class renders a data node in a computation graph.
  */
 class GraphDataViewer extends Component {
     constructor(props, context) {
         super(props, context);
-        this.props.buildDAG(this.props.data.viewer.creatorop, this.props.symbolId);
+        this.props.addToDAG(this.props.data.viewer.creatorop, this.props.symbolId);
     }
 
     render() {

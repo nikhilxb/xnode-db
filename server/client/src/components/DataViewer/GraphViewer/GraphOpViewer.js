@@ -17,16 +17,16 @@ const styles = theme => ({
 });
 
 /**
- * This class ___.
+ * This class renders an op node in a computation graph.
  */
 class GraphOpViewer extends Component {
     constructor(props, context) {
         super(props, context);
         this.props.data.viewer.args.forEach(arg =>
-            this.props.buildDAG(arg, this.props.symbolId)
+            this.props.addToDAG(arg, this.props.symbolId)
         );
         Object.keys(this.props.data.viewer.kwargs).forEach(kwarg =>
-            this.props.buildDAG(this.props.data.viewer.kwargs[kwarg], this.props.symbolId)
+            this.props.addToDAG(this.props.data.viewer.kwargs[kwarg], this.props.symbolId)
         );
     }
 

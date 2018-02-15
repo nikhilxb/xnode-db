@@ -11,7 +11,7 @@ const styles = {
 };
 
 /**
- * This class ___.
+ * This class renders an edge betweeen two nodes in a computation graph.
  */
 class GraphEdge extends Component {
     render() {

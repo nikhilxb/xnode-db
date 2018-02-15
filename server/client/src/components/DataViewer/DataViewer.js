@@ -8,7 +8,7 @@ const styles = {
 };
 
 /**
- * This class ___.
+ * This class requests data for a symbol and then renders its type-specific viewer.
  */
 class DataViewer extends Component {
     constructor(props, context) {
@@ -17,8 +17,13 @@ class DataViewer extends Component {
             body: <div />,
         }
     }
+
+    /**
+     * When the component mounts and we can update the state, ask the Debugger to load the DataViewer's associated
+     * symbol. When the data is returned, create a body component to show information for that symbol.
+     */
     componentDidMount() {
-        this.props.fetchShellAndData(this.props.symbolId, (shellAndData) => {
+        this.props.loadSymbol(this.props.symbolId, (shellAndData) => {
             let newComponent = null;
             if (shellAndData.type === "graphdata" && this.props.isTopLevel === true) {
                 console.log('Rendering graphdata head');
@@ -37,6 +42,7 @@ class DataViewer extends Component {
             });
         });
     }
+
     /**
      * Request that the canvas create a new viewer for the given symbol. Should
      * also handle any logic that links this viewer to the new one.
@@ -46,7 +52,7 @@ class DataViewer extends Component {
     }
 
     /**
-     * Renders ___.
+     * Renders the type-specific component, if loaded.
      */
     render() {
         return <div>{this.state.body}</div>
