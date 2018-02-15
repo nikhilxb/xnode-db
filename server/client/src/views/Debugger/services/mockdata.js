@@ -122,10 +122,64 @@ const anonListRefs2 = [];
 // -------------------
 // - The computational graph is defined through links maintained within GraphOp and GraphData objects.
 
-// const sampleGraphOp = {};
-// const sampleGraphData = {};
-// const sampleGraph = {};
+const namedGraphDataShell = {
+    "type": "graphdata",
+    "str": "GraphData",
+    "name": "Named GraphData",
+    "data": null,
+};
+const namedGraphDataData = {
+    "viewer": {
+        "creatorop": `${REF}107`,
+    },
+    "attributes": {}
+};
+const namedGraphDataRefs = [`${REF}107`];
 
+const anonGraphOpShell = {
+    "type": "graphop",
+    "str": "GraphOp",
+    "name": null,
+    "data": null,
+};
+const anonGraphOpData = {
+    "viewer": {
+        "args": [null, `${REF}207`],
+        "kwargs": {
+            "kwarg1": `${REF}208`
+        }
+    },
+    "attributes": {}
+};
+const anonGraphOpRefs = [`${REF}207`, `${REF}208`];
+
+const anonGraphData1Shell = {
+    "type": "graphdata",
+    "str": "GraphData",
+    "name": null,
+    "data": null,
+};
+const anonGraphData1Data = {
+    "viewer": {
+        "creatorop": null,
+    },
+    "attributes": {}
+};
+const anonGraphData1Refs = [];
+
+const anonGraphData2Shell = {
+    "type": "graphdata",
+    "str": "GraphData",
+    "name": null,
+    "data": null,
+};
+const anonGraphData2Data = {
+    "viewer": {
+        "creatorop": null,
+    },
+    "attributes": {}
+};
+const anonGraphData2Refs = [];
 
 // =====================================================================================================================
 // Mock VisualDebugger python program.
@@ -147,6 +201,7 @@ allShells[`${REF}003`] = namedBool;
 allShells[`${REF}004`] = namedString;
 allShells[`${REF}005`] = namedNone;
 allShells[`${REF}006`] = namedListShell;
+allShells[`${REF}007`] = namedGraphDataShell;
 
 let initialShells = JSON.parse(JSON.stringify(allShells));  // Deep clone so calling `loadSymbol()` does not change it
 
@@ -157,9 +212,12 @@ let initialShells = JSON.parse(JSON.stringify(allShells));  // Deep clone so cal
 
 allData[`${REF}006`] = namedListData;
 allRefs[`${REF}006`] = namedListRefs;
+allData[`${REF}007`] = namedGraphDataData;
+allRefs[`${REF}007`] = namedGraphDataRefs;
 // ... more non-termal data
 
 allShells[`${REF}106`] = anonListShell;
+allShells[`${REF}107`] = anonGraphOpShell;
 // ... more shells
 
 
@@ -170,6 +228,8 @@ allShells[`${REF}106`] = anonListShell;
 
 allData[`${REF}106`] = anonListData;
 allRefs[`${REF}106`] = anonListRefs;
+allData[`${REF}107`] = anonGraphOpData;
+allRefs[`${REF}107`] = anonGraphOpRefs;
 // ... more terminal data
 
 // special case: additional level for list
@@ -177,6 +237,13 @@ allShells[`${REF}206`] = anonListShell2;
 allData[`${REF}206`] = anonListData2;
 allRefs[`${REF}206`] = anonListRefs2;
 
+allShells[`${REF}207`] = anonGraphData1Shell;
+allData[`${REF}207`] = anonGraphData1Data;
+allRefs[`${REF}207`] = anonGraphData1Refs;
+
+allShells[`${REF}208`] = anonGraphData2Shell;
+allData[`${REF}208`] = anonGraphData2Data;
+allRefs[`${REF}208`] = anonGraphData2Refs;
 // API call mocks
 // --------------
 // Should return data in same format as future API call functions.
@@ -194,14 +261,12 @@ function loadGlobals() {
  * @param symbolID
  */
 function loadSymbol(symbolID) {
-    let updates = {};
-    let shell = allShells[symbolID];
-    shell["data"] =  allData[symbolID];
-    updates[symbolID] = shell;
+    let newData = allData[symbolID];
+    let newShells = {};
     for(const ref of allRefs[symbolID]) {
-        updates[ref] = allShells[ref];
+        newShells[ref] = allShells[ref];
     }
-    return updates; // TODO: What format does this return in?
+    return {data: newData, shells: newShells};
 }
 
 export {

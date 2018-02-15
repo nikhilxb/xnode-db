@@ -57,9 +57,7 @@ class Debugger extends Component {
      */
     constructor(props) {
         super(props);
-        this.state = {
-            symbolTable: loadGlobals(),
-        };
+        this.symbolTable = loadGlobals();
         this.loadSymbol = this.loadSymbol.bind(this);
     }
 
@@ -68,15 +66,29 @@ class Debugger extends Component {
      * any existing ones in the `symbolTable` for the same symbols. When the data is finished loading, execute the
      * given callback, sending that data to the component (likely a DataViewer) that requested it.
      */
-    loadSymbol(symbolID, callback) {
-        new Promise((resolve, reject) => {
-            // Symbol has already been fully loaded
-            if(this.state.symbolTable[symbolID] && this.state.symbolTable[symbolID].data === null) {
-                resolve(this.state.symbolTable[symbolID]);
+    loadSymbol(symbolId, callback) {
+        // Symbol has already been fully loaded
+        if(this.symbolTable[symbolId] && this.symbolTable[symbolId].data !== null) {
+            callback(this.symbolTable[symbolId]);
+        } else {
+            if (!this.symbolTable[symbolId]) {
+                console.error('Symbol ' + symbolId + ' was requested before shell was loaded');
+            } else {
+                setTimeout(()=>{
+                    let ret = loadSymbol(symbolId);
+                    let newData = ret.data;
+                    let newShells = ret.shells;
+                    let keptShells = {};
+                    for(const shellId of Object.keys(newShells)) {
+                        if (!this.symbolTable[shellId]) {
+                            this.symbolTable[shellId] = newShells[shellId];
+                        }
+                    }
+                    this.symbolTable[symbolId].data = newData;
+                    callback(this.symbolTable[symbolId]);
+                }, 1000);
             }
-
-            // TODO: Load symbol
-        }).then(callback);
+        }
     }
 
     /**

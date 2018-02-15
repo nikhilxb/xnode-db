@@ -5,6 +5,7 @@ import dagre from 'dagre';
 import GraphEdge from './GraphEdge.js';
 
 const styles = theme => ({
+
 });
 
 const nodeHeight = 75;
@@ -90,9 +91,9 @@ class GraphViewer extends Component {
         });
 
         return (
-            <div>
-                {nodes}
+            <div style={{position: "relative"}}>
                 {edges}
+                {nodes}
             </div>
         );
     }

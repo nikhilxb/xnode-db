@@ -22,6 +22,7 @@ const styles = theme => ({
 class GraphDataViewer extends Component {
     constructor(props, context) {
         super(props, context);
+        console.log(this.props);
         this.props.addToDAG(this.props.data.viewer.creatorop, this.props.symbolId);
     }
 
