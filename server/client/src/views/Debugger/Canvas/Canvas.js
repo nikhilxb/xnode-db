@@ -3,12 +3,6 @@ import { withStyles } from 'material-ui/styles';
 import DataViewer from '../../../components/DataViewer/DataViewer.js';
 
 const styles = {
-    container: {
-        backgroundColor: 'rgb(248, 248, 248)',
-        display: 'flex',
-        flexGrow: 1,
-        textAlign: 'center',
-    }
 };
 
 /**
@@ -24,7 +18,7 @@ class Canvas extends Component {
 
     componentDidMount() {
         let viewers = this.state.viewers;
-        viewers.push(<DataViewer key={"0"} symbolId={"0"} fetchShellAndData={this.props.fetchShellAndData} isTopLevel={true} />)
+        viewers.push(<DataViewer key={"0"} symbolId={"0"} loadSymbol={this.props.loadSymbol} isTopLevel={true} />)
         this.setState({
             viewers: viewers
         })
@@ -32,7 +26,7 @@ class Canvas extends Component {
 
     render() {
        return (
-           <div className={this.props.classes.container}>
+           <div>
                {this.state.viewers}
            </div>
        );
