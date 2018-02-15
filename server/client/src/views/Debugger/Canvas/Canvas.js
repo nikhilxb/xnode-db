@@ -3,14 +3,17 @@ import { withStyles } from 'material-ui/styles';
 
 const styles = {
     container: {
-
+        backgroundColor: 'rgb(248, 248, 248)',
+        display: 'flex',
+        flexGrow: 1,
+        textAlign: 'center',
     }
 };
 
 /**
- * This component ___.
+ * This class ___.
  */
-class Example extends Component {
+class Canvas extends Component {
 
     /**
      * Renders ___.
@@ -18,10 +21,10 @@ class Example extends Component {
     render() {
         return (
             <div className={this.props.classes.container}>
-                "Herro there"
+                [Editor]
             </div>
         );
     }
 }
 
-export default withStyles(styles)(Example);
+export default withStyles(styles)(Canvas);
