@@ -128,7 +128,6 @@ class VisualDebugger(bdb.Bdb):
     DBG_STEP_OUT = 'dbg-step-out'                   # continue normal program flow until the current function exits
     DBG_LOAD_SYMBOL = 'dbg-load-symbol'             # return the data object for a given symbol
     DBG_GET_NAMESPACE = 'dbg-get-namespace'         # return the shells of all Python objects in the current namespace
-    DBG_GET_CONTEXT = 'dbg-get-context'             # return the context object defining the current program state
 
     def __init__(self, program_port_range=(3000, 5000), client_port_range=(8000, 9000)):
         """Instantiates the debugging server if not already running, connects to it via a socket, and prepares for
@@ -190,7 +189,6 @@ class VisualDebugger(bdb.Bdb):
         self.socket.on(self.DBG_CONTINUE, self.callback_continue)
         self.socket.on(self.DBG_LOAD_SYMBOL, self.callback_load_symbol)
         self.socket.on(self.DBG_GET_NAMESPACE, self.callback_get_namespace_shells)
-        self.socket.on(self.DBG_GET_CONTEXT, self.callback_get_context)
 
     def forget_frame(self):
         """Wipes the debugger's knowledge of the current frame and stack.
@@ -295,25 +293,15 @@ class VisualDebugger(bdb.Bdb):
         """Gets the lightweight shell representations of all symbols in the program's current namespace.
 
         The server might at any time request the shells of all objects in the namespace (for example, when a new
-        client connects, it would make this request). This function is called when such a request is made.
+        client connects, it would make this request). This function is called when such a request is made,
+        and returns those shells as well as a string representing the program's current context (see `_get_context()`).
 
         Args:
-            callback_fn (fn): A (str) => None function from the server which expects the JSON string representation
-                of the dict mapping symbol IDs to shells for each symbol in the namespace.
+            callback_fn (fn): A (str, str) => None function from the server which expects a context string for the
+                program and the JSON string representation of the dict mapping symbol IDs to shells for each symbol in
+                the namespace.
         """
-        callback_fn(self.viz_engine.to_json(self._get_namespace_shells()))
-
-    def callback_get_context(self, callback_fn):
-        """Gets a string representation of the program's current state of execution.
-
-        The server might at any time request the status of the program, such as line number (all newly-connecting
-        clients would need this information). This function is called when such a request is made.
-
-        Args:
-            callback_fn (fn): A (str) => None function from the server which expects the string representation
-                of the program's current context object.
-        """
-        callback_fn(self._get_context())
+        callback_fn(self._get_context(), self.viz_engine.to_json(self._get_namespace_shells()))
 
     def callback_load_symbol(self, symbol_id, callback_fn):
         """Load a symbol's data object and pass it into the given callback.

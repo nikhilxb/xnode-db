@@ -172,6 +172,25 @@ routerAPIDebug.get("/step_out", function(req, resp) {
 });
 
 /**
+ * GET /api/debug/get_namespace
+ * Triggers the debugger to GET NAMESPACE, returning shells for all variables in the program namespace.
+ * Sends the client the current namespace variable data.
+ */
+routerAPIDebug.get("/get_namespace", function(req, resp) {
+    if(programSocket === null) {
+        console.error("Tried to GET NAMESPACE but not connected to program.");
+        resp.sendStatus(503);  // "Service Unavailable"
+        return;
+    }
+
+    programSocket.emit("dbg-get-namespace", function(context, namespace) {
+        console.log(namespace);
+        resp.send(namespace);
+        console.log("Sent namespace variable data after GET NAMESPACE.");
+    });
+});
+
+/**
  * GET /api/debug/load_symbol/:symbol_id
  * Triggers the debugger to LOAD SYMBOL using the specified symbol ID.
  * Sends the client the symbol's current data.
