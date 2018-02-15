@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { withStyles } from 'material-ui/styles';
 
 
+/** Component styling object. */
 const styles = theme => ({
 });
 
@@ -11,7 +12,7 @@ const styles = theme => ({
  */
 class Example extends Component {
 
-    // Define the expected types in props
+    /** Prop expected types object. */
     static propTypes = {
         classes: PropTypes.object.isRequired,
     };

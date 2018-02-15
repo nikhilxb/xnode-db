@@ -99,32 +99,32 @@ const anonListData2 = {
 const anonListRefs2 = [];
 
 // TODO: Fill in schema/data for other objects. Can make data terminal because nesting already tested for list example.
-const namedSetShell = {};
-const namedSetData = {};
-
-const namedDictShell = {};
-const namedDictData = {};
-
-const namedClassShell = {};
-const namedClassData = {};
-
-const namedModuleShell = {};
-const namedModuleData = {};
-
-const namedFunctionShell = {};
-const namedFunctionData = {};
-
-const namedObjectShell = {};
-const namedObjectData = {};
+// const namedSetShell = {};
+// const namedSetData = {};
+//
+// const namedDictShell = {};
+// const namedDictData = {};
+//
+// const namedClassShell = {};
+// const namedClassData = {};
+//
+// const namedModuleShell = {};
+// const namedModuleData = {};
+//
+// const namedFunctionShell = {};
+// const namedFunctionData = {};
+//
+// const namedObjectShell = {};
+// const namedObjectData = {};
 
 
 // Xnode graph objects
 // -------------------
 // - The computational graph is defined through links maintained within GraphOp and GraphData objects.
 
-const sampleGraphOp = {};
-const sampleGraphData = {};
-const sampleGraph = {};
+// const sampleGraphOp = {};
+// const sampleGraphData = {};
+// const sampleGraph = {};
 
 
 // =====================================================================================================================

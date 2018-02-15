@@ -1,17 +1,19 @@
 import React, { Component } from 'react';
 import { withStyles } from 'material-ui/styles';
 
-import List, {ListItem, ListItemText} from 'material-ui/List';
+import List, {ListItem, ListItemText, ListSubheader} from 'material-ui/List';
+import PropTypes from "prop-types";
 
 
-const styles = {
+/** Component styling object. */
+const styles = theme => ({
     root: {
         fontFamily: 'monospace',
     },
     item: {
         fontFamily: 'monospace',
     }
-};
+});
 
 /**
  * This component displays a list of all variables in the debugged program's namespace when execution is paused
@@ -19,9 +21,10 @@ const styles = {
  */
 class VarList extends Component {
 
-    myfunction(param) {
-
-    }
+    /** Prop expected types object. */
+    static propTypes = {
+        classes: PropTypes.object.isRequired,
+    };
 
     /**
      * Renders ___.
@@ -33,6 +36,7 @@ class VarList extends Component {
             <List className={classes.root}
                   dense={true}
                   disablePadding={true}>
+                <ListSubheader>Variables</ListSubheader>
                 <ListItem button>
                     <ListItemText className={classes.item} primary="Herro" />
                 </ListItem>

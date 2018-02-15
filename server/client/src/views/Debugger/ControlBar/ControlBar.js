@@ -2,13 +2,22 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { withStyles } from 'material-ui/styles';
 
-import Paper from 'material-ui/Paper';
+import Paper      from 'material-ui/Paper';
+import Toolbar    from 'material-ui/Toolbar';
+import Tooltip    from 'material-ui/Tooltip';
+import IconButton from 'material-ui/IconButton';
+
+import ContinueIcon from 'material-ui-icons/PlayArrow';
+import StopIcon     from 'material-ui-icons/Stop';
+import StepNextIcon from 'material-ui-icons/ArrowForward';
+import StepInIcon   from 'material-ui-icons/ArrowDownward';
+import StepOutIcon  from 'material-ui-icons/ArrowUpward';
 
 
+/** Component styling object. */
 const styles = theme => ({
     container: {
         display: 'block',
-        backgroundColor: 'rgb(2, 2, 2)',
     },
     controls: {
         maxWidth: 300,
@@ -21,7 +30,7 @@ const styles = theme => ({
  */
 class ControlBar extends Component {
 
-    // Define the expected types in props
+    /** Prop expected types object. */
     static propTypes = {
         classes: PropTypes.object.isRequired,
     };
@@ -36,7 +45,37 @@ class ControlBar extends Component {
             <div className={classes.container}>
                 <div className={classes.controls}>
                     <Paper>
-                        Herro
+
+                            <Tooltip title="Continue">
+                                <IconButton aria-label="Continue">
+                                    <ContinueIcon/>
+                                </IconButton>
+                            </Tooltip>
+
+                            <Tooltip title="Step Next">
+                                <IconButton aria-label="Step Next" variant="raised">
+                                    <StepNextIcon/>
+                                </IconButton>
+                            </Tooltip>
+
+                            <Tooltip title="Step In">
+                                <IconButton aria-label="Step In">
+                                    <StepInIcon/>
+                                </IconButton>
+                            </Tooltip>
+
+                            <Tooltip title="Step Out">
+                                <IconButton aria-label="Step Out">
+                                    <StepOutIcon/>
+                                </IconButton>
+                            </Tooltip>
+
+                            <Tooltip title="Stop">
+                                <IconButton aria-label="Stop">
+                                    <StopIcon/>
+                                </IconButton>
+                            </Tooltip>
+
                     </Paper>
                 </div>
             </div>

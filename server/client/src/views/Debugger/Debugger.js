@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
-
-import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
+import PropTypes from 'prop-types';
 import { withStyles } from 'material-ui/styles';
+import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import createMuiTheme from 'material-ui/styles/createMuiTheme'
 
 import VarList from './VarList';
@@ -13,10 +13,11 @@ import {loadGlobals, loadSymbol, REF} from './services/mockdata.js';
 /** Custom theme object that affects visual properties (fonts, colors, spacing, etc.) of Material UI components.
  *  For in depth description and list of overridable keys: https://material-ui-next.com/customization/themes/ */
 const theme = createMuiTheme({
-
 });
 
-const styles = {
+
+/** Component styling object. */
+const styles = theme => ({
     mainContainer: {
         display: "flex",
     },
@@ -32,7 +33,7 @@ const styles = {
         flexDirection: 'column',
     }
 
-};
+});
 
 console.log(loadGlobals());
 console.log(loadSymbol(`${REF}006`));
@@ -43,6 +44,11 @@ console.log(loadSymbol(`${REF}206`));
  * This class ___.
  */
 class Debugger extends Component {
+
+    /** Prop expected types object. */
+    static propTypes = {
+        classes: PropTypes.object.isRequired,
+    };
 
     /**
      * Constructor. Initializes state to include a symbolTable, which is mutated by passing a callback to VarList and
