@@ -65,15 +65,18 @@ class Debugger extends Component {
 
     /**
      * Loads the symbol data with the specified symbol ID, as well as any referenced shells. These new schemas replace
-     * any existing ones in the `symbolTable` for the same symbols.
+     * any existing ones in the `symbolTable` for the same symbols. When the data is finished loading, execute the
+     * given callback, sending that data to the component (likely a DataViewer) that requested it.
      */
-    loadSymbol(symbolID) {
-        // Symbol has already been fully loaded
-        if(this.state.symbolTable[symbolID] && this.state.symbolTable[symbolID].data === null) {
-            return this.state.symbolTable[symbolID];
-        }
+    loadSymbol(symbolID, callback) {
+        new Promise((resolve, reject) => {
+            // Symbol has already been fully loaded
+            if(this.state.symbolTable[symbolID] && this.state.symbolTable[symbolID].data === null) {
+                resolve(this.state.symbolTable[symbolID]);
+            }
 
-        // TODO: Load symbol
+            // TODO: Load symbol
+        }).then(callback);
     }
 
     /**
@@ -91,7 +94,7 @@ class Debugger extends Component {
                     </div>
                     <div className={classes.rightContainer}>
                         <ControlBar/>
-                        <Canvas/>
+                        <Canvas loadSymbol={(symbolId, callback) => this.loadSymbol(symbolId, callback)}/>
                     </div>
                 </div>
             </MuiThemeProvider>
