@@ -184,7 +184,6 @@ routerAPIDebug.get("/get_namespace", function(req, resp) {
     }
 
     programSocket.emit("dbg-get-namespace", function(context, namespace) {
-        console.log(namespace);
         resp.send(namespace);
         console.log("Sent namespace variable data after GET NAMESPACE.");
     });
