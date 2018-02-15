@@ -273,6 +273,8 @@ class VisualizationEngine:
                                         data_fn=_generate_data_primitive, is_primitive=True)
     BOOL            = VisualizationType('bool', test_fn=lambda obj: isinstance(obj, bool),
                                         data_fn=_generate_data_primitive, is_primitive=True)
+    NONE            = VisualizationType('none', test_fn=lambda obj: obj is None,
+                                        data_fn=_generate_data_primitive, is_primitive=True)
     TENSOR          = VisualizationType('tensor', test_fn=lambda obj: isinstance(obj, _TensorBase),
                                         str_fn=lambda obj: 'Tensor{}({})'.format(list(obj.size()), TENSOR_TYPES),
                                         data_fn=_generate_data_tensor)
@@ -306,7 +308,7 @@ class VisualizationEngine:
     # INSTANCE should be last, as it returns `True` on any object and is the most general type. `BOOL` should be
     # before `NUMBER`, as bool is a subclass of number. `GRAPH_DATA` should be first, as it can wrap any type and
     # will be mistaken for those types.
-    TYPES = [GRAPH_DATA, GRAPH_CONTAINER, GRAPH_OP, BOOL, NUMBER, STRING, TENSOR, DICT, LIST, SET, TUPLE, MODULE,
+    TYPES = [GRAPH_DATA, GRAPH_CONTAINER, GRAPH_OP, NONE, BOOL, NUMBER, STRING, TENSOR, DICT, LIST, SET, TUPLE, MODULE,
              FUNCTION, CLASS, INSTANCE]
 
     # Utility functions for data generation.
