@@ -1,56 +1,27 @@
 from viz.debug import set_trace
 
-import torch
+import viz.graphtracker as gt
 
 
-class DummyClass(object):
-    class_primitive = 5
-    class_obj = [1, 2, 3]
+myInt = 86
+myFloat = 3.14159
+myBool = True
+myString = "The quick brown fox jumps over the lazy dog"
+myNone = None
 
-    def __init__(self, prop1, prop2=None):
-        super(self.__class__)
-        self.prop1 = prop1
-        self.prop2 = prop2
-        self.prop3 = 'meow'
-
-    @staticmethod
-    def classfn():
-        pass
-    
-    def instancefn(self, arg1):
-        pass
-    
-    def _underscore1(self, arg1):
-        pass
+myList = [1, 2.3, False, "hello", None, [10, 11, ["This", "is", "the", "end"]]]
 
 
-class ListSubclass(list):
-    static_field = 'woop'
+def myFn(arg1, arg2, kwarg1="foo", kwarg2="bar"):
+    return arg1
 
-    def __init__(self):
-        super(ListSubclass, self).__init__()
-        self.instance_field = 'hello world!'
-
-
-def anon_fn(arg1):
-    pass
-
-fn = anon_fn
-instance = DummyClass(5, prop2='cat')
-string = "str"
-number = 10
-boolean = True
-l = [1, number, instance]
-s = {1, string, instance.prop1}
-t = (1, boolean, instance.prop2)
-d = {
-    "k1": instance.prop3,
-    "k2": DummyClass,
-    "k3": DummyClass.class_primitive,
-}
-
-lst = ListSubclass()
-lst += [d, DummyClass.classfn, DummyClass.class_obj]
-
+myGraphData = gt.GraphData(myInt, {"Value": None},
+                           creator_op=gt.GraphOp(myFn,
+                                                 (gt.GraphData(myFloat, {"Value": None}), myString),
+                                                 {
+                                                     "kwarg1": gt.GraphData(myBool, {"Value": None}),
+                                                     "kwarg2": myNone,
+                                                 }),
+                           creator_pos=0)
 set_trace()
 print('Goodbye!')
