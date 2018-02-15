@@ -35,11 +35,12 @@ def _get_available_port(host, port_range):
 
 
 class SingleRequestSocketIO(SocketIO):
-    """A SocketIO client object that can terminate waiting after receiving a single request.
+    """An extension of the `SocketIO` client which stops reading from the socket after the server sends a request.
 
-    A normal SocketIO client will wait and respond to requests until it hits a set timeout. The `VisualDebugger`
-    needs to be able to break out of waiting when step and continue commands are received so that program execution
-    can continue.
+    The superclass `SocketIO` client blocks as it waits for a new message on the socket, after which it executes a
+    callback and resumes waiting again. It will only break after a set timeout elapses. The `SingleRequestSocketIO`
+    will not resume waiting after the first callback completes. This is useful for the `VisualDebugger`, which should
+    stop waiting after receiving, for example, the CONTINUE command.
     """
     def __init__(self, *args, **kwargs):
         """Add a field to track whether a callback has been received before opening the socket.
@@ -73,12 +74,8 @@ class VisualDebuggerServerHandle:
     server process. This object helps us create a consistent process that persists beyond a debugger instance.
     """
 
-    # TODO ensure these will work in remote cases
     # The address on which to find a port and open the socket between the server and the debugger.
-    LOCAL_ADDRESS = 'localhost'
-
-    # The address on which to open the server to client requests.
-    CLIENT_ADDRESS = '0.0.0.0'
+    LOCALHOST = 'localhost'
 
     # TODO make this deployment-ready
     SERVER_PROGRAM_PATH = r'..\server\server.js'
@@ -90,8 +87,8 @@ class VisualDebuggerServerHandle:
             program_port_range (int, int): Range of ports for program-server communication.
             client_port_range (int, int): Range of ports for server-client communication.
         """
-        self.program_port = _get_available_port(self.LOCAL_ADDRESS, program_port_range)
-        self.client_port = _get_available_port(self.CLIENT_ADDRESS, client_port_range)
+        self.program_port = _get_available_port(self.LOCALHOST, program_port_range)
+        self.client_port = _get_available_port(self.LOCALHOST, client_port_range)
         print('Debugging server started on port {}, communicating with program on port {}'.format(self.client_port,
                                                                                                   self.program_port))
         self.process = Popen(['node', self.SERVER_PROGRAM_PATH, str(self.program_port), str(self.client_port)])
@@ -145,9 +142,8 @@ class VisualDebugger(bdb.Bdb):
         if self._server is None:
             VisualDebugger._server = VisualDebuggerServerHandle(program_port_range, client_port_range)
 
-        # TODO un-hardcode this string
         # This line will hang until the socket connection is established.
-        self.socket = SingleRequestSocketIO(self._server.LOCAL_ADDRESS, self._server.program_port)
+        self.socket = SingleRequestSocketIO(self._server.LOCALHOST, self._server.program_port)
         self._attach_socket_callbacks()
 
         # Instance variables.
@@ -284,8 +280,8 @@ class VisualDebugger(bdb.Bdb):
         generality), so we create a 0-argument version of the runtime update callback here.
         """
         def _callback():
-            context = self._get_context()
-            namespace = self._get_namespace_shells()
+            context = self.viz_engine.to_json(self._get_context())
+            namespace = self.viz_engine.to_json(self._get_namespace_shells())
             callback_fn(context, namespace)
         return _callback
 
