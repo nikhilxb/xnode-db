@@ -1,14 +1,14 @@
 import React, { Component } from 'react';
 import { withStyles } from 'material-ui/styles';
 import Card, { CardActions, CardContent } from 'material-ui/Card';
-import Button from 'material-ui/Button';
 import Typography from 'material-ui/Typography';
 import { graphlib } from 'dagre';
+import { nodeHeight, nodeWidth } from './GraphViewer.js';
 
 const styles = theme => ({
   card: {
-      height: 75,
-      width: 100,
+      height: nodeHeight,
+      width: nodeWidth,
   },
   label: {
       textAlign: 'center',

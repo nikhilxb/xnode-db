@@ -1,20 +1,17 @@
 import React, { Component } from 'react';
 import { withStyles } from 'material-ui/styles';
-import Button from 'material-ui/Button';
+import Card, { CardActions, CardContent } from 'material-ui/Card';
+import Typography from 'material-ui/Typography';
 import { graphlib } from 'dagre';
+import { nodeHeight, nodeWidth } from './GraphViewer.js';
 
 const styles = theme => ({
-  button: {
-      background: 'linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%)',
-      borderRadius: 3,
-      border: 0,
-      color: 'white',
-      height: 100,
-      width: 100,
-      padding: '0 30px',
-      boxShadow: '0 3px 5px 2px rgba(255, 105, 135, .30)',
+  card: {
+      height: nodeHeight,
+      width: nodeWidth,
   },
   label: {
+      textAlign: 'center',
       textTransform: 'capitalize',
   }
 });
@@ -34,7 +31,13 @@ class GraphOpViewer extends Component {
     }
 
     render() {
-        return <Button classes={{root: this.props.classes.button, label: this.props.classes.label}}>{this.props.name ? this.props.name : this.props.str}</Button>
+        return (<Card className={this.props.classes.card}>
+            <CardContent>
+                <Typography component="p" className={this.props.classes.label}>
+                    {this.props.name ? this.props.name : this.props.str}
+                </Typography>
+            </CardContent>
+        </Card>);
     }
 }
 

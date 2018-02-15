@@ -60,7 +60,7 @@ class GraphViewer extends Component {
         // TODO containers
         // TODO link this width to the width in GraphOpViewer and GraphDataViewer
         this.state.nodeComponents.forEach(c => {
-            g.setNode(c.key, {label: c, width:100, height:100})
+            g.setNode(c.key, {label: c, width:nodeWidth, height:nodeHeight})
         });
         this.state.edges.forEach(edge =>
             g.setEdge(edge.source, edge.target, {})
@@ -70,7 +70,11 @@ class GraphViewer extends Component {
 
         let nodes = g.nodes().map(v => {
             let node = g.node(v);
-            return (<div style={{position: "absolute", top: node.y - node.height/2, left: node.x - node.width/2}}>{node.label}</div>);
+            return (
+                <div style={{position: "absolute", top: node.y - node.height/2, left: node.x - node.width/2}}>
+                    {node.label}
+                </div>
+            );
         });
 
         let edges = g.edges().map(e => {
@@ -87,4 +91,5 @@ class GraphViewer extends Component {
     }
 }
 
+export { nodeHeight, nodeWidth };
 export default withStyles(styles)(GraphViewer);

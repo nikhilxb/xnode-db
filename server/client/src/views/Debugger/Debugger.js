@@ -3,7 +3,6 @@ import React, { Component } from 'react';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import { withStyles } from 'material-ui/styles';
 import createMuiTheme from 'material-ui/styles/createMuiTheme';
-import Canvas from './Canvas/Canvas.js';
 
 import VarList from './VarList';
 import Canvas from './Canvas'
