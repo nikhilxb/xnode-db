@@ -2,13 +2,13 @@ import React, { Component } from 'react';
 import { withStyles } from 'material-ui/styles';
 
 const styles = {
-    root: {
+    container: {
 
     }
 };
 
 /**
- * This class ___.
+ * This component ___.
  */
 class Example extends Component {
 
@@ -17,7 +17,7 @@ class Example extends Component {
      */
     render() {
         return (
-            <div className={this.props.classes.root}>
+            <div className={this.props.classes.container}>
                 "Herro there"
             </div>
         );

@@ -1,12 +1,14 @@
 import React, { Component } from 'react';
-
-// Material UI
-import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import { withStyles } from 'material-ui/styles';
-import createMuiTheme from 'material-ui/styles/createMuiTheme';
 import DataViewer from '../../../components/DataViewer/DataViewer.js';
 
 const styles = {
+    container: {
+        backgroundColor: 'rgb(248, 248, 248)',
+        display: 'flex',
+        flexGrow: 1,
+        textAlign: 'center',
+    }
 };
 
 /**
@@ -29,7 +31,11 @@ class Canvas extends Component {
     }
 
     render() {
-        return <div>{this.state.viewers}</div>
+       return (
+           <div className={this.props.classes.container}>
+               {this.state.viewers}
+           </div>
+       );
     }
 }
 

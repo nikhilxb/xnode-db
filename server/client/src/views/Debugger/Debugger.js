@@ -1,11 +1,12 @@
-import './Debugger.css';
 import React, { Component } from 'react';
 
-// Material UI
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import { withStyles } from 'material-ui/styles';
 import createMuiTheme from 'material-ui/styles/createMuiTheme';
 import Canvas from './Canvas/Canvas.js';
+
+import VarList from './VarList';
+import Canvas from './Canvas'
 
 
 /** Custom theme object that affects visual properties (fonts, colors, spacing, etc.) of Material UI components.
@@ -87,11 +88,8 @@ class Debugger extends Component {
         return (
             <MuiThemeProvider theme={theme}>
                 <div className={this.props.classes.container}>
-                    <div className="Debugger-sidebar">
-                        <Canvas fetchShellAndData={(symbolId, callback) => this.getSymbolShellAndData(symbolId, callback)}/>
-                    </div>
-                    <div className="Debugger-canvas">
-                    </div>
+                    <VarList/>
+                    <Canvas fetchShellAndData={(symbolId, callback) => this.getSymbolShellAndData(symbolId, callback)}/>
                 </div>
             </MuiThemeProvider>
         );

@@ -1,27 +1,37 @@
 import React, { Component } from 'react';
 
 import { withStyles } from 'material-ui/styles';
-import List, {ListItem} from 'material-ui/List';
+import List, {ListItem, ListItemText} from 'material-ui/List';
 
 const styles = {
-    root: {
+    container: {
+        maxWidth: '350px',
+        width: '100%',
+        fontFamily: 'monospace',
+    },
 
-    }
 };
 
 /**
- * This class ___.
+ * This component displays a list of all variables in the debugged program's namespace when execution is paused
+ * (e.g. at a breakpoint). The list is recursively nested and lazy-loaded, so only on expansion will
  */
 class VarList extends Component {
+
+    myfunction(param) {
+
+    }
 
     /**
      * Renders ___.
      */
     render() {
         return (
-            <div className={this.props.classes.root}>
-                <List>
-
+            <div className={this.props.classes.container}>
+                <List dense={true}>
+                    <ListItem button>
+                        <ListItemText primary="Herro" />
+                    </ListItem>
                 </List>
             </div>
         );
