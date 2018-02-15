@@ -1,20 +1,21 @@
 import React, { Component } from 'react';
-
 import { withStyles } from 'material-ui/styles';
+
 import List, {ListItem, ListItemText} from 'material-ui/List';
 
+
 const styles = {
-    container: {
-        maxWidth: '350px',
-        width: '100%',
+    root: {
         fontFamily: 'monospace',
     },
-
+    item: {
+        fontFamily: 'monospace',
+    }
 };
 
 /**
  * This component displays a list of all variables in the debugged program's namespace when execution is paused
- * (e.g. at a breakpoint). The list is recursively nested and lazy-loaded, so only on expansion will
+ * (e.g. at a breakpoint). The list is recursively nested and lazy-loaded, so only on expansion will data requested.
  */
 class VarList extends Component {
 
@@ -26,14 +27,16 @@ class VarList extends Component {
      * Renders ___.
      */
     render() {
+        const {classes} = this.props;
+
         return (
-            <div className={this.props.classes.container}>
-                <List dense={true}>
-                    <ListItem button>
-                        <ListItemText primary="Herro" />
-                    </ListItem>
-                </List>
-            </div>
+            <List className={classes.root}
+                  dense={true}
+                  disablePadding={true}>
+                <ListItem button>
+                    <ListItemText className={classes.item} primary="Herro" />
+                </ListItem>
+            </List>
         );
     }
 }
