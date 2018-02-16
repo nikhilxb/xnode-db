@@ -24,14 +24,8 @@ class Canvas extends Component {
         }
     }
 
-    // TODO remove this, just for demo purposes
-    componentDidMount() {
-        let viewers = this.state.viewers;
-        viewers.push(<DataViewer key={"@id:007"} symbolId={"@id:007"} loadSymbol={this.props.loadSymbol} isTopLevel={true} />)
-        this.setState({
-            viewers: viewers
-        })
-    }
+    //    let viewers = this.state.viewers;
+    //    viewers.push(<DataViewer key={"1766992443720"} symbolId={"1766992443720"} loadSymbol={this.props.loadSymbol} isTopLevel={true} />)
 
     /** Prop expected types object. */
     static propTypes = {
