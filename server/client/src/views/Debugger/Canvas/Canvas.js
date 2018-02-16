@@ -8,13 +8,13 @@ import DataViewer from '../../../components/DataViewer/DataViewer.js';
 /** Component styling object. */
 const styles = theme => ({
     container: {
-        minHeight: 600,
+        flexGrow: 1,
         padding: theme.spacing.unit * 4,
     }
 });
 
 /**
- * This class ___.
+ * This component serves as an interactive workspace for inspecting variable viewers.
  */
 class Canvas extends Component {
     constructor(props, context) {
@@ -33,7 +33,7 @@ class Canvas extends Component {
     };
 
     /**
-     * Renders ___.
+     * Renders the inspector canvas and any viewers currently registered to it.
      */
     render() {
         const {classes} = this.props;

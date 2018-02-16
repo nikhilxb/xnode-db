@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import { withStyles } from 'material-ui/styles';
 
 import Paper      from 'material-ui/Paper';
-import Toolbar    from 'material-ui/Toolbar';
 import Tooltip    from 'material-ui/Tooltip';
 import IconButton from 'material-ui/IconButton';
 
@@ -53,7 +52,7 @@ class ControlBar extends Component {
                             </Tooltip>
 
                             <Tooltip title="Step Next">
-                                <IconButton aria-label="Step Next" variant="raised">
+                                <IconButton aria-label="Step Next">
                                     <StepNextIcon/>
                                 </IconButton>
                             </Tooltip>

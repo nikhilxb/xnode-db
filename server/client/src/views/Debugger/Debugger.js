@@ -1,12 +1,15 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+
 import { withStyles } from 'material-ui/styles';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
-import createMuiTheme from 'material-ui/styles/createMuiTheme'
+import createMuiTheme from 'material-ui/styles/createMuiTheme';
+import grey from 'material-ui/colors/grey';
 
 import VarList from './VarList';
 import Canvas from './Canvas';
 import ControlBar from './ControlBar';
+
 import {loadGlobals, loadSymbol, REF} from './services/mockdata.js';
 
 
@@ -19,14 +22,15 @@ const theme = createMuiTheme({
 /** Component styling object. */
 const styles = theme => ({
     mainContainer: {
-        display: "flex",
+        display: 'flex',
+        height: '100vh',
     },
     leftContainer: {
         maxWidth: '350px',
         width: '100%',
     },
     rightContainer: {
-        backgroundColor: 'rgb(248, 248, 248)',
+        backgroundColor: grey[100],
         textAlign: 'center',
         display: 'flex',
         flexGrow: 1,
@@ -41,7 +45,7 @@ console.log(loadSymbol(`${REF}106`));
 console.log(loadSymbol(`${REF}206`));
 
 /**
- * This class ___.
+ * This component defines the main layout of the debugging view.
  */
 class Debugger extends Component {
 
@@ -109,7 +113,7 @@ class Debugger extends Component {
             <MuiThemeProvider theme={theme}>
                 <div className={classes.mainContainer}>
                     <div className={classes.leftContainer}>
-                        <VarList/>
+                        <VarList symbols={["myInt", "myBool", "myString"]}/>
                     </div>
                     <div className={classes.rightContainer}>
                         <ControlBar/>
