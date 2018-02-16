@@ -47,14 +47,6 @@ class DataViewer extends Component {
     }
 
     /**
-     * Request that the canvas create a new viewer for the given symbol. Should
-     * also handle any logic that links this viewer to the new one.
-     */
-    openNewViewer(symbolId) {
-        // TODO opening new viewers
-    }
-
-    /**
      * Renders the type-specific component, if loaded.
      */
     render() {

@@ -9,6 +9,13 @@ import blueGrey from 'material-ui/colors/blueGrey';
 /** Component styling object. */
 const styles = theme => ({
     root: {
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        height: '100%',
+        backgroundColor: theme.palette.background.paper,
+    },
+    listSection: {
+        backgroundColor: 'inherit',
     },
     text: {
         fontFamily: '"Roboto Mono", monospace',
@@ -90,7 +97,7 @@ class VarList extends Component {
             <List className={classes.root}
                   dense={true}
                   disablePadding={true}>
-                <ListSubheader>Variables</ListSubheader>
+                <ListSubheader className={classes.listSection}>Variables</ListSubheader>
                 {symbolIds.map(this.renderSymbol)}
             </List>
         );

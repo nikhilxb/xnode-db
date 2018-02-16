@@ -40,11 +40,6 @@ const styles = theme => ({
 
 });
 
-console.log(loadGlobals());
-console.log(loadSymbol(`${REF}006`));
-console.log(loadSymbol(`${REF}106`));
-console.log(loadSymbol(`${REF}206`));
-
 /**
  * This component defines the main layout of the debugging view.
  */
@@ -64,6 +59,7 @@ class Debugger extends Component {
         this.getSymbolShell = this.getSymbolShell.bind(this);
         this.loadSymbolData = this.loadSymbolData.bind(this);
         this.addViewerToCanvas = this.addViewerToCanvas.bind(this);
+        this.changeProgramState = this.changeProgramState.bind(this);
 
         this.symbolTable = {};
         fetch('/api/debug/get_namespace')
@@ -71,6 +67,8 @@ class Debugger extends Component {
         .then(({context, namespace}) => {
             this.symbolTable = namespace;
             this.forceUpdate();
+        }).catch((reason) => {
+            // TODO handle errors here, like the program having ended.
         }));
 
         this.state = {
@@ -78,13 +76,37 @@ class Debugger extends Component {
         }
     }
 
+    /**
+     * Creates a new DataViewer component, which will be rendered in the Canvas.
+     * @param {string} symbolId
+     */
     addViewerToCanvas(symbolId) {
         let viewers = this.state.viewers;
         viewers.push(<DataViewer key={symbolId} symbolId={symbolId} loadSymbol={this.loadSymbolData} isTopLevel={true} />);
-
         this.setState({
             viewers: viewers,
         });
+    }
+
+    /**
+     * Send an API call to the server, which should change the program state. If the program hits another breakpoint,
+     * an object with a program context string and a namespace shell dictionary is expected.
+     * @param  {string} url API url to get.
+     */
+    changeProgramState(url) {
+        this.setState({
+            viewers: [],
+        });
+        this.symbolTable = {};
+        this.forceUpdate();
+        fetch(url)
+        .then(resp => resp.json()
+        .then(({context, namespace}) => {
+            this.symbolTable = namespace;
+            this.forceUpdate();
+        }).catch((reason) => {
+            // TODO handle end-of-program here
+        }));
     }
 
     /**
@@ -97,9 +119,9 @@ class Debugger extends Component {
     }
 
     /**
-     * Loads the symbol data with the specified symbol ID, as well as any referenced shells. These new schemas replace
-     * any existing ones in the `symbolTable` for the same symbols. When the data is finished loading, execute the
-     * given callback, sending that data to the component (likely a DataViewer) that requested it.
+     * Loads the symbol data with the specified symbol ID, as well as any referenced shells. These new schemas are
+     * added to the symbol table only if not already present. When the data is finished loading, add it to the symbol
+     * table and execute the given callback, sending that data to the component (likely a DataViewer) that requested it.
      * @param symbolId
      * @param callback
      */
@@ -116,7 +138,6 @@ class Debugger extends Component {
                 .then((response)=>
                     response.json()
                 .then(({data: newData, shells: newShells}) => {
-                    let keptShells = {};
                     for(const shellId of Object.keys(newShells)) {
                         if (!this.symbolTable[shellId]) {
                             this.symbolTable[shellId] = newShells[shellId];
@@ -148,7 +169,7 @@ class Debugger extends Component {
                         />
                     </div>
                     <div className={classes.rightContainer}>
-                        <ControlBar/>
+                        <ControlBar changeProgramState={this.changeProgramState}/>
                         <Canvas
                             viewers={this.state.viewers}
                         />

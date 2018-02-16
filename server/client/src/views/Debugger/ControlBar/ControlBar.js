@@ -38,43 +38,41 @@ class ControlBar extends Component {
      * Renders ___.
      */
     render() {
-        const {classes} = this.props;
+        const {classes, changeProgramState} = this.props;
 
         return (
             <div className={classes.container}>
                 <div className={classes.controls}>
                     <Paper>
+                        <Tooltip title="Continue">
+                            <IconButton aria-label="Continue" onClick={() => changeProgramState('/api/debug/continue')}>
+                                <ContinueIcon/>
+                            </IconButton>
+                        </Tooltip>
 
-                            <Tooltip title="Continue">
-                                <IconButton aria-label="Continue">
-                                    <ContinueIcon/>
-                                </IconButton>
-                            </Tooltip>
+                        <Tooltip title="Step Next">
+                            <IconButton aria-label="Step Next" onClick={() => changeProgramState('/api/debug/step_over')}>
+                                <StepNextIcon/>
+                            </IconButton>
+                        </Tooltip>
 
-                            <Tooltip title="Step Next">
-                                <IconButton aria-label="Step Next">
-                                    <StepNextIcon/>
-                                </IconButton>
-                            </Tooltip>
+                        <Tooltip title="Step In">
+                            <IconButton aria-label="Step In" onClick={() => changeProgramState('/api/debug/step_into')}>
+                                <StepInIcon/>
+                            </IconButton>
+                        </Tooltip>
 
-                            <Tooltip title="Step In">
-                                <IconButton aria-label="Step In">
-                                    <StepInIcon/>
-                                </IconButton>
-                            </Tooltip>
+                        <Tooltip title="Step Out">
+                            <IconButton aria-label="Step Out" onClick={() => changeProgramState('/api/debug/step_out')}>
+                                <StepOutIcon/>
+                            </IconButton>
+                        </Tooltip>
 
-                            <Tooltip title="Step Out">
-                                <IconButton aria-label="Step Out">
-                                    <StepOutIcon/>
-                                </IconButton>
-                            </Tooltip>
-
-                            <Tooltip title="Stop">
-                                <IconButton aria-label="Stop">
-                                    <StopIcon/>
-                                </IconButton>
-                            </Tooltip>
-
+                        <Tooltip title="Stop">
+                            <IconButton aria-label="Stop" onClick={() => changeProgramState('/api/debug/stop')}>
+                                <StopIcon/>
+                            </IconButton>
+                        </Tooltip>
                     </Paper>
                 </div>
             </div>
