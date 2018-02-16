@@ -20,12 +20,6 @@ const styles = theme => ({
  * This class renders a data node in a computation graph.
  */
 class GraphDataViewer extends Component {
-    constructor(props, context) {
-        super(props, context);
-        console.log(this.props);
-        this.props.addToDAG(this.props.data.viewer.creatorop, this.props.symbolId);
-    }
-
     render() {
         return (<Card className={this.props.classes.card}>
             <CardContent>

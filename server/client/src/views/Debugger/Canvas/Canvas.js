@@ -2,9 +2,6 @@ import React, { Component } from 'react';
 import { withStyles } from 'material-ui/styles';
 import PropTypes from "prop-types";
 
-import DataViewer from '../../../components/DataViewer/DataViewer.js';
-
-
 /** Component styling object. */
 const styles = theme => ({
     container: {

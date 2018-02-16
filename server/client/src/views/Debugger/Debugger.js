@@ -9,7 +9,9 @@ import grey from 'material-ui/colors/grey';
 import VarList from './VarList';
 import Canvas from './Canvas';
 import ControlBar from './ControlBar';
-import DataViewer from '../../components/DataViewer/DataViewer.js';
+import GraphViewer from '../../components/DataViewer/GraphViewer/GraphViewer.js';
+import GraphDataViewer from '../../components/DataViewer/GraphViewer/GraphDataViewer.js';
+import GraphOpViewer from '../../components/DataViewer/GraphViewer/GraphOpViewer.js';
 
 import {loadGlobals, loadSymbol, REF} from './services/mockdata.js';
 
@@ -58,6 +60,7 @@ class Debugger extends Component {
         super(props);
         this.getSymbolShell = this.getSymbolShell.bind(this);
         this.loadSymbolData = this.loadSymbolData.bind(this);
+        this.loadSymbolDataAndCreateComponent = this.loadSymbolDataAndCreateComponent.bind(this);
         this.addViewerToCanvas = this.addViewerToCanvas.bind(this);
         this.changeProgramState = this.changeProgramState.bind(this);
 
@@ -81,10 +84,41 @@ class Debugger extends Component {
      * @param {string} symbolId
      */
     addViewerToCanvas(symbolId) {
-        let viewers = this.state.viewers;
-        viewers.push(<DataViewer key={symbolId} symbolId={symbolId} loadSymbol={this.loadSymbolData} isTopLevel={true} />);
-        this.setState({
-            viewers: viewers,
+        this.loadSymbolDataAndCreateComponent(symbolId, {isTopLevel: true}, (blah, bloh, newComponent) => {
+            let viewers = this.state.viewers;
+            viewers.push(newComponent);
+            this.setState({
+                viewers: viewers,
+            });
+        });
+    }
+    /**
+     * Loads the data for a symbol, then creates a new component for it. Executes a callback afterwards. Used by
+     * viewers to create other viewers (e.g., the GraphViewer creating GraphDataViewers).
+     * @param  {String}   symbolId
+     * @param  {Object}   extraProps Any extra props to be passed to the new component.
+     * @param  {Function} callback
+     */
+    loadSymbolDataAndCreateComponent(symbolId, extraProps, callback) {
+        this.loadSymbolData(symbolId, (shellAndData) => {
+            const props = {
+                ...shellAndData,
+                ...extraProps,
+                key: symbolId,
+                symbolId: symbolId,
+                loadComponent: this.loadSymbolDataAndCreateComponent,
+            }
+            let newComponent = null;
+            if (shellAndData.type === "graphdata" && extraProps.isTopLevel) {
+                newComponent = (<GraphViewer {...props} />);
+            }
+            else if (shellAndData.type === "graphdata") {
+                newComponent = (<GraphDataViewer {...props} />);
+            }
+            else if (shellAndData.type === "graphop") {
+                newComponent = (<GraphOpViewer {...props} />);
+            }
+            callback(symbolId, shellAndData, newComponent);
         });
     }
 

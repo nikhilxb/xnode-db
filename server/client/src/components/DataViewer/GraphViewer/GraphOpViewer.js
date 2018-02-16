@@ -20,16 +20,6 @@ const styles = theme => ({
  * This class renders an op node in a computation graph.
  */
 class GraphOpViewer extends Component {
-    constructor(props, context) {
-        super(props, context);
-        this.props.data.viewer.args.forEach(arg =>
-            this.props.addToDAG(arg, this.props.symbolId)
-        );
-        Object.keys(this.props.data.viewer.kwargs).forEach(kwarg =>
-            this.props.addToDAG(this.props.data.viewer.kwargs[kwarg], this.props.symbolId)
-        );
-    }
-
     render() {
         return (<Card className={this.props.classes.card}>
             <CardContent>

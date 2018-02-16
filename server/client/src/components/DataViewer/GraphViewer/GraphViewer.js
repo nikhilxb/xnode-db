@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { withStyles } from 'material-ui/styles';
-import DataViewer from '../DataViewer.js';
 import dagre from 'dagre';
 import GraphEdge from './GraphEdge.js';
 
@@ -17,44 +16,76 @@ const nodeWidth = 150;
 class GraphViewer extends Component {
     constructor(props, context) {
         super(props, context);
+        this.receiveNewComponent = this.receiveNewComponent.bind(this);
+        this.unaddedComponents = [];
+        // The number of nodes currently being loaded. The graph is rendered only when this is zero.
+        this.waitingForNodes = 0;
+        this.nodeIds = new Set();
+        // This is not in the state, because setting state in addSymbolToDAG will cause errors (React seems to think
+        // that the component sometimes isn't mounted in addSymbolToDAG, so it won't update the state and we'll get
+        // errors in rendering). This isn't a real problem, unless we forsee the presence of edges changing when
+        // nodeComponents doesn't; in that case, we would not trigger a re-render.
+        this.edges = {};
         this.state = {
-            nodeIds: new Set(),
             nodeComponents: [],
-            edges: [],
-        }
+        };
     }
 
+    /**
+     * Begin building the DAG from the head when the component has mounted and it's safe to update the state.
+     */
     componentDidMount() {
-        console.log('Graph head mounted.');
         this.addSymbolToDAG(this.props.symbolId);
     }
 
     /**
-     * Adds the symbol with ID toSymbolId to the graph, if not already present. If added, the new symbol will call this
-     * function again for each node it links to.
+     * Requests the Debugger to load a new graph component for the given symbol ID, if not already present, and adds a
+     * new edge if one exists.
      */
-    addSymbolToDAG(toSymbolId, fromSymbolId=null) {
-        if (toSymbolId === null) {
+    addSymbolToDAG(toSymbolId, fromSymbolId) {
+        if (!toSymbolId) {
             return;
         }
-        let nodeIds = this.state.nodeIds;
-        console.log('Trying to build DAG from ' + toSymbolId);
-        if (!nodeIds.has(toSymbolId)) {
-            console.log('Adding ' + toSymbolId);
-            nodeIds.add(toSymbolId);
-            let edges = this.state.edges;
-            if (fromSymbolId !== null) {
-                let newEdge = {source: fromSymbolId, target: toSymbolId};
-                edges.push(newEdge);
+        if (fromSymbolId && (!this.edges[fromSymbolId] || !this.edges[fromSymbolId].has(toSymbolId))) {
+            console.log(fromSymbolId, toSymbolId);
+            if (this.edges[fromSymbolId]) {
+                this.edges[fromSymbolId].add(toSymbolId);
+            } else {
+                this.edges[fromSymbolId] = new Set([toSymbolId]);
             }
-            let nodeComponents = this.state.nodeComponents;
-            let newDataViewer = <DataViewer key={toSymbolId} symbolId={toSymbolId} addToDAG={(to, from)=>this.addSymbolToDAG(to, from)} loadSymbol={this.props.loadSymbol} />;
-            nodeComponents.push(newDataViewer);
+        }
+        if (!this.nodeIds.has(toSymbolId)) {
+            this.waitingForNodes += 1;
+            this.nodeIds.add(toSymbolId);
+            this.props.loadComponent(toSymbolId, {}, this.receiveNewComponent);
+        }
+    }
+
+    /**
+     * Called back when the Debugger has finished loading a new component for one of the graph's op or data nodes. If
+     * the new node links to other symbols, then those symbols are requested also.
+     * @param  {string} symbolId
+     * @param  {object} shellAndData
+     * @param  {Component} newNodeComponent
+     */
+    receiveNewComponent(symbolId, shellAndData, newNodeComponent) {
+        this.waitingForNodes -= 1;
+        this.unaddedComponents.push(newNodeComponent);
+        if (shellAndData.type == "graphop") {
+            shellAndData.data.viewer.args.forEach(arg =>
+                this.addSymbolToDAG(arg, symbolId)
+            );
+            Object.keys(shellAndData.data.viewer.kwargs).forEach(kwarg =>
+                this.addSymbolToDAG(shellAndData.data.viewer.kwargs[kwarg], symbolId)
+            );
+        } else if (shellAndData.type == "graphdata") {
+            this.addSymbolToDAG(shellAndData.data.viewer.creatorop, symbolId);
+        }
+        if (this.waitingForNodes == 0) {
             this.setState({
-                nodeIds: nodeIds,
-                edges: edges,
-                nodeComponents: nodeComponents,
+                nodeComponents: this.unaddedComponents,
             });
+            this.unaddedComponents = null;
         }
     }
 
@@ -66,13 +97,16 @@ class GraphViewer extends Component {
         g.setGraph({});
 
         // TODO containers
-        // TODO link this width to the width in GraphOpViewer and GraphDataViewer
         this.state.nodeComponents.forEach(c => {
+            console.log(c.key);
             g.setNode(c.key, {label: c, width:nodeWidth, height:nodeHeight})
         });
-        this.state.edges.forEach(edge =>
-            g.setEdge(edge.source, edge.target, {})
-        );
+
+        Object.keys(this.edges).forEach(fromSymbolId => {
+            this.edges[fromSymbolId].forEach(toSymbolId => {
+                g.setEdge(fromSymbolId, toSymbolId, {});
+            });
+        });
 
         dagre.layout(g);
 
