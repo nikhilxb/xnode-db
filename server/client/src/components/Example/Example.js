@@ -17,6 +17,11 @@ class Example extends Component {
         classes: PropTypes.object.isRequired,
     };
 
+    /** Constructor. */
+    constructor(props) {
+        super(props);
+    }
+
     /**
      * Renders ___.
      */

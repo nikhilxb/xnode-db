@@ -13,11 +13,12 @@ const styles = theme => ({
  * This class requests data for a symbol and then renders its type-specific viewer.
  */
 class DataViewer extends Component {
+
     constructor(props, context) {
         super(props, context);
         this.state = {
             body: <div />,
-        }
+        };
     }
 
     /**

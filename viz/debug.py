@@ -78,7 +78,7 @@ class VisualDebuggerServerHandle:
     LOCALHOST = 'localhost'
 
     # TODO make this deployment-ready
-    SERVER_PROGRAM_PATH = r'..\server\server.js'
+    SERVER_PROGRAM_PATH = r'../server/server.js'
 
     def __init__(self, program_port_range, client_port_range):
         """Creates a new server process with the specified ports.

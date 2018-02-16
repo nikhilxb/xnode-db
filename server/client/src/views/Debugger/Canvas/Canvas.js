@@ -17,12 +17,6 @@ const styles = theme => ({
  * This component serves as an interactive workspace for inspecting variable viewers.
  */
 class Canvas extends Component {
-    constructor(props, context) {
-        super(props, context);
-        this.state = {
-            viewers: [],
-        }
-    }
 
     //    let viewers = this.state.viewers;
     //    viewers.push(<DataViewer key={"1766992443720"} symbolId={"1766992443720"} loadSymbol={this.props.loadSymbol} isTopLevel={true} />)
@@ -36,11 +30,11 @@ class Canvas extends Component {
      * Renders the inspector canvas and any viewers currently registered to it.
      */
     render() {
-        const {classes} = this.props;
+        const {classes, viewers} = this.props;
 
         return (
             <div className={classes.container}>
-                {this.state.viewers}
+                {viewers}
             </div>
         );
     }

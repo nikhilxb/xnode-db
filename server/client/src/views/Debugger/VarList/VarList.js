@@ -39,28 +39,42 @@ class VarList extends Component {
 
         /** An array of symbol IDs in the current frame namespace. Only IDs passed to this component, as it requests
          *  the data from the Debugger. */
-        symbols: PropTypes.arrayOf(PropTypes.string),
+        symbolIds: PropTypes.arrayOf(PropTypes.string),
+
+        /** A function (symbolId, callback) to get the shell for a specified symbol ID. */
+        getSymbolShell: PropTypes.func.isRequired,
+
+        addViewerToCanvas: PropTypes.func.isRequired
     };
 
     static defaultProps = {
         /** See `propTypes`. */
-        symbols: [],
+        symbolIds: [],
     };
+
+    /** Constructor. */
+    constructor(props) {
+        super(props);
+        this.renderSymbol = this.renderSymbol.bind(this);
+    }
 
     /**
      * Recursive function to construct a nested list of symbols.
      * TODO: Make recursive.
-     * @param symbolID Unique ID of the symbol to render, used by the Debugger's symbolTable.
+     * TODO: Limit the number of characters
+     * @param symbolId Unique ID of the symbol to render, used by the Debugger's symbolTable.
      */
-    renderSymbol(symbolID) {
-        const {classes} = this.props;
+    renderSymbol(symbolId) {
+        const {classes, getSymbolShell, addViewerToCanvas} = this.props;
+        let shell = getSymbolShell(symbolId);
+        if(shell === null || !shell.name) return null;
 
         return (
-            <ListItem button>
+            <ListItem button onClick={(e) => addViewerToCanvas(symbolId)}>
                 <ListItemText classes={{primary: classes.text}} primary={[
-                    <span className={classes.varName}>{symbolID}</span>,
-                    <span className>&nbsp;:&nbsp;</span>,
-                    <span className={classes.varString}>List[5]</span>
+                    <span className={classes.varName}>{shell.name}</span>,
+                    <span>&nbsp;:&nbsp;</span>,
+                    <span className={classes.varString}>{shell.str}</span>
                 ]} />
             </ListItem>
         );
@@ -70,14 +84,14 @@ class VarList extends Component {
      * Renders a nested list of variable names and data (if expanded).
      */
     render() {
-        const {classes, symbols} = this.props;
+        const {classes, symbolIds} = this.props;
 
         return (
             <List className={classes.root}
                   dense={true}
                   disablePadding={true}>
                 <ListSubheader>Variables</ListSubheader>
-                {symbols.map(symbolID => this.renderSymbol(symbolID))}
+                {symbolIds.map(this.renderSymbol)}
             </List>
         );
     }

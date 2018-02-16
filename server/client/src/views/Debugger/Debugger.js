@@ -9,6 +9,7 @@ import grey from 'material-ui/colors/grey';
 import VarList from './VarList';
 import Canvas from './Canvas';
 import ControlBar from './ControlBar';
+import DataViewer from '../../components/DataViewer/DataViewer.js';
 
 import {loadGlobals, loadSymbol, REF} from './services/mockdata.js';
 
@@ -57,25 +58,53 @@ class Debugger extends Component {
     /**
      * Constructor. Initializes state to include a symbolTable, which is mutated by passing a callback to VarList and
      * Canvas. TODO: Move state into a Redux store.
-     * @param props
      */
     constructor(props) {
         super(props);
+        this.getSymbolShell = this.getSymbolShell.bind(this);
+        this.loadSymbolData = this.loadSymbolData.bind(this);
+        this.addViewerToCanvas = this.addViewerToCanvas.bind(this);
+
+        this.symbolTable = {};
         fetch('/api/debug/get_namespace')
-        .then((response) =>
-            response.json()
-        .then(({context, namespace}) =>
-            this.symbolTable = namespace
-        ));
-        this.loadSymbol = this.loadSymbol.bind(this);
+        .then(resp => resp.json()
+        .then(({context, namespace}) => {
+            this.symbolTable = namespace;
+            this.forceUpdate();
+        }));
+
+        this.state = {
+            viewers: [],
+        }
+    }
+
+    addViewerToCanvas(symbolId) {
+        let viewers = this.state.viewers;
+        viewers.push(<DataViewer key={symbolId} symbolId={symbolId} loadSymbol={this.loadSymbolData} isTopLevel={true} />);
+
+        this.setState({
+            viewers: viewers,
+        });
+    }
+
+    /**
+     * Returns the schema shell for the specified symbol ID, which should already be in the `symbolTable`.
+     * @param symbolId
+     */
+    getSymbolShell(symbolId) {
+        let {type, name, str} = this.symbolTable[symbolId];  // Should not be null
+        return {type: type, name: name, str: str};
     }
 
     /**
      * Loads the symbol data with the specified symbol ID, as well as any referenced shells. These new schemas replace
      * any existing ones in the `symbolTable` for the same symbols. When the data is finished loading, execute the
      * given callback, sending that data to the component (likely a DataViewer) that requested it.
+     * @param symbolIdI
+     * @param callback
      */
-    loadSymbol(symbolIdI, callback) {
+    loadSymbolData(symbolIdI, callback) {
+        console.log(symbolIdI);
         let symbolId = symbolIdI.replace(`${REF}`, '');
         // Symbol has already been fully loaded
         if(this.symbolTable[symbolId] && this.symbolTable[symbolId].data !== null) {
@@ -105,6 +134,7 @@ class Debugger extends Component {
     /**
      * Renders the debugger as a two-column layout. The left column displays the variable list; the right column
      * displays the control buttons (step, continue, etc.) and canvas where viewers are displayed.
+     * TODO: Don't pass whole symbol table, bc what about nested?
      */
     render() {
         const {classes} = this.props;
@@ -113,11 +143,17 @@ class Debugger extends Component {
             <MuiThemeProvider theme={theme}>
                 <div className={classes.mainContainer}>
                     <div className={classes.leftContainer}>
-                        <VarList symbols={["myInt", "myBool", "myString"]}/>
+                        <VarList
+                            symbolIds={Object.keys(this.symbolTable)}
+                            getSymbolShell={this.getSymbolShell}
+                            addViewerToCanvas={this.addViewerToCanvas}
+                        />
                     </div>
                     <div className={classes.rightContainer}>
                         <ControlBar/>
-                        <Canvas loadSymbol={(symbolId, callback) => this.loadSymbol(symbolId, callback)}/>
+                        <Canvas
+                            viewers={this.state.viewers}
+                        />
                     </div>
                 </div>
             </MuiThemeProvider>
