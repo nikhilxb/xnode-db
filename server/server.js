@@ -93,8 +93,8 @@ routerAPIDebug.get("/continue", function(req, resp) {
         return;
     }
 
-    programSocket.emit("dbg-continue", function(context, namespace) {
-        resp.send(namespace);
+    programSocket.emit("dbg-continue", function(context_and_namespace) {
+        resp.send(context_and_namespace);
         console.log("Sent namespace variable data after CONTINUE.");
     });
 });
@@ -129,8 +129,8 @@ routerAPIDebug.get("/step_over", function(req, resp) {
         return;
     }
 
-    programSocket.emit("dbg-step-over", function(context, namespace) {
-        resp.send(namespace);
+    programSocket.emit("dbg-step-over", function(context_and_namespace) {
+        resp.send(context_and_namespace);
         console.log("Sent namespace variable data after STEP OVER.");
     });
 });
@@ -147,8 +147,8 @@ routerAPIDebug.get("/step_into", function(req, resp) {
         return;
     }
 
-    programSocket.emit("dbg-step-into", function(context, namespace) {
-        resp.send(namespace);
+    programSocket.emit("dbg-step-into", function(context_and_namespace) {
+        resp.send(context_and_namespace);
         console.log("Sent namespace variable data after STEP INTO.");
     });
 });
@@ -165,8 +165,8 @@ routerAPIDebug.get("/step_out", function(req, resp) {
         return;
     }
 
-    programSocket.emit("dbg-step-out", function(context, namespace) {
-        resp.send(namespace);
+    programSocket.emit("dbg-step-out", function(context_and_namespace) {
+        resp.send(context_and_namespace);
         console.log("Sent namespace variable data after STEP OUT.");
     });
 });
@@ -183,8 +183,8 @@ routerAPIDebug.get("/get_namespace", function(req, resp) {
         return;
     }
 
-    programSocket.emit("dbg-get-namespace", function(context, namespace) {
-        resp.send(namespace);
+    programSocket.emit("dbg-get-namespace", function(context_and_namespace) {
+        resp.send(context_and_namespace);
         console.log("Sent namespace variable data after GET NAMESPACE.");
     });
 });
@@ -202,8 +202,8 @@ routerAPIDebug.get("/load_symbol/:symbol_id", function(req, resp) {
     }
 
     var symbol_id = req.params.symbol_id;
-    programSocket.emit("dbg-load-symbol", symbol_id, function(symbol_data, new_shells) {
-        resp.send(symbol_data);
+    programSocket.emit("dbg-load-symbol", symbol_id, function(data_and_shells) {
+        resp.send(data_and_shells);
         console.log("Sent symbol \"" + symbol_id + "\" data for LOAD SYMBOL.");
     });
 });

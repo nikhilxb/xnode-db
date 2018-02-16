@@ -267,6 +267,7 @@ class VisualDebugger(bdb.Bdb):
         self.set_continue()
         self.next_breakpoint_callbacks.append(self._server_command_callback_wrapper(callback_fn))
 
+    # TODO update documentation to reflex callback change
     def _server_command_callback_wrapper(self, callback_fn):
         """Wraps a callback function which expects a debugger context and a namespace as a 0-argument function.
 
@@ -278,9 +279,14 @@ class VisualDebugger(bdb.Bdb):
         generality), so we create a 0-argument version of the runtime update callback here.
         """
         def _callback():
-            context = self.viz_engine.to_json(self._get_context())
-            namespace = self.viz_engine.to_json(self._get_namespace_shells())
-            callback_fn(context, namespace)
+            callback_fn(
+                self.viz_engine.to_json(
+                    {
+                        'context': self._get_context(),
+                        'namespace': self._get_namespace_shells()
+                    }
+                )
+            )
         return _callback
 
     # ==================================================================================================================
@@ -301,7 +307,14 @@ class VisualDebugger(bdb.Bdb):
                 program and the JSON string representation of the dict mapping symbol IDs to shells for each symbol in
                 the namespace.
         """
-        callback_fn(self._get_context(), self.viz_engine.to_json(self._get_namespace_shells()))
+        callback_fn(
+            self.viz_engine.to_json(
+                {
+                    'context': self._get_context(),
+                    'namespace': self._get_namespace_shells()
+                }
+            )
+        )
 
     def callback_load_symbol(self, symbol_id, callback_fn):
         """Load a symbol's data object and pass it into the given callback.
@@ -315,7 +328,15 @@ class VisualDebugger(bdb.Bdb):
             callback_fn (fn): A (str, str) => None function which accepts a JSON string of the requested symbol's
                 data object and the JSON string mapping any symbols referenced by the data object to their shells.
         """
-        callback_fn(*self._load_symbol(symbol_id))
+        data, shells = self._load_symbol(symbol_id)
+        callback_fn(
+            self.viz_engine.to_json(
+                {
+                    'data': data,
+                    'shells': shells,
+                }
+            )
+        )
 
     def _get_context(self):
         """Returns some object, for now a string, capturing the state of the program.
@@ -355,7 +376,7 @@ class VisualDebugger(bdb.Bdb):
         """
         # The actual work of visualization is done by the `VisualizationEngine` instance owned by the `VisualDebugger`.
         symbol_data, new_shells = self.viz_engine.get_symbol_data(symbol_id)
-        return self.viz_engine.to_json(symbol_data), self.viz_engine.to_json(new_shells)
+        return symbol_data, new_shells
 
     # ==================================================================================================================
     # `bdb` overrides.

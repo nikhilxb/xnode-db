@@ -8,8 +8,8 @@ const styles = theme => ({
 
 });
 
-const nodeHeight = 75;
-const nodeWidth = 100;
+const nodeHeight = 50;
+const nodeWidth = 150;
 
 /**
  * This class builds and contains all the components of a computation graph.

@@ -283,12 +283,16 @@ class VisualizationEngine:
     GRAPH_CONTAINER = VisualizationType('graphcontainer', test_fn=lambda obj: isinstance(obj, GraphContainer),
                                         data_fn=_generate_data_graphcontainer)
     GRAPH_OP        = VisualizationType('graphop', test_fn=lambda obj: isinstance(obj, GraphOp),
+                                        str_fn=lambda obj: obj.fn.__name__,
                                         data_fn=_generate_data_graphop)
     DICT            = VisualizationType('dict', test_fn=lambda obj: isinstance(obj, dict),
+                                        str_fn=lambda obj: 'Dict[{}]'.format(len(obj)),
                                         data_fn=_generate_data_dict)
     LIST            = VisualizationType('list', test_fn=lambda obj: isinstance(obj, list),
+                                        str_fn=lambda obj: 'List[{}]'.format(len(obj)),
                                         data_fn=_generate_data_sequence)
     SET             = VisualizationType('set', test_fn=lambda obj: isinstance(obj, set),
+                                        str_fn=lambda obj: 'Set[{}]'.format(len(obj)),
                                         data_fn=_generate_data_sequence)
     TUPLE           = VisualizationType('tuple', test_fn=lambda obj: isinstance(obj, tuple),
                                         data_fn=_generate_data_sequence)
