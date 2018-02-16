@@ -100,12 +100,10 @@ class Debugger extends Component {
      * Loads the symbol data with the specified symbol ID, as well as any referenced shells. These new schemas replace
      * any existing ones in the `symbolTable` for the same symbols. When the data is finished loading, execute the
      * given callback, sending that data to the component (likely a DataViewer) that requested it.
-     * @param symbolIdI
+     * @param symbolId
      * @param callback
      */
-    loadSymbolData(symbolIdI, callback) {
-        console.log(symbolIdI);
-        let symbolId = symbolIdI.replace(`${REF}`, '');
+    loadSymbolData(symbolId, callback) {
         // Symbol has already been fully loaded
         if(this.symbolTable[symbolId] && this.symbolTable[symbolId].data !== null) {
             callback(this.symbolTable[symbolId]);
@@ -114,7 +112,7 @@ class Debugger extends Component {
                 console.error('Symbol ' + symbolId + ' was requested before shell was loaded');
             } else {
                 console.log('Sending load request');
-                fetch(`/api/debug/load_symbol/${symbolId}`)
+                fetch(`/api/debug/load_symbol/${symbolId.replace(`${REF}`, '')}`)
                 .then((response)=>
                     response.json()
                 .then(({data: newData, shells: newShells}) => {

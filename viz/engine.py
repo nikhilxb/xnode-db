@@ -207,6 +207,7 @@ class VisualizationEngine:
         viewer_data['kwargs'] = {
             self._sanitize_for_data_object(argname, refs): self._sanitize_for_data_object(value, refs)
             for argname, value in zip(argnames[-len(default_arg_values)], default_arg_values)
+            if default_arg_values is not None
             }
         return {
             self.VIEWER_KEY: viewer_data,
@@ -549,7 +550,7 @@ class VisualizationEngine:
         for obj_name, obj in namespace.items():
             symbol_id = self._get_symbol_id(obj)
             self.cache[symbol_id][self.OBJ] = obj
-            namespace_shells[symbol_id] = self.get_symbol_shell(symbol_id, name=obj_name)
+            namespace_shells[self.REF_PREFIX + symbol_id] = self.get_symbol_shell(symbol_id, name=obj_name)
             if self._is_primitive(obj):
                 data_obj, new_shells = self.get_symbol_data(symbol_id)
                 self.cache[symbol_id][self.SHELL]['data'] = data_obj
@@ -582,7 +583,7 @@ class VisualizationEngine:
             self.cache[symbol_id][self.DATA], self.cache[symbol_id][self.REFS] = self._load_symbol_data(symbol_id)
         shells = dict()
         for ref in self.cache[symbol_id][self.REFS]:
-            shells[ref] = self.get_symbol_shell(ref)
+            shells[self.REF_PREFIX + ref] = self.get_symbol_shell(ref)
         return self.cache[symbol_id][self.DATA], shells
 
     def to_json(self, obj):

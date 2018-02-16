@@ -6,14 +6,17 @@ import GraphDataViewer from './GraphViewer/GraphDataViewer.js'
 import GraphOpViewer from './GraphViewer/GraphOpViewer.js'
 
 const styles = theme => ({
-    
+
 });
 
 /**
- * This class requests data for a symbol and then renders its type-specific viewer.
+ * This class requests data for a single symbol and then renders its type-specific viewer.
  */
 class DataViewer extends Component {
-
+    /**
+     * Initialize the state with an empty "body" value, which will be filled in with a type-specific component after
+     * loading the symbol's information.
+     */
     constructor(props, context) {
         super(props, context);
         this.state = {
@@ -26,21 +29,16 @@ class DataViewer extends Component {
      * symbol. When the data is returned, create a body component to show information for that symbol.
      */
     componentDidMount() {
-        console.log("DataViewer " + this.props.symbolId + " mounted.");
         this.props.loadSymbol(this.props.symbolId, (shellAndData) => {
             let newComponent = null;
             if (shellAndData.type === "graphdata" && this.props.isTopLevel === true) {
-                console.log('Rendering graphdata head');
-                newComponent = <GraphViewer {...shellAndData} {...this.props} />;
+                newComponent = (<GraphViewer {...shellAndData} {...this.props} />);
             }
             else if (shellAndData.type === "graphdata") {
-                console.log('Rendering graphdata');
                 newComponent = (<GraphDataViewer {...shellAndData} {...this.props} />);
             }
             else if (shellAndData.type === "graphop") {
-                console.log('Rendering graphop');
                 newComponent = (<GraphOpViewer {...shellAndData} {...this.props} />);
-                ;
             }
             this.setState({
                 body: newComponent,
