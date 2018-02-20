@@ -66,9 +66,9 @@ public/
 
 A common distinction made in React is between
 ([learn more](https://www.fullstackreact.com/p/using-presentational-and-container-components-with-redux/)):
-- *presentational components* — aka "dumb"; general-purpose; simply render 
+- *dumb components* — aka "presentational"; general-purpose; simply render 
 what their parents tell them to through `props`
-- *container components* — aka "smart"; single-use; interface with 
+- *smart components* — aka "container"; single-use; interface with 
 reading/changing the data/state directly
 
 
