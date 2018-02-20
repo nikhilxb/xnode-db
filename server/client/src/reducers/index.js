@@ -1,9 +1,9 @@
-// TODO: Import
+import Immutable from "seamless-immutable";
+import { combineReducers } from 'redux-seamless-immutable'
 
-/** Root reducer's initial state slice. */
-const initialState = {};
+/** Highest-level reducer for store root. Simply dispatches to other reducers. */
+const mainReducer = combineReducers({
+    symboltable:
+});
 
-/** TODO: Short description of root reducer for state slice. */
-export default function rootReducer(state = initialState, action) {
-
-};
+export default mainReducer;

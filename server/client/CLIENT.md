@@ -71,9 +71,16 @@ what their parents tell them to through `props`
 - *smart components* — aka "container"; single-use; interface with 
 reading/changing the data/state directly
 
+|                | Dumb components                  | Smart components                               |
+|----------------|----------------------------------|------------------------------------------------|
+| Purpose        | How things look (markup, styles) | How things work (data fetching, state updates) |
+| Aware of Redux | No                               | Yes                                            |
+| To read data   | Read data from props             | Subscribe to Redux state                       |
+| To change data | Invoke callbacks from props      | Dispatch Redux actions                         |
+| Are written    | By hand                          | By react-redux connect()                       |
+
 
 TODO
-
 
 
 
@@ -83,7 +90,8 @@ What should state shape be?
 
 To use bound action creators? http://blog.isquaredsoftware.com/2016/10/idiomatic-redux-why-use-action-creators/
 Within actions: will call `dispatch(subroutineAction())`
-Within components: will use `connect(mapPropsToActions)`
+Within smart components components: can use `connect(mapPropsToActions)` to make it a dumb component
+
 
 Difference between UI layer (components, containers) and state layer (actions, reducers, store shape):
 
@@ -93,6 +101,8 @@ Difference between UI layer (components, containers) and state layer (actions, r
 
 symbolTable
 highlightedSymbols
+
+imple things become when storing flat, normalized data in the Redux store, with selectors querying the store as needed.
 
 `combineReducers` is a nice pattern because it tends to enforce the idea that the reducers should be scoped to
 non-overlapping subsets of the store, decoupled from the structure of the store itself. It takes the opinion that you

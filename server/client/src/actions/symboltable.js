@@ -1,11 +1,19 @@
 /** Action type definitions. */
-export const ExampleActions = {  // Must take form of `[module]Actions`
-    SYNC_ACTION:  "EXAMPLE::SYNC_ACTION",
-    ASYNC_ACTION: "EXAMPLE::ASYNC_ACTION",
+export const SymbolTableActions = {  // Must take form of `[module]Actions`
+    GET_SYMBOL_SHELL:  "SYMBOLTABLE::",
+    GET_SYMBOL_SHELL:  "SYMBOLTABLE::",
 };
 
 // TODO: Feature grouping
 // ----------------------
+
+/** Action creator to ensure the . */
+export function getSymbolShellAction(symbolId) {
+    return {
+        type: ExampleActions.SYNC_ACTION,
+        value  // ES6 shorthand for `value: value`
+    };
+};
 
 /** Action creator to __. */
 export function syncAction(value) {  // Must take form of `[name]Action`
