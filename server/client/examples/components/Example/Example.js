@@ -8,7 +8,7 @@ const styles = theme => ({
 });
 
 /**
- * This component ___.
+ * This [presentational/container] component ___.
  */
 class Example extends Component {
 

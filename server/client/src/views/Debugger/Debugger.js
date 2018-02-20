@@ -13,7 +13,7 @@ import GraphViewer from '../../components/DataViewer/GraphViewer/GraphViewer.js'
 import GraphDataViewer from '../../components/DataViewer/GraphViewer/GraphDataViewer.js';
 import GraphOpViewer from '../../components/DataViewer/GraphViewer/GraphOpViewer.js';
 
-import {loadGlobals, loadSymbol, REF} from './services/mockdata.js';
+import {loadGlobals, loadSymbol, REF} from '../../services/mockdata.js';
 
 
 /** Custom theme object that affects visual properties (fonts, colors, spacing, etc.) of Material UI components.
