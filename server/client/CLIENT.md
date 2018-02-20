@@ -64,7 +64,17 @@ public/
 
 ### UI layer
 
-A common distinction made in react is 
+A common distinction made in React is between
+([learn more](https://www.fullstackreact.com/p/using-presentational-and-container-components-with-redux/)):
+- *presentational components* — aka "dumb"; general-purpose; simply render 
+what their parents tell them to through `props`
+- *container components* — aka "smart"; single-use; interface with 
+reading/changing the data/state directly
+
+
+TODO
+
+
 
 
 Reducers should mirror the shape of the state.
