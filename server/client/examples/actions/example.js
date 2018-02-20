@@ -7,7 +7,7 @@ export const ExampleActions = {  // Must take form of `[module]Actions`
 // TODO: Feature grouping
 // ----------------------
 
-/** Bound action creator to __. */
+/** Action creator to __. */
 export function syncAction(value) {  // Must take form of `[name]Action`  TODO: Needs to be bound
     return {
         type: ExampleActions.SYNC_ACTION,
@@ -15,7 +15,7 @@ export function syncAction(value) {  // Must take form of `[name]Action`  TODO: 
     };
 };
 
-/** Bound action creator to __. */
+/** Action creator to __. */
 export function asyncAction(value) {
     return {
         type: ExampleActions.ASYNC_ACTION,
