@@ -23,6 +23,7 @@ function updateSymbolTableAction(symbolId, data, shells) {
 function parseFailedAction(symbolId, resp, error) {
     return {
         type: SymbolTableActions.PARSE_DATA_FAILED,
+        symbolId,
         resp,
         error,
     };
@@ -31,6 +32,7 @@ function parseFailedAction(symbolId, resp, error) {
 function fetchFailedAction(symbolId, error) {
     return {
         type: SymbolTableActions.FETCH_DATA_FAILED,
+        symbolId,
         error,
     };
 }
