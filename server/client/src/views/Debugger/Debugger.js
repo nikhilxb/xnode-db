@@ -1,5 +1,7 @@
-import React, { Component } from 'react';
-import PropTypes            from 'prop-types';
+import React, { Component }   from 'react';
+import PropTypes              from 'prop-types';
+import { connect }            from 'react-redux';
+import { bindActionCreators } from 'redux';
 
 import { withStyles }   from 'material-ui/styles';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
@@ -14,8 +16,8 @@ import GraphDataViewer  from '../../components/DataViewer/GraphViewer/GraphDataV
 import GraphOpViewer    from '../../components/DataViewer/GraphViewer/GraphOpViewer.js';
 
 import {loadGlobals, loadSymbol, REF} from '../../services/mockdata.js';
-import {bindActionCreators} from "redux/index";
-import {connect} from "react-redux";
+
+
 
 
 /** Custom theme object that affects visual properties (fonts, colors, spacing, etc.) of Material UI components.
@@ -226,4 +228,4 @@ function mapDispatchToProps(dispatch) {
         // propName: doSomethingAction,
     }, dispatch);
 }
-export default connect(mapStateToProps, mapDispatchToProps)(withStyles(styles)(Example));
+export default connect(mapStateToProps, mapDispatchToProps)(withStyles(styles)(Debugger));

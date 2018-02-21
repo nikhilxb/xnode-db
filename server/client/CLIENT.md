@@ -77,12 +77,10 @@ reading/changing the data/state directly
 | Aware of Redux | No                               | Yes                                            |
 | To read data   | Read data from props             | Subscribe to Redux state                       |
 | To change data | Invoke callbacks from props      | Dispatch Redux actions                         |
-| Are written    | By hand                          | By react-redux connect()                       |
+| Are written    | By hand                          | By react-redux `connect()`                       |
 
 
-TODO
-
-
+TODO ===========================================
 
 Reducers should mirror the shape of the state.
 To decompose actions from reducers?
