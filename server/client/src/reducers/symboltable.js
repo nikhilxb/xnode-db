@@ -24,6 +24,8 @@ function syncReducer(state, action) {
     return state;
 };
 
+/** Given the newly-acquired data for a particular symbol and an object containing the shells referenced by it, add the
+    new shells and fill in the symbol's data field. */
 function updateSymbolTable(state, action) {
     const { symbolId, data, shells } = action;
     return {
