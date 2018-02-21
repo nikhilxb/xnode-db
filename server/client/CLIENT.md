@@ -190,4 +190,5 @@ Concise, remarkably thorough walkthrough of advanced Redux patterns useful for c
 
 
 # Miscellaneous
-Normalizer: <https://github.com/paularmstrong/normalizr>
+normalizer: <https://github.com/paularmstrong/normalizr> <br/>
+react-treebeard: <https://github.com/alexcurtis/react-treebeard>

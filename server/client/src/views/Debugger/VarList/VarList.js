@@ -3,7 +3,6 @@ import PropTypes from "prop-types";
 import { withStyles } from 'material-ui/styles';
 
 import List, {ListItem, ListItemText, ListSubheader} from 'material-ui/List';
-import grey from 'material-ui/colors/grey';
 import blueGrey from 'material-ui/colors/blueGrey';
 
 /** Component styling object. */
