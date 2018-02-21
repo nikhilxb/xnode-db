@@ -3,12 +3,9 @@ import { REF } from '../services/mockdata.js';
 /** Action type definitions. */
 export const SymbolTableActions = {
     UPDATE_SYMBOL_DATA:  "SYMBOLTABLE::UPDATE_SYMBOL_DATA",
-    FETCH_DATA_FAILED:  "SYMBOLTABLE::FETCH_DATA_FAILED",
-    PARSE_DATA_FAILED: "SYMBOLTABLE::PARSE_DATA_FAILED",
-};
-
-function fetchSymbolData(symbolId) {
-    return fetch(`/api/debug/load_symbol/${symbolId.replace(`${REF}`, '')}`);
+    UPDATE_NAMESPACE:    "SYMBOLTABLE::UPDATE_NAMESPACE",
+    FETCH_DATA_FAILED:   "SYMBOLTABLE::FETCH_DATA_FAILED",
+    PARSE_DATA_FAILED:   "SYMBOLTABLE::PARSE_DATA_FAILED",
 };
 
 /** Action which updates a symbol's data with a newly-fetched object and adds shells referenced therein to the symbol 
@@ -50,11 +47,15 @@ function fetchFailedAction(duringAction, error) {
     };
 }
 
+function fetchSymbolData(symbolId) {
+    return fetch(`/api/debug/load_symbol/${symbolId.replace(`${REF}`, '')}`);
+};
+
 /** Action creator to fetch the data about a symbol and add it to the symbol table; only executes if the symbol data
     has not already been loaded. */
 export function fetchSymbolDataAction(symbolId) {
     return (dispatch, getState) => {
-        const dataInCachce = getState().symbolTable[symbolId].data;
+        const dataInCache = getState().symbolTable[symbolId].data;
         if (dataInCache !== null) {
             return;
         }

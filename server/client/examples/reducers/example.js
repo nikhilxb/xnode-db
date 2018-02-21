@@ -1,6 +1,6 @@
 import { handle } from 'redux-pack';
 import Immutable from 'seamless-immutable';
-import {ExampleActions} from '../actions/example';
+import { ExampleActions } from '../actions/example';
 
 /** Root reducer's initial state slice. */
 const initialState = Immutable({
