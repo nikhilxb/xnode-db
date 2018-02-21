@@ -18,8 +18,8 @@ class GraphEdge extends Component {
         for (let i=0; i < points.length - 1; i++) {
             segments.push([points[i], points[i+1]]);
         }
-        let lineComponents = segments.map((segment) =>
-            <Line x0={segment[0].x} y0={segment[0].y} x1={segment[1].x} y1={segment[1].y}/>
+        let lineComponents = segments.map((segment, i) =>
+            <Line key={i} x0={segment[0].x} y0={segment[0].y} x1={segment[1].x} y1={segment[1].y}/>
         );
         return lineComponents
     }

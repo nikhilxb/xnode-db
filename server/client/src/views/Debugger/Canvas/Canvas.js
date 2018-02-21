@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { withStyles } from 'material-ui/styles';
 import PropTypes from "prop-types";
+import ViewerFrame from '../../../components/viewers/ViewerFrame.js';
 
 /** Component styling object. */
 const styles = theme => ({
@@ -27,11 +28,15 @@ class Canvas extends Component {
      * Renders the inspector canvas and any viewers currently registered to it.
      */
     render() {
-        const {classes, viewers} = this.props;
+        const { classes, viewers } = this.props;
+
+        let framedViewers = viewers.map(viewer => {
+            return (<ViewerFrame title={"Title Goes Here"}>{viewer}</ViewerFrame>);
+        });
 
         return (
             <div className={classes.container}>
-                {viewers}
+                {framedViewers}
             </div>
         );
     }

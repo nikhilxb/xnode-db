@@ -9,10 +9,19 @@ const styles = theme => ({
   card: {
       height: nodeHeight,
       width: nodeWidth,
+      textAlign:'center',
+      textDecoration:'none',
+      overflow:'hidden',
+      textOverflow:'ellipsis',
+      whiteSpace:'nowrap',
   },
   label: {
       textAlign: 'center',
-      textTransform: 'capitalize',
+      textAlign:'center',
+      textDecoration:'none',
+      overflow:'hidden',
+      textOverflow:'ellipsis',
+      whiteSpace:'nowrap',
   }
 });
 

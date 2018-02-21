@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { withStyles } from 'material-ui/styles';
+import Paper from 'material-ui/Paper';
 import dagre from 'dagre';
 import GraphEdge from './GraphEdge.js';
 
@@ -64,8 +65,8 @@ class GraphViewer extends Component {
     /**
      * Called back when the Debugger has finished loading a new component for one of the graph's op or data nodes. If
      * the new node links to other symbols, then those symbols are requested also.
-     * @param  {string} symbolId
-     * @param  {object} shellAndData
+     * @param  {String} symbolId
+     * @param  {Object} shellAndData
      * @param  {Component} newNodeComponent
      */
     receiveNewComponent(symbolId, shellAndData, newNodeComponent) {
@@ -96,24 +97,38 @@ class GraphViewer extends Component {
         var g = new dagre.graphlib.Graph({compound: true});
         g.setGraph({});
 
+        g.setNode('kek', {key: 'kek', label: <div style={{background: '#333', width:'100%', height:'100%'}}/>});
+
         // TODO containers
-        this.state.nodeComponents.forEach(c => {
-            console.log(c.key);
-            g.setNode(c.key, {label: c, width:nodeWidth, height:nodeHeight})
+        this.state.nodeComponents.forEach((c, i) => {
+            console.log(i);
+            g.setNode(c.key, {key: c.key, label: c, width:nodeWidth, height:nodeHeight});
+            if (i < 50) {
+                console.log('Parented');
+                g.setParent(c.key, 'kek');
+            }
         });
 
         Object.keys(this.edges).forEach(fromSymbolId => {
             this.edges[fromSymbolId].forEach(toSymbolId => {
-                g.setEdge(fromSymbolId, toSymbolId, {});
+                g.setEdge(fromSymbolId, toSymbolId, {key: toSymbolId+fromSymbolId});
             });
         });
 
         dagre.layout(g);
 
+        let graphWidth = 0;
+        let graphHeight = 0;
+
         let nodes = g.nodes().map(v => {
             let node = g.node(v);
+            if (node.key === 'kek') {
+                console.log(node.x, node.y, node.width, node.height);
+            }
+            graphWidth = Math.max(graphWidth, node.x + node.width/2);
+            graphHeight = Math.max(graphHeight, node.y + node.height/2);
             return (
-                <div style={{position: "absolute", top: node.y - node.height/2, left: node.x - node.width/2}}>
+                <div key={node.key} style={{position: "absolute", top: node.y - node.height/2, left: node.x - node.width/2, width:node.width, height:node.height}}>
                     {node.label}
                 </div>
             );
@@ -121,11 +136,11 @@ class GraphViewer extends Component {
 
         let edges = g.edges().map(e => {
             let edge = g.edge(e);
-            return <GraphEdge points={edge.points}/>;
+            return <GraphEdge key={edge.key} points={edge.points}/>;
         });
 
         return (
-            <div style={{position: "relative"}}>
+            <div style={{position: "relative", width: graphWidth, height: graphHeight}}>
                 {edges}
                 {nodes}
             </div>

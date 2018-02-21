@@ -1,6 +1,6 @@
 import { handle } from 'redux-pack';
 import Immutable from 'seamless-immutable';
-import {SymbolTableActions} from '../actions/symboltable';
+import { SymbolTableActions } from '../actions/symboltable';
 
 /** Root reducer's initial state slice. */
 const initialState = Immutable({});
@@ -9,6 +9,8 @@ const initialState = Immutable({});
 export default function rootReducer(state = initialState, action) {
     const { type } = action;
     switch(type) {
+        case SymbolTableActions.UPDATE_SYMBOL_TABLE:
+            return updateSymbolTable(state, action);
         case SymbolTableActions.SYNC_ACTION:
             return syncReducer(state, action);
         case SymbolTableActions.ASYNC_ACTION:
@@ -20,6 +22,18 @@ export default function rootReducer(state = initialState, action) {
 /** TODO: Reducer for synchronous action. */
 function syncReducer(state, action) {
     return state;
+};
+
+function updateSymbolTable(state, action) {
+    const { symbolId, data, shells } = action;
+    return {
+        ...state,
+        ...shells,
+        symbolId: {
+            ...state[symbolId],
+            data: data,
+        }
+    };
 };
 
 /** TODO: Reducer for asynchronous action. */

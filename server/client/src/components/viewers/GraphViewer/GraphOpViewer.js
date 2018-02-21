@@ -12,7 +12,6 @@ const styles = theme => ({
   },
   label: {
       textAlign: 'center',
-      textTransform: 'capitalize',
   }
 });
 

@@ -3,7 +3,7 @@ from collections import defaultdict
 import types
 import inspect
 from torch import _TensorBase
-from viz.graphtracker import GraphData, GraphContainer, GraphOp
+from viz.graphtracker import GraphData, GraphContainer, GraphOp, get_graphdata, has_graphdata
 
 
 class VisualizationType:
@@ -126,13 +126,21 @@ class VisualizationEngine:
     def _generate_data_graphdata(self, obj):
         """Data generation function for graph data nodes."""
         refs = set()
+        # We consider both `GraphData` instances and objects which have associated `GraphData` instances to be
+        # graphdata for schema purposes, so we need to figure out which one `obj` is
+        try:
+            graphdata_obj = get_graphdata(obj)
+        except AttributeError:
+            graphdata_obj = obj
+            obj = graphdata_obj.obj
+        print(type(obj), type(graphdata_obj))
         return {
             self.VIEWER_KEY: {
-                'creatorop': self._sanitize_for_data_object(obj.get_creator_op(), refs),
-                'creatorpos': self._sanitize_for_data_object(obj.get_creator_pos(), refs),
+                'creatorop': self._sanitize_for_data_object(graphdata_obj.creator_op, refs),
+                'creatorpos': self._sanitize_for_data_object(graphdata_obj.creator_pos, refs),
                 'kvpairs': {
                     self._sanitize_for_data_object(key, refs): self._sanitize_for_data_object(value, refs)
-                    for key, value in obj.get_visualization_dict().items()
+                    for key, value in graphdata_obj.get_visualization_dict().items()
                 }
             },
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)
@@ -255,8 +263,12 @@ class VisualizationEngine:
         refs = set()
         for attr in dir(obj):
             value = getattr(obj, attr)
-            if not self.FUNCTION.test_fn(value) and (
-                            attr not in instance_class_attrs or getattr(instance_class, attr, None) != value):
+            try:
+                if not self.FUNCTION.test_fn(value) and (
+                                attr not in instance_class_attrs or getattr(instance_class, attr, None) != value):
+                    contents[self._sanitize_for_data_object(attr, refs)] = \
+                        self._sanitize_for_data_object(getattr(obj, attr), refs)
+            except TypeError:
                 contents[self._sanitize_for_data_object(attr, refs)] = \
                     self._sanitize_for_data_object(getattr(obj, attr), refs)
         return {
@@ -277,14 +289,16 @@ class VisualizationEngine:
     NONE            = VisualizationType('none', test_fn=lambda obj: obj is None,
                                         data_fn=_generate_data_primitive, is_primitive=True)
     TENSOR          = VisualizationType('tensor', test_fn=lambda obj: isinstance(obj, _TensorBase),
-                                        str_fn=lambda obj: 'Tensor{}({})'.format(list(obj.size()), TENSOR_TYPES),
+                                        str_fn=lambda obj: 'Tensor{}({})'.format(list(obj.size()),
+                                                                                 VisualizationEngine.TENSOR_TYPES),
                                         data_fn=_generate_data_tensor)
-    GRAPH_DATA      = VisualizationType('graphdata', test_fn=lambda obj: isinstance(obj, GraphData),
+    GRAPH_DATA      = VisualizationType('graphdata',
+                                        test_fn=lambda obj: isinstance(obj, GraphData) or has_graphdata(obj),
                                         data_fn=_generate_data_graphdata)
     GRAPH_CONTAINER = VisualizationType('graphcontainer', test_fn=lambda obj: isinstance(obj, GraphContainer),
                                         data_fn=_generate_data_graphcontainer)
     GRAPH_OP        = VisualizationType('graphop', test_fn=lambda obj: isinstance(obj, GraphOp),
-                                        str_fn=lambda obj: obj.fn.__name__,
+                                        str_fn=lambda obj: obj.name,
                                         data_fn=_generate_data_graphop)
     DICT            = VisualizationType('dict', test_fn=lambda obj: isinstance(obj, dict),
                                         str_fn=lambda obj: 'Dict[{}]'.format(len(obj)),
