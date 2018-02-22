@@ -1,8 +1,12 @@
 import React, { Component } from 'react';
 import PropTypes from "prop-types";
 import { withStyles } from 'material-ui/styles';
+import { connect }            from 'react-redux';
+import { bindActionCreators } from 'redux';
+import { updateNamespace } from '../../../actions/symboltable.js';
 
 import List, {ListItem, ListItemText, ListSubheader} from 'material-ui/List';
+import VarListItem from './VarListItem.js';
 import blueGrey from 'material-ui/colors/blueGrey';
 
 /** Component styling object. */
@@ -42,65 +46,39 @@ class VarList extends Component {
     /** Prop expected types object. */
     static propTypes = {
         classes: PropTypes.object.isRequired,
-
-        /** An array of symbol IDs in the current frame namespace. Only IDs passed to this component, as it requests
-         *  the data from the Debugger. */
-        symbolIds: PropTypes.arrayOf(PropTypes.string),
-
-        /** A function (symbolId, callback) to get the shell for a specified symbol ID. */
-        getSymbolShell: PropTypes.func.isRequired,
-
-        addViewerToCanvas: PropTypes.func.isRequired
     };
 
-    static defaultProps = {
-        /** See `propTypes`. */
-        symbolIds: [],
-    };
-
-    /** Constructor. */
     constructor(props) {
         super(props);
-        this.renderSymbol = this.renderSymbol.bind(this);
-    }
-
-    /**
-     * Recursive function to construct a nested list of symbols.
-     * TODO: Make recursive.
-     * TODO: Limit the number of characters
-     * @param symbolId Unique ID of the symbol to render, used by the Debugger's symbolTable.
-     */
-    renderSymbol(symbolId) {
-        const {classes, getSymbolShell, addViewerToCanvas} = this.props;
-        let shell = getSymbolShell(symbolId);
-        if(shell === null || !shell.name) return null;
-
-        return (
-            <ListItem button onClick={(e) => addViewerToCanvas(symbolId)}>
-                <ListItemText classes={{primary: classes.text}} primary={[
-                    <span className={classes.varName}>{shell.name}</span>,
-                    <span>&nbsp;:&nbsp;</span>,
-                    <span className={classes.varString}>{shell.str}</span>
-                ]} />
-            </ListItem>
-        );
+        this.props.getNamespace();
     }
 
     /**
      * Renders a nested list of variable names and data (if expanded).
      */
     render() {
-        const {classes, symbolIds} = this.props;
-
+        const {classes, topLevelItemIds} = this.props;
+        let listItems = topLevelItemIds.map(itemId => <VarListItem key={itemId} itemId={itemId} nestedlevel={0}/>);
         return (
             <List className={classes.root}
                   dense={true}
                   disablePadding={true}>
                 <ListSubheader className={classes.listSection}>Variables</ListSubheader>
-                {symbolIds.map(this.renderSymbol)}
+                {listItems}
             </List>
         );
     }
 }
 
-export default withStyles(styles)(VarList);
+// Inject styles and data into component
+function mapStateToProps(state, props) {
+    return {
+        topLevelItemIds: state.varlist.topLevelItemIds,
+    };
+}
+function mapDispatchToProps(dispatch) {
+    return bindActionCreators({
+        getNamespace: updateNamespace,
+    }, dispatch);
+}
+export default connect(mapStateToProps, mapDispatchToProps)(withStyles(styles)(VarList));

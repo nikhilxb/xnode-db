@@ -19,7 +19,7 @@ export default function rootReducer(state = initialState, action) {
     new shells and fill in the symbol's data field. */
 function ensureSymbolDataLoadedReducer(state, action) {
     const { symbolId, data, shells } = action;
-    return state.merge(shells).set(symbolId, "data", data);
+    return state.merge(shells).setIn([symbolId, "data"], data);
 };
 
 /** Given a new namespace dict, reset the entire symbol table to only contain that namespace.
@@ -27,6 +27,7 @@ function ensureSymbolDataLoadedReducer(state, action) {
 function updateNamespaceReducer(state, action) {
     const { context, namespace } = action;
     // TODO: figure out where context string goes
+    console.log(namespace);
     return Immutable(namespace);
 }
 
