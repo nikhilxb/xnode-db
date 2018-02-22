@@ -5,7 +5,7 @@ import { resetVarListAction } from './varlist.js';
 /** Action type definitions. */
 export const SymbolTableActions = {
     ENSURE_SYMBOL_DATA_LOADED:  "SYMBOLTABLE::ENSURE_SYMBOL_DATA_LOADED",
-    UPDATE_NAMESPACE:    "SYMBOLTABLE::UPDATE_NAMESPACE",
+    UPDATE_NAMESPACE:           "SYMBOLTABLE::UPDATE_NAMESPACE",
 };
 
 /** Action which updates a symbol's data with a newly-fetched object and adds shells referenced therein to the symbol
