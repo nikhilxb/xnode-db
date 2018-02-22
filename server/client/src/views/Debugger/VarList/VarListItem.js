@@ -10,6 +10,7 @@ import List, {ListItem, ListItemText, ListSubheader} from 'material-ui/List';
 import Collapse from 'material-ui/transitions/Collapse';
 import IconButton from 'material-ui/IconButton';
 import Divider from 'material-ui/Divider';
+import { LinearProgress } from 'material-ui/Progress';
 import ExpandLess from 'material-ui-icons/ExpandLess';
 import ExpandMore from 'material-ui-icons/ExpandMore';
 import blueGrey from 'material-ui/colors/blueGrey';
@@ -51,18 +52,20 @@ class VarListItem extends Component {
             })
         }
         return (
+            // TODO make indentation cleaner
             <div>
-                <ListItem button style={{paddingLeft: nestedlevel * 10}}>
+                <ListItem button style={{paddingLeft: nestedlevel * 15}}>
                     <span className={classes.text}>
                         <span className={classes.varName}>{name}</span>
                         <span className={classes.varSeparator}>&nbsp;&nbsp;:&nbsp;&nbsp;</span>
                         <span className={classes.varString}>{varString}</span>
                     </span>
-                    <IconButton onClick={() => onExpandClick(itemId) }>
+                    <IconButton onClick={(e) => {e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); onExpandClick(itemId);} }>
                         {expanded ? <ExpandLess /> : <ExpandMore />}
                     </IconButton>
                 </ListItem>
                 <Divider/>
+                {loading && <LinearProgress/>}
                 <Collapse in={expanded} timeout="auto">
                     <List component="div" disablePadding>
                     {childComponents}

@@ -69,7 +69,10 @@ export function toggleVarListItemExpanded(itemId) {
                 dispatch(toggleVarListItemLoadingAction(itemId)),
             ]).then(
                 () => dispatch(ensureVarListItemChildrenLoaded(itemId)).then(
-                    () => dispatch(toggleVarListItemExpandedAction(itemId)),
+                    () => {
+                        dispatch(toggleVarListItemExpandedAction(itemId));
+                        dispatch(toggleVarListItemLoadingAction(itemId));
+                    },
                 )
             );
         }
