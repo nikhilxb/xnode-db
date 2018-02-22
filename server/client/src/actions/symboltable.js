@@ -2,15 +2,8 @@ import { REF } from '../services/mockdata.js';
 
 /** Action type definitions. */
 export const SymbolTableActions = {
-<<<<<<< Updated upstream
     ENSURE_SYMBOL_DATA_LOADED:  "SYMBOLTABLE::ENSURE_SYMBOL_DATA_LOADED",
-    UPDATE_NAMESPACE:    "SYMBOLTABLE::UPDATE_NAMESPACE",
-=======
-    UPDATE_NAMESPACE:    "SYMBOLTABLE::UPDATE_NAMESPACE",
-    UPDATE_SYMBOL_DATA:  "SYMBOLTABLE::UPDATE_SYMBOL_DATA",
-    FETCH_DATA_FAILED:   "SYMBOLTABLE::FETCH_DATA_FAILED",
-    PARSE_DATA_FAILED:   "SYMBOLTABLE::PARSE_DATA_FAILED",
->>>>>>> Stashed changes
+    UPDATE_NAMESPACE:           "SYMBOLTABLE::UPDATE_NAMESPACE",
 };
 
 /** Action which updates a symbol's data with a newly-fetched object and adds shells referenced therein to the symbol
