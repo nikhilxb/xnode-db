@@ -1,6 +1,9 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { withStyles } from 'material-ui/styles';
+import { executeDebuggerCommand } from '../../../actions/controlbar.js';
+import { connect }            from 'react-redux';
+import { bindActionCreators } from 'redux';
 
 import Paper      from 'material-ui/Paper';
 import Tooltip    from 'material-ui/Tooltip';
@@ -38,38 +41,38 @@ class ControlBar extends Component {
      * Renders ___.
      */
     render() {
-        const {classes, changeProgramState} = this.props;
+        const { classes, executeDebuggerCommand } = this.props;
 
         return (
             <div className={classes.container}>
                 <div className={classes.controls}>
                     <Paper>
                         <Tooltip title="Continue">
-                            <IconButton aria-label="Continue" onClick={() => changeProgramState('/api/debug/continue')}>
+                            <IconButton aria-label="Continue" onClick={() => executeDebuggerCommand('continue')}>
                                 <ContinueIcon/>
                             </IconButton>
                         </Tooltip>
 
                         <Tooltip title="Step Next">
-                            <IconButton aria-label="Step Next" onClick={() => changeProgramState('/api/debug/step_over')}>
+                            <IconButton aria-label="Step Next" onClick={() => executeDebuggerCommand('step_over')}>
                                 <StepNextIcon/>
                             </IconButton>
                         </Tooltip>
 
                         <Tooltip title="Step In">
-                            <IconButton aria-label="Step In" onClick={() => changeProgramState('/api/debug/step_into')}>
+                            <IconButton aria-label="Step In" onClick={() => executeDebuggerCommand('step_into')}>
                                 <StepInIcon/>
                             </IconButton>
                         </Tooltip>
 
                         <Tooltip title="Step Out">
-                            <IconButton aria-label="Step Out" onClick={() => changeProgramState('/api/debug/step_out')}>
+                            <IconButton aria-label="Step Out" onClick={() => executeDebuggerCommand('step_out')}>
                                 <StepOutIcon/>
                             </IconButton>
                         </Tooltip>
 
                         <Tooltip title="Stop">
-                            <IconButton aria-label="Stop" onClick={() => changeProgramState('/api/debug/stop')}>
+                            <IconButton aria-label="Stop" onClick={() => executeDebuggerCommand('stop')}>
                                 <StopIcon/>
                             </IconButton>
                         </Tooltip>
@@ -80,4 +83,15 @@ class ControlBar extends Component {
     }
 }
 
-export default withStyles(styles)(ControlBar);
+// Inject styles and data into component
+function mapStateToProps(state, props) {
+    return {
+        // TODO get the pause/unpaused state of the program here
+    };
+}
+function mapDispatchToProps(dispatch) {
+    return bindActionCreators({
+        executeDebuggerCommand,
+    }, dispatch);
+}
+export default connect(mapStateToProps, mapDispatchToProps)(withStyles(styles)(ControlBar));

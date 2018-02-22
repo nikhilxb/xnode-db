@@ -211,12 +211,15 @@ class VisualizationEngine:
         }
         argnames = obj.__code__.co_varnames
         default_arg_values = obj.__defaults__
-        viewer_data['args'] = argnames[:-len(default_arg_values)]
-        viewer_data['kwargs'] = {
-            self._sanitize_for_data_object(argname, refs): self._sanitize_for_data_object(value, refs)
-            for argname, value in zip(argnames[-len(default_arg_values)], default_arg_values)
-            if default_arg_values is not None
+        if default_arg_values is not None:
+            viewer_data['args'] = argnames[:-len(default_arg_values)]
+            viewer_data['kwargs'] = {
+                self._sanitize_for_data_object(argname, refs): self._sanitize_for_data_object(value, refs)
+                for argname, value in zip(argnames[-len(default_arg_values)], default_arg_values)
             }
+        else:
+            viewer_data['args'] = []
+            viewer_data['kwargs'] = {}
         return {
             self.VIEWER_KEY: viewer_data,
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)

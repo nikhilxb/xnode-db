@@ -1,29 +1,80 @@
+import { ensureSymbolDataLoaded } from './symboltable.js';
+
 /** Action type definitions. */
-export const ExampleActions = {  // Must take form of `[module]Actions`
-    SYNC_ACTION:  "EXAMPLE::SYNC_ACTION",
-    ASYNC_ACTION: "EXAMPLE::ASYNC_ACTION",
+export const VarListActions = {
+    RESET_VARLIST: "VARLIST::RESET_VARLIST",
+    TOGGLE_VARLIST_ITEM_EXPANDED:  "VARLIST::TOGGLE_VARLIST_ITEM_EXPANDED",
+    TOGGLE_VARLIST_ITEM_LOADING:  "VARLIST::TOGGLE_VARLIST_ITEM_LOADING",
+    UPDATE_VARLIST_ITEM_CHILDREN: "VARLIST::UPDATE_VARLIST_ITEM_CHILDREN",
 };
 
-// TODO: Feature grouping
-// ----------------------
 
-/** Action creator to __. */
-export function syncAction(value) {  // Must take form of `[name]Action`
+function toggleVarListItemExpandedAction(itemId) {
     return {
-        type: ExampleActions.SYNC_ACTION,
-        value  // ES6 shorthand for `value: value`
-    };
-};
+        type: VarListActions.TOGGLE_VARLIST_ITEM_EXPANDED,
+        itemId,
+    }
+}
 
-/** Action creator to __. */
-export function asyncAction(value) {
+function toggleVarListItemLoadingAction(itemId) {
     return {
-        type: ExampleActions.ASYNC_ACTION,
-        promise: null,  // e.g. `fetch(value)` or some other async action that returns Promise (see redux-pack docs)
-        meta: {
-            onSuccess: (result, getState) => {
-                // for chaining Promises: can make another call here
-            }
+        type: VarListActions.TOGGLE_VARLIST_ITEM_LOADING,
+        itemId,
+    }
+}
+
+function updateVarListItemChildrenAction(itemId, itemAttributes) {
+    return {
+        type: VarListActions.UPDATE_VARLIST_ITEM_CHILDREN,
+        itemId,
+        itemAttributes,
+    }
+}
+
+export function resetVarListAction(namespace) {
+    return {
+        type: VarListActions.RESET_VARLIST,
+        namespace,
+    }
+}
+
+function ensureVarListItemChildrenLoaded(itemId) {
+    return (dispatch, getState) => {
+        if (getState().varlist.varListItems[itemId].children) {
+            // You don’t have to return Promises, but it’s a handy convention
+            // so the caller can always call .then() on async dispatch result.
+            return Promise.resolve();
+        }
+        let symbolId = getState().varlist.varListItems[itemId].symbolId;
+        let itemAttributes = getState().symboltable[symbolId].data.attributes;
+        return Promise.resolve().then(() => dispatch(updateVarListItemChildrenAction(itemId, itemAttributes)));
+    }
+}
+
+export function resetVarList(namespace) {
+    return (dispatch) => {
+        return dispatch(resetVarListAction(namespace));
+    }
+}
+
+export function toggleVarListItemExpanded(itemId) {
+    return (dispatch, getState) => {
+        if (getState().varlist.varListItems[itemId].expanded) {
+            return Promise.resolve().then(dispatch(toggleVarListItemExpandedAction(itemId)));
+        }
+        else {
+            let symbolId = getState().varlist.varListItems[itemId].symbolId;
+            return Promise.all([
+                dispatch(ensureSymbolDataLoaded(symbolId)),
+                dispatch(toggleVarListItemLoadingAction(itemId)),
+            ]).then(
+                () => dispatch(ensureVarListItemChildrenLoaded(itemId)).then(
+                    () => {
+                        dispatch(toggleVarListItemExpandedAction(itemId));
+                        dispatch(toggleVarListItemLoadingAction(itemId));
+                    },
+                )
+            );
         }
     };
-};
+}

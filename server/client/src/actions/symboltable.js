@@ -1,5 +1,7 @@
 import { REF } from '../services/mockdata.js';
 
+import { resetVarListAction } from './varlist.js';
+
 /** Action type definitions. */
 export const SymbolTableActions = {
     ENSURE_SYMBOL_DATA_LOADED:  "SYMBOLTABLE::ENSURE_SYMBOL_DATA_LOADED",
@@ -17,8 +19,16 @@ function ensureSymbolDataLoadedAction(symbolId, data, shells) {
     };
 }
 
+function fetchSymbolData(symbolId) {
+    return fetch(`/api/debug/load_symbol/${symbolId.replace(`${REF}`, '')}`);
+};
+
+function fetchNamespace() {
+    return fetch('/api/debug/get_namespace');
+};
+
 /** Action which resets the symbol table to contain a new namespace. */
-function updateNamespaceAction(context, namespace) {
+export function updateNamespaceAction(context, namespace) {
     return {
         type: SymbolTableActions.UPDATE_NAMESPACE,
         context,
@@ -26,21 +36,19 @@ function updateNamespaceAction(context, namespace) {
     };
 }
 
-function fetchSymbolData(symbolId) {
-    return fetch(`/api/debug/load_symbol/${symbolId.replace(`${REF}`, '')}`);
-};
-
 /** Action creator to fetch the data about a symbol and add it to the symbol table; only executes if the symbol data
     has not already been loaded. */
 export function ensureSymbolDataLoaded(symbolId) {
     return (dispatch, getState) => {
-        const dataInCache = getState().symbolTable[symbolId].data;
+        const dataInCache = getState().symboltable[symbolId].data;
         if (dataInCache !== null) {
-            return;
+            // You don’t have to return Promises, but it’s a handy convention
+            // so the caller can always call .then() on async dispatch result.
+            return Promise.resolve();
         }
-        fetchSymbolData(symbolId).then(
-            resp => resp.json.then(
-                ({ data, shells }) => dispatch(updateDataAction(symbolId, data, shells)),
+        return fetchSymbolData(symbolId).then(
+            resp => resp.json().then(
+                ({ data, shells }) => dispatch(ensureSymbolDataLoadedAction(symbolId, data, shells)),
             ),
         );
     }
@@ -49,9 +57,12 @@ export function ensureSymbolDataLoaded(symbolId) {
 /** Action creator to fetch the data about a symbol and add it to the symbol table. */
 export function updateNamespace() {
     return (dispatch) => {
-        fetchNamespace().then(
-            resp => resp.json.then(
-                ({ context, namespace }) => dispatch(updateNamespaceAction(context, namespace)),
+        return fetchNamespace().then(
+            resp => resp.json().then(
+                ({ context, namespace }) => {
+                    dispatch(updateNamespaceAction(context, namespace));
+                    dispatch(resetVarListAction(namespace));
+                }
             ),
         );
     }
