@@ -4,7 +4,11 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { createSelector } from 'reselect';
 import { withStyles } from 'material-ui/styles';
-import ViewerFrame from '../../../components/viewers/ViewerFrame.js';
+
+import ViewerFrame  from '../../../components/ViewerFrame';
+import NumberViewer from '../../../components/viewers/NumberViewer';
+import StringViewer from '../../../components/viewers/StringViewer';
+import GraphViewer  from '../../../components/viewers/GraphViewer';
 
 
 /**
@@ -26,7 +30,11 @@ class Canvas extends Component {
         switch(viewer.type) {
             case "number":
                 return <NumberViewer/>;
-                // TODO: Add more viewers
+            case "str":
+                return <StringViewer/>
+            case "graph":
+                return <GraphViewer/>
+            // TODO: Add more viewers
         }
     }
 
@@ -36,16 +44,21 @@ class Canvas extends Component {
     render() {
         const { classes, viewers } = this.props;
 
-        let framedViewers = viewers.map((viewer, i) => {
+        let framedViewers = viewers.map((viewer) => {
             return (
-                <ViewerFrame key={i} title={"Title Goes Here"}>
-                    {this.createViewerComponent(viewer)}
-                </ViewerFrame>
+                <div className={classes.frameContainer}>
+                    <ViewerFrame key={viewer.viewerId}
+                                 viewerId={viewer.viewerId}
+                                 type={viewer.type}
+                                 name={viewer.name}>
+                        {this.createViewerComponent(viewer)}
+                    </ViewerFrame>
+                </div>
             );
         });
 
         return (
-            <div className={classes.container}>
+            <div className={classes.canvasContainer}>
                 {framedViewers}
             </div>
         );
@@ -57,9 +70,12 @@ class Canvas extends Component {
 
 /** CSS-in-JS styling object. */
 const styles = theme => ({
-    container: {
+    canvasContainer: {
         flexGrow: 1,
         padding: theme.spacing.unit * 4,
+    },
+    frameContainer: {
+        display: "block",
     }
 });
 
@@ -74,16 +90,20 @@ const styles = theme => ({
  *         type: "number",
  *         name: "myInt",
  *         str:  "86",
- *         viewer: {}
+ *         payload: {}
  *     }
  * ]
  */
 const viewersSelector = createSelector(
     [(state) => state.canvas, (state) => state.symboltable],
     (canvas, symboltable) => canvas.map(viewer => {
-        return viewer.set("type", symboltable[viewer.symbolId].type)
-                     .set("name", symboltable[viewer.symbolId].name).
-                     .set("")
+        let symbol = symboltable[viewer.symbolId];
+        return viewer.merge({
+            "type": symbol.type,
+            "name": symbol.name,
+            "str":  symbol.str,
+            "payload": symbol.data.viewer,
+        });
     })
 );
 
