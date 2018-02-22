@@ -2,6 +2,17 @@ import { handle } from 'redux-pack';
 import Immutable from 'seamless-immutable';
 import { SymbolTableActions } from '../actions/symboltable';
 
+/**
+ * State slice structure for `symboltable`: {
+ *     "@id:12345" : {
+ *         type: "number",
+ *         name: "myInt",
+ *         str:  "86",
+ *         data: null/{viewer:{}, attributes{}}
+ *     }
+ * }
+ */
+
 /** Root reducer's initial state slice. */
 const initialState = Immutable({});
 

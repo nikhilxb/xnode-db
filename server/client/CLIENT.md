@@ -182,12 +182,23 @@ defining separate action types for start, success, failure modes.
 Usage is demonstrated in the `examples` templates. Note that it is very similar to creating typical non-promise action 
 objects.
 
+#### `reselect` — Memoized selector library to compute derived data efficiently
+Website: <https://github.com/reactjs/reselect>
+
+Selectors are functions that can compute derived data, allowing Redux to store the minimal possible state. Selectors 
+are efficient. A selector is not recomputed unless one of its arguments changes. Selectors are composable. 
+They can be used as input to other selectors.
+
+Minimal state in Redux is expanded by selector functions in `mapStateToProps()`, so that components have all data 
+that they need.
+
 #### Further reading
 - [Redux Official Documentation](https://redux.js.org/introduction) (45 min read) — The first stop for learning Redux. 
 In particular, the "Motivation" and "Basics" sections are a must.
 - [A Practical Guide to Redux](https://lorenstewart.me/2016/11/27/a-practical-guide-to-redux/) (30 min read) — 
 Concise, remarkably thorough walkthrough of advanced Redux patterns useful for complex projects like this one.
-
+- [Idiomatic Redux](http://blog.isquaredsoftware.com/series/idiomatic-redux/) (2 hr read) — Advanced discussion of 
+various patterns, libraries, and philosophies for Redux integration with React apps.
 
 # Miscellaneous
 normalizer: <https://github.com/paularmstrong/normalizr> <br/>

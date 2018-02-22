@@ -1,18 +1,15 @@
 import React, { Component } from 'react';
+import PropTypes from 'prop-types';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
+import { createSelector } from 'reselect';
 import { withStyles } from 'material-ui/styles';
-import PropTypes from "prop-types";
 import ViewerFrame from '../../../components/viewers/ViewerFrame.js';
 
-/** Component styling object. */
-const styles = theme => ({
-    container: {
-        flexGrow: 1,
-        padding: theme.spacing.unit * 4,
-    }
-});
 
 /**
- * This component serves as an interactive workspace for inspecting variable viewers.
+ * This smart component serves as an interactive workspace for inspecting variable viewers. It displays in sequence
+ * a list of `[*]Viewer` objects (each instantiated within a `Frame`).
  */
 class Canvas extends Component {
 
@@ -30,8 +27,12 @@ class Canvas extends Component {
     render() {
         const { classes, viewers } = this.props;
 
-        let framedViewers = viewers.map(viewer => {
-            return (<ViewerFrame title={"Title Goes Here"}>{viewer}</ViewerFrame>);
+        let framedViewers = viewers.map((viewer, viewerId) => {
+            return (
+                <ViewerFrame title={"Title Goes Here"}>
+                    {viewer}
+                </ViewerFrame>
+            );
         });
 
         return (
@@ -42,4 +43,51 @@ class Canvas extends Component {
     }
 }
 
-export default withStyles(styles)(Canvas);
+// To inject styles into component
+// -------------------------------
+
+/** CSS-in-JS styling object. */
+const styles = theme => ({
+    container: {
+        flexGrow: 1,
+        padding: theme.spacing.unit * 4,
+    }
+});
+
+// To inject application state into component
+// ------------------------------------------
+
+/**
+ * Derived data structure for `viewers`: [
+ *     {
+ *         symbolId: "@id:12345",
+ *         type: "number",
+ *     }
+ * ]
+ */
+const viewersSelector = createSelector(
+    [(state) => state.canvas, (state) => state.symboltable],
+    (canvas, symboltable) => {
+        canvas.map(viewer => {
+            if(symboltable[viewer.symbolId])
+                viewer.set("type", symboltable[viewer.symbolId].type);
+        });
+    }
+);
+
+/** Connects application state objects to component props. */
+function mapStateToProps(state, props) {
+    return {
+        viewers: viewersSelector(state),
+    };
+}
+
+/** Connects bound action creator functions to component props. */
+function mapDispatchToProps(dispatch) {
+    return bindActionCreators({
+        // propName: doSomethingAction,
+    }, dispatch);
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(withStyles(styles)(Canvas));
+
