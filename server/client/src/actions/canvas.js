@@ -1,3 +1,5 @@
+import { ensureSymbolDataLoaded } from "./symboltable";
+
 /** Action type definitions. */
 export const CanvasActions = {
     ADD_VIEWER:    "CANVAS::ADD_VIEWER",
@@ -10,7 +12,7 @@ export const CanvasActions = {
  * @param symbolId Symbol to create new viewer for.
  * @returns {{type: string, symbolId: *}}
  */
-export function addViewerAction(symbolId) {
+function addViewerAction(symbolId) {
     return {
         type: CanvasActions.ADD_VIEWER,
         symbolId
@@ -28,3 +30,11 @@ export function removeViewerAction(viewerId) {
         viewerId
     };
 };
+
+export function addViewerActionThunk(symbolId) {
+    return (dispatch) => {
+        return dispatch(ensureSymbolDataLoaded(symbolId)).then(
+            () => dispatch(addViewerAction(symbolId))
+        );
+    }
+}

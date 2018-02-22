@@ -27,3 +27,27 @@ export function asyncAction(value) {
         }
     };
 };
+
+function anotherActionThunk(value) {
+    return (dispatch) => {
+        return Promise.resolve().then(dispatch(syncAction(value)));
+    }
+}
+
+/** Action creator to ___ then ___ if ___. */
+export function asyncActionThunk(value) {  // Must take form of `[name]Thunk`
+    return (dispatch, getState) => {
+        let nodispatchCondition =  getState().nodispatchCondition;
+        if (nodispatchCondition) {
+            return Promise.resolve();
+        }
+        else {
+            return dispatch(anotherActionThunk(value)).then(
+                () => {
+                    dispatch(syncAction(value));
+                    dispatch(syncAction(value));
+                }
+            ).catch((error) => console.log(error));
+        }
+    }
+}

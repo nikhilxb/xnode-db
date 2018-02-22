@@ -13,13 +13,22 @@ import ViewerFrame from '../../../components/viewers/ViewerFrame.js';
  */
 class Canvas extends Component {
 
-    //    let viewers = this.state.viewers;
-    //    viewers.push(<DataViewer key={"1766992443720"} symbolId={"1766992443720"} loadSymbol={this.props.loadSymbol} isTopLevel={true} />)
-
     /** Prop expected types object. */
     static propTypes = {
         classes: PropTypes.object.isRequired,
+        viewers: PropTypes.array.isRequired,
     };
+
+    /**
+     * Returns the [*]Viewer component of the proper type for the given viewer data object.
+     */
+    createViewerComponent(viewer) {
+        switch(viewer.type) {
+            case "number":
+                return <NumberViewer/>;
+                // TODO: Add more viewers
+        }
+    }
 
     /**
      * Renders the inspector canvas and any viewers currently registered to it.
@@ -27,10 +36,10 @@ class Canvas extends Component {
     render() {
         const { classes, viewers } = this.props;
 
-        let framedViewers = viewers.map((viewer, viewerId) => {
+        let framedViewers = viewers.map((viewer, i) => {
             return (
-                <ViewerFrame title={"Title Goes Here"}>
-                    {viewer}
+                <ViewerFrame key={i} title={"Title Goes Here"}>
+                    {this.createViewerComponent(viewer)}
                 </ViewerFrame>
             );
         });
@@ -61,18 +70,21 @@ const styles = theme => ({
  * Derived data structure for `viewers`: [
  *     {
  *         symbolId: "@id:12345",
+ *         viewerId: 0,
  *         type: "number",
+ *         name: "myInt",
+ *         str:  "86",
+ *         viewer: {}
  *     }
  * ]
  */
 const viewersSelector = createSelector(
     [(state) => state.canvas, (state) => state.symboltable],
-    (canvas, symboltable) => {
-        canvas.map(viewer => {
-            if(symboltable[viewer.symbolId])
-                viewer.set("type", symboltable[viewer.symbolId].type);
-        });
-    }
+    (canvas, symboltable) => canvas.map(viewer => {
+        return viewer.set("type", symboltable[viewer.symbolId].type)
+                     .set("name", symboltable[viewer.symbolId].name).
+                     .set("")
+    })
 );
 
 /** Connects application state objects to component props. */

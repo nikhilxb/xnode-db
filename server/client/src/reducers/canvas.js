@@ -3,11 +3,15 @@ import Immutable from 'seamless-immutable';
 import { CanvasActions } from '../actions/canvas';
 
 /**
- * State slice structure for `canvas`: [
- *     {
- *         symbolId: "@id:12345"
- *     }
- * ]
+ * State slice structure for `canvas`: {
+ *     'nextViewerId': 1,
+ *     'viewers': {[
+ *         {
+ *             symbolId: "@id:12345"
+ *             viewerId: 0,
+ *         }
+ *     ]
+ * }
  */
 
 /** Root reducer's initial state slice. */
