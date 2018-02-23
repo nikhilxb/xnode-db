@@ -8,6 +8,7 @@ import CloseIcon from 'material-ui-icons/Close';
 import TimelineIcon from 'material-ui-icons/Timeline';
 import Typography from 'material-ui/Typography';
 import Divider from 'material-ui/Divider';
+import PropTypes from "prop-types";
 
 
 /**
@@ -15,25 +16,38 @@ import Divider from 'material-ui/Divider';
  * contents. TODO: Extend features to allow reshuffling of ViewerFrames on Canvas.
  */
 class ViewerFrame extends Component {
-    
+
+    /** Prop expected types object. */
+    static propTypes = {
+        children: PropTypes.array,
+        classes:  PropTypes.object.isRequired,
+        key:      PropTypes.number.isRequired,
+        viewerId: PropTypes.number.isRequired,
+        type:     PropTypes.string.isRequired,
+        name:     PropTypes.string.isRequired,
+    };
+
+    /**
+     * Renders a frame with a close button, and any of the component's children..
+     */
     render() {
-        const { classes } = this.props;
+        const { classes, children, name, type } = this.props;
         return (
-            <Card className={ classes.card }>
+            <Card className={classes.card}>
                 <CardContent>
                     <div className={classes.header}>
-                        <IconButton className={classes.button} aria-label="Computation Graph">
+                        <IconButton className={classes.button}>
                             <TimelineIcon style={{width: 20, height: 20}}/>
                         </IconButton>
                         <Typography color="inherit" className={classes.title}>
-                            {this.props.title}
+                            {name ? name + " " + type : type}
                         </Typography>
                         <IconButton className={classes.button} aria-label="Close">
                             <CloseIcon style={{width: 20, height: 20}}/>
                         </IconButton>
                     </div>
-                      <Divider />
-                    {this.props.children}
+                    <Divider />
+                    {children}
                 </CardContent>
             </Card>
         );

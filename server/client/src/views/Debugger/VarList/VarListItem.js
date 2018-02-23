@@ -96,9 +96,7 @@ const styles = theme => ({
 // ------------------------------------------
 
 const getSymbolId = (state, props) => state.varlist.varListItems[props.itemId].symbolId;
-
 const getSymbolTable = (state) => state.symboltable;
-
 function makeGetVarListItemStr() {
     return createSelector(
         [ getSymbolId, getSymbolTable ],
