@@ -89,7 +89,7 @@ const styles = theme => ({
 // ------------------------------------------
 
 /**
- * Derived data structure for `viewers`: [
+ * Creates derived data structure for `viewers`: [
  *     {
  *         symbolId: "@id:12345",
  *         viewerId: 0,
