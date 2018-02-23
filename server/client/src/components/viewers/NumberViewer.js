@@ -1,21 +1,14 @@
 import React, { Component } from 'react';
 import { withStyles } from 'material-ui/styles';
 
-import Typography from 'material-ui/Typography';
-
 
 /**
- * This class renders a number variable, with for `payload`: {
- *     contents: 86,
- * }
+ * This class renders a number variable in the Canvas.
  */
 class NumberViewer extends Component {
     render() {
-        const { classes, payload } = this.props;
         return (
-            <Typography component="p" className={classes.label}>
-                {payload.contents}
-            </Typography>
+            <div />
         );
     }
 }

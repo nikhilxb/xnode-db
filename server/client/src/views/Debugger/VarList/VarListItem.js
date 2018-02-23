@@ -4,10 +4,8 @@ import { withStyles } from 'material-ui/styles';
 import { connect }            from 'react-redux';
 import { bindActionCreators } from 'redux';
 
-
-import { toggleVarListItemExpanded } from '../../../actions/varlist';
-import { addViewerActionThunk }  from '../../../actions/canvas';
-import { makeGetVarListItemStr } from '../../../selectors/varlist';
+import { addViewerActionThunk } from '../../../actions/canvas';
+import { toggleVarListItemExpandedActionThunk } from '../../../actions/varlist';
 
 import List, {ListItem, ListItemText, ListSubheader} from 'material-ui/List';
 import Collapse from 'material-ui/transitions/Collapse';
@@ -17,16 +15,16 @@ import { LinearProgress } from 'material-ui/Progress';
 import ExpandLess from 'material-ui-icons/ExpandLess';
 import ExpandMore from 'material-ui-icons/ExpandMore';
 import blueGrey from 'material-ui/colors/blueGrey';
+import {createSelector} from "reselect";
 
 
 // TODO: Add helpful comments
 class VarListItem extends Component {
 
     render() {
-        const { itemId, classes, onExpandClick, nestedlevel, str } = this.props;
-        const { name, symbolId, payload, expanded, loading, children } = this.props.itemInfo;
-
-        const varString = payload === null ? (str === null ? symbolId : str) : payload;
+        let { itemId, classes, onExpandClick, onButtonClick, nestedlevel, str } = this.props;
+        let { name, symbolId, payload, expanded, loading, children } = this.props.itemInfo;
+        let varString = payload === null ? (str === null ? symbolId : str) : payload;
         let childComponents = [];
         if (children) {
             childComponents = children.map(childId => {
@@ -37,25 +35,20 @@ class VarListItem extends Component {
         return (
             // TODO make indentation cleaner
             <div>
-                <ListItem button style={{paddingLeft: nestedlevel * 16}}
-                          onClick={(e) => (e)}>  // TODO:!!!
+                <ListItem button onClick={() => onButtonClick(symbolId)} style={{paddingLeft: nestedlevel * 30}}>
                     <span className={classes.text}>
                         <span className={classes.varName}>{name}</span>
                         <span className={classes.varSeparator}>&nbsp;&nbsp;:&nbsp;&nbsp;</span>
                         <span className={classes.varString}>{varString}</span>
                     </span>
-                    <IconButton onClick={(e) => {
-                        e.stopPropagation();
-                        e.nativeEvent.stopImmediatePropagation();
-                        onExpandClick(itemId);
-                    } }>
+                    <IconButton className={classes.expandButton} onClick={(e) => {e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); onExpandClick(itemId);} }>
                         {expanded ? <ExpandLess /> : <ExpandMore />}
                     </IconButton>
                 </ListItem>
                 <Divider/>
                 {loading && <LinearProgress/>}
                 <Collapse in={expanded} timeout="auto">
-                    <List dense disablePadding>
+                    <List className={classes.root} disablePadding dense>
                     {childComponents}
                 </List>
                 </Collapse>
@@ -69,7 +62,13 @@ class VarListItem extends Component {
 
 /** CSS-in-JS styling object. */
 const styles = theme => ({
-    text: {
+    root: {
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        height: '100%',
+        backgroundColor: theme.palette.background.paper,
+    },
+        text: {
         fontFamily: '"Roboto Mono", monospace',
         overflow:'hidden',
         textOverflow:'ellipsis',
@@ -77,22 +76,42 @@ const styles = theme => ({
         width: '100%',
         fontSize: '0.8em',
     },
-    varName: {
+        varName: {
         fontWeight: 800,
     },
-    varSeparator: {
+        varSeparator: {
         fontWeight: 800,
     },
-    varString: {
+        varString: {
         color: blueGrey[500],
     },
-    varKey: {
-
+        expandButton: {
+        height: '100%',
+        width: 'auto',
     }
 });
 
+
 // To inject application state into component
 // ------------------------------------------
+
+const getSymbolId = (state, props) => state.varlist.varListItems[props.itemId].symbolId;
+
+const getSymbolTable = (state) => state.symboltable;
+
+function makeGetVarListItemStr() {
+    return createSelector(
+        [ getSymbolId, getSymbolTable ],
+        (symbolId, symbolTable) => {
+            if (symbolId in symbolTable) {
+                return symbolTable[symbolId].str;
+            }
+            else {
+                return null;
+            }
+        }
+    )
+}
 
 /** Connects application state objects to component props. */
 function makeMapStateToProps() {
@@ -106,9 +125,10 @@ function makeMapStateToProps() {
 }
 
 /** Connects bound action creator functions to component props. */
-function mapDispatchToProps(dispatch, props) {
+function mapDispatchToProps(dispatch) {
     return bindActionCreators({
-        onExpandClick: toggleVarListItemExpanded,  // TODO: Rename properly
+        onExpandClick: toggleVarListItemExpandedActionThunk,
+        onButtonClick: addViewerActionThunk,
     }, dispatch);
 }
 

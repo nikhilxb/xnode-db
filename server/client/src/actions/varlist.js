@@ -1,4 +1,4 @@
-import { ensureSymbolDataLoaded } from './symboltable.js';
+import { ensureSymbolDataLoadedActionThunk } from './symboltable.js';
 
 /** Action type definitions. */
 export const VarListActions = {
@@ -38,7 +38,7 @@ export function resetVarListAction(namespace) {
     }
 }
 
-function ensureVarListItemChildrenLoaded(itemId) {
+function ensureVarListItemChildrenLoadedActionThunk(itemId) {
     return (dispatch, getState) => {
         if (getState().varlist.varListItems[itemId].children) {
             // You don’t have to return Promises, but it’s a handy convention
@@ -51,13 +51,13 @@ function ensureVarListItemChildrenLoaded(itemId) {
     }
 }
 
-export function resetVarList(namespace) {
+export function resetVarListActionThunk(namespace) {
     return (dispatch) => {
         return dispatch(resetVarListAction(namespace));
     }
 }
 
-export function toggleVarListItemExpanded(itemId) {
+export function toggleVarListItemExpandedActionThunk(itemId) {
     return (dispatch, getState) => {
         if (getState().varlist.varListItems[itemId].expanded) {
             return Promise.resolve().then(dispatch(toggleVarListItemExpandedAction(itemId)));
@@ -65,10 +65,10 @@ export function toggleVarListItemExpanded(itemId) {
         else {
             let symbolId = getState().varlist.varListItems[itemId].symbolId;
             return Promise.all([
-                dispatch(ensureSymbolDataLoaded(symbolId)),
+                dispatch(ensureSymbolDataLoadedActionThunk(symbolId)),
                 dispatch(toggleVarListItemLoadingAction(itemId)),
             ]).then(
-                () => dispatch(ensureVarListItemChildrenLoaded(itemId)).then(
+                () => dispatch(ensureVarListItemChildrenLoadedActionThunk(itemId)).then(
                     () => {
                         dispatch(toggleVarListItemExpandedAction(itemId));
                         dispatch(toggleVarListItemLoadingAction(itemId));

@@ -1,6 +1,7 @@
 import { REF } from '../services/mockdata.js';
 
 import { resetVarListAction } from './varlist.js';
+import { setViewerDoneLoadingAction } from './canvas.js';
 
 /** Action type definitions. */
 export const SymbolTableActions = {
@@ -21,11 +22,11 @@ function ensureSymbolDataLoadedAction(symbolId, data, shells) {
 
 function fetchSymbolData(symbolId) {
     return fetch(`/api/debug/load_symbol/${symbolId.replace(`${REF}`, '')}`);
-};
+}
 
 function fetchNamespace() {
     return fetch('/api/debug/get_namespace');
-};
+}
 
 /** Action which resets the symbol table to contain a new namespace. */
 export function updateNamespaceAction(context, namespace) {
@@ -36,9 +37,54 @@ export function updateNamespaceAction(context, namespace) {
     };
 }
 
+/**
+ * Loads the data for `symbolId` if needed, then calls itself for each parent of the symbol, thereby building the graph.
+ * This function can be dispatched and chained with `.then()` statements, which will only execute when the graph has
+ * loaded completely.
+ */
+function ensureGraphLoadedRecurseActionThunk(symbolId, confirmed) {
+    return (dispatch, getState) => {
+        return dispatch(ensureSymbolDataLoadedActionThunk(symbolId)).then(
+            () => {
+                confirmed.add(symbolId);
+                let type = getState().symboltable[symbolId].type;
+                let viewerData = getState().symboltable[symbolId].data.viewer;
+                let dispatches = [];
+                if (type === 'graphdata' && viewerData.creatorop !== null) {
+                    confirmed.add(viewerData.creatorop);
+                    dispatches.push(ensureGraphLoadedRecurseActionThunk(viewerData.creatorop, confirmed));
+                }
+                else if (type === 'graphop') {
+                    viewerData.args.filter(arg => arg !== null && !confirmed.has(arg)).forEach(arg => {
+                        confirmed.add(arg);
+                        dispatches.push(ensureGraphLoadedRecurseActionThunk(arg, confirmed));
+                    });
+                    Object.values(viewerData.kwargs).filter(kwarg => !confirmed.has(kwarg)).forEach(kwarg => {
+                        confirmed.add(kwarg);
+                        dispatches.push(ensureGraphLoadedRecurseActionThunk(kwarg, confirmed));
+                    });
+                }
+                return Promise.all(dispatches.map(fn => dispatch(fn)));
+            }
+        )
+    }
+}
+
+/**
+ * Checks if a graph starting at `symbolId` has been loaded, and loads it if it has not. Then, it sets the `hasLoaded`
+ * property of the viewer containing the graph to `true`.
+ */
+export function ensureGraphLoadedActionThunk(symbolId, viewerId) {
+    return (dispatch) => {
+        return dispatch(ensureGraphLoadedRecurseActionThunk(symbolId, new Set())).then(
+            () => dispatch(setViewerDoneLoadingAction(viewerId))
+        )
+    }
+}
+
 /** Action creator to fetch the data about a symbol and add it to the symbol table; only executes if the symbol data
     has not already been loaded. */
-export function ensureSymbolDataLoaded(symbolId) {
+export function ensureSymbolDataLoadedActionThunk(symbolId) {
     return (dispatch, getState) => {
         const dataInCache = getState().symboltable[symbolId].data;
         if (dataInCache !== null) {
@@ -55,7 +101,7 @@ export function ensureSymbolDataLoaded(symbolId) {
 }
 
 /** Action creator to fetch the data about a symbol and add it to the symbol table. */
-export function updateNamespace() {
+export function updateNamespaceActionThunk() {
     return (dispatch) => {
         return fetchNamespace().then(
             resp => resp.json().then(

@@ -20,20 +20,23 @@ class Canvas extends Component {
     /** Prop expected types object. */
     static propTypes = {
         classes: PropTypes.object.isRequired,
-        viewers: PropTypes.array.isRequired,
+        viewers: PropTypes.object.isRequired,
+        viewerPositions: PropTypes.array.isRequired,
     };
 
     /**
      * Returns the [*]Viewer component of the proper type for the given viewer data object.
      */
-    createViewerComponent(viewer) {
+    createViewerComponent(viewerId, viewer) {
         switch(viewer.type) {
             case "number":
                 return <NumberViewer payload={viewer.payload}/>;
             case "str":
                 return <StringViewer payload={viewer.payload}/>;
-            case "graph":
-                return <GraphViewer payload={viewer.payload}/>;
+            case "graphdata":
+                return <GraphViewer symbolId={viewer.symbolId} viewerId={viewerId}/>;
+            // case "graph":
+            //     return <GraphViewer payload={viewer.payload}/>;
             default:
                 return null;
             // TODO: Add more viewers
@@ -44,16 +47,17 @@ class Canvas extends Component {
      * Renders the inspector canvas and any viewers currently registered to it.
      */
     render() {
-        const { classes, viewers } = this.props;
+        const { classes, viewers, viewerPositions } = this.props;
 
-        let framedViewers = viewers.map((viewer) => {
+        let framedViewers = viewerPositions.map((viewerId) => {
+            let viewer = viewers[viewerId];
             return (
                 <div className={classes.frameContainer}>
                     <ViewerFrame key={viewer.viewerId}
                                  viewerId={viewer.viewerId}
                                  type={viewer.type}
                                  name={viewer.name}>
-                        {this.createViewerComponent(viewer)}
+                        {this.createViewerComponent(viewerId, viewer)}
                     </ViewerFrame>
                 </div>
             );
@@ -97,22 +101,28 @@ const styles = theme => ({
  * ]
  */
 const viewersSelector = createSelector(
-    [(state) => state.canvas, (state) => state.symboltable],
-    (canvas, symboltable) => canvas.map(viewer => {
-        let symbol = symboltable[viewer.symbolId];
-        return viewer.merge({
-            "type": symbol.type,
-            "name": symbol.name,
-            "str":  symbol.str,
-            "payload": symbol.data.viewer,
+    [(state) => state.canvas.viewers, (state) => state.symboltable],
+    (viewers, symboltable) => {
+        let newViewers = {};
+        Object.entries(viewers).forEach(([viewerId, viewer]) => {
+            let symbol = symboltable[viewer.symbolId];
+            newViewers[viewerId] = {
+                ...viewer,
+                "type": symbol.type,
+                "name": symbol.name,
+                "str": symbol.str,
+                "payload": symbol.data.viewer,
+            };
         });
-    })
+        return newViewers;
+    }
 );
 
 /** Connects application state objects to component props. */
 function mapStateToProps(state, props) {
     return {
-        viewers: viewersSelector(state),
+        viewers:         viewersSelector(state),
+        viewerPositions: state.canvas.viewerPositions,
     };
 }
 

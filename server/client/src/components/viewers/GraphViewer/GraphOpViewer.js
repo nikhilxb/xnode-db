@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { withStyles } from 'material-ui/styles';
 import Card, { CardActions, CardContent } from 'material-ui/Card';
 import Typography from 'material-ui/Typography';
-import { graphlib } from 'dagre';
 import { nodeHeight, nodeWidth } from './GraphViewer.js';
 
 const styles = theme => ({

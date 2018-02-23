@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import { withStyles } from 'material-ui/styles';
 import { connect }            from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { updateNamespace } from '../../../actions/symboltable.js';
+import { updateNamespaceActionThunk } from '../../../actions/symboltable.js';
 
 import List, {ListItem, ListItemText, ListSubheader} from 'material-ui/List';
 import VarListItem from './VarListItem.js';
@@ -69,14 +69,14 @@ class VarList extends Component {
 }
 
 // Inject styles and data into component
-function mapStateToProps(state, props) {
+function mapStateToProps(state) {
     return {
         topLevelItemIds: state.varlist.topLevelItemIds,
     };
 }
 function mapDispatchToProps(dispatch) {
     return bindActionCreators({
-        getNamespace: updateNamespace,
+        getNamespace: updateNamespaceActionThunk,
     }, dispatch);
 }
 export default connect(mapStateToProps, mapDispatchToProps)(withStyles(styles)(VarList));

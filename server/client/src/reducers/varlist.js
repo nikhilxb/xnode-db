@@ -40,7 +40,7 @@ function updateVarListItemChildrenReducer(state, action) {
     Object.entries(itemAttributes).forEach(([key, value]) => {
         let symbolId = null;
         let payload = value;
-        if (typeof value == 'string' && value.startsWith(`${REF}`)) {
+        if (typeof value === 'string' && value.startsWith(`${REF}`)) {
             symbolId = value;
             payload = null;
         }
