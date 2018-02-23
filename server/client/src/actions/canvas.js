@@ -1,9 +1,10 @@
-import { ensureSymbolDataLoaded } from "./symboltable";
+import { ensureSymbolDataLoadedActionThunk } from "./symboltable";
 
 /** Action type definitions. */
 export const CanvasActions = {
     ADD_VIEWER:    "CANVAS::ADD_VIEWER",
     REMOVE_VIEWER: "CANVAS::REMOVE_VIEWER",
+    VIEWER_DONE_LOADING: "CANVAS::VIEWER_DONE_LOADING",
 };
 
 /**
@@ -17,7 +18,21 @@ function addViewerAction(symbolId) {
         type: CanvasActions.ADD_VIEWER,
         symbolId
     };
-};
+}
+
+/**
+ * Action creator to set a viewer's `hasLoaded` property to `true`. The behavior induced by this change, as well as when
+ * (if ever) this property is used, is determined by the viewer itself. Currently used only by `GraphViewer` to indicate
+ * that all components have been loaded.
+ * @param viewerId
+ * @returns {{type: string, viewerId: *}}
+ */
+export function setViewerDoneLoadingAction(viewerId) {
+    return {
+        type: CanvasActions.VIEWER_DONE_LOADING,
+        viewerId,
+    }
+}
 
 /**
  * Action creator to remove a viewer from the data canvas.
@@ -29,11 +44,11 @@ export function removeViewerAction(viewerId) {
         type: CanvasActions.REMOVE_VIEWER,
         viewerId
     };
-};
+}
 
 export function addViewerActionThunk(symbolId) {
     return (dispatch) => {
-        return dispatch(ensureSymbolDataLoaded(symbolId)).then(
+        return dispatch(ensureSymbolDataLoadedActionThunk(symbolId)).then(
             () => dispatch(addViewerAction(symbolId))
         );
     }

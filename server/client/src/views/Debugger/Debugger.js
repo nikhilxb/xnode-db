@@ -70,6 +70,7 @@ class Debugger extends Component {
                     </div>
                     <div className={classes.rightContainer}>
                         <ControlBar />
+                        <Canvas />
                     </div>
                 </div>
             </MuiThemeProvider>

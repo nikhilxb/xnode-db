@@ -3,6 +3,12 @@ import { withStyles } from 'material-ui/styles';
 import Paper from 'material-ui/Paper';
 import dagre from 'dagre';
 import GraphEdge from './GraphEdge.js';
+import { bindActionCreators } from 'redux';
+import {ensureGraphLoadedActionThunk} from "../../../actions/symboltable";
+import {connect} from "react-redux";
+import GraphDataViewer from './GraphDataViewer.js';
+import GraphOpViewer from './GraphOpViewer.js';
+import {createSelector} from "reselect";
 
 const styles = theme => ({
 
@@ -15,104 +21,34 @@ const nodeWidth = 150;
  * This class builds and contains all the components of a computation graph.
  */
 class GraphViewer extends Component {
-    constructor(props, context) {
-        super(props, context);
-        this.receiveNewComponent = this.receiveNewComponent.bind(this);
-        this.unaddedComponents = [];
-        // The number of nodes currently being loaded. The graph is rendered only when this is zero.
-        this.waitingForNodes = 0;
-        this.nodeIds = new Set();
-        // This is not in the state, because setting state in addSymbolToDAG will cause errors (React seems to think
-        // that the component sometimes isn't mounted in addSymbolToDAG, so it won't update the state and we'll get
-        // errors in rendering). This isn't a real problem, unless we forsee the presence of edges changing when
-        // nodeComponents doesn't; in that case, we would not trigger a re-render.
-        this.edges = {};
-        this.state = {
-            nodeComponents: [],
-        };
-    }
-
-    /**
-     * Begin building the DAG from the head when the component has mounted and it's safe to update the state.
-     */
     componentDidMount() {
-        this.addSymbolToDAG(this.props.symbolId);
-    }
-
-    /**
-     * Requests the Debugger to load a new graph component for the given symbol ID, if not already present, and adds a
-     * new edge if one exists.
-     */
-    addSymbolToDAG(toSymbolId, fromSymbolId) {
-        if (!toSymbolId) {
-            return;
-        }
-        if (fromSymbolId && (!this.edges[fromSymbolId] || !this.edges[fromSymbolId].has(toSymbolId))) {
-            console.log(fromSymbolId, toSymbolId);
-            if (this.edges[fromSymbolId]) {
-                this.edges[fromSymbolId].add(toSymbolId);
-            } else {
-                this.edges[fromSymbolId] = new Set([toSymbolId]);
-            }
-        }
-        if (!this.nodeIds.has(toSymbolId)) {
-            this.waitingForNodes += 1;
-            this.nodeIds.add(toSymbolId);
-            this.props.loadComponent(toSymbolId, {}, this.receiveNewComponent);
-        }
-    }
-
-    /**
-     * Called back when the Debugger has finished loading a new component for one of the graph's op or data nodes. If
-     * the new node links to other symbols, then those symbols are requested also.
-     * @param  {String} symbolId
-     * @param  {Object} shellAndData
-     * @param  {Component} newNodeComponent
-     */
-    receiveNewComponent(symbolId, shellAndData, newNodeComponent) {
-        this.waitingForNodes -= 1;
-        this.unaddedComponents.push(newNodeComponent);
-        if (shellAndData.type == "graphop") {
-            shellAndData.data.viewer.args.forEach(arg =>
-                this.addSymbolToDAG(arg, symbolId)
-            );
-            Object.keys(shellAndData.data.viewer.kwargs).forEach(kwarg =>
-                this.addSymbolToDAG(shellAndData.data.viewer.kwargs[kwarg], symbolId)
-            );
-        } else if (shellAndData.type == "graphdata") {
-            this.addSymbolToDAG(shellAndData.data.viewer.creatorop, symbolId);
-        }
-        if (this.waitingForNodes == 0) {
-            this.setState({
-                nodeComponents: this.unaddedComponents,
-            });
-            this.unaddedComponents = null;
-        }
+        this.props.ensureGraphLoaded(this.props.symbolId, this.props.viewerId);
     }
 
     /**
      * Renders all of the graph's op and data components, laid out by dagre.
      */
     render() {
-        var g = new dagre.graphlib.Graph({compound: true});
-        g.setGraph({});
-
-        g.setNode('kek', {key: 'kek', label: <div style={{background: '#333', width:'100%', height:'100%'}}/>});
-
-        // TODO containers
-        this.state.nodeComponents.forEach((c, i) => {
-            console.log(i);
-            g.setNode(c.key, {key: c.key, label: c, width:nodeWidth, height:nodeHeight});
-            if (i < 50) {
-                console.log('Parented');
-                g.setParent(c.key, 'kek');
+        let { nodes, edges } = this.props.graph;
+        let nodeComponents = nodes.map(node => {
+            if (node.type === 'graphdata') {
+                return <GraphDataViewer key={node.symbolId} {...node} />;
+            }
+            else {
+                return <GraphOpViewer key={node.symbolId} {...node} />;
             }
         });
 
-        Object.keys(this.edges).forEach(fromSymbolId => {
-            this.edges[fromSymbolId].forEach(toSymbolId => {
-                g.setEdge(fromSymbolId, toSymbolId, {key: toSymbolId+fromSymbolId});
-            });
+        let g = new dagre.graphlib.Graph({compound: true});
+        g.setGraph({});
+
+        // TODO containers
+        nodeComponents.forEach((c, i) => {
+            g.setNode(c.key, {key: c.key, label: c, width:nodeWidth, height:nodeHeight});
+        });
+
+        edges.forEach(([fromSymbolId, toSymbolId]) => {
+            g.setEdge(fromSymbolId, toSymbolId, {key: toSymbolId+fromSymbolId});
         });
 
         dagre.layout(g);
@@ -120,7 +56,7 @@ class GraphViewer extends Component {
         let graphWidth = 0;
         let graphHeight = 0;
 
-        let nodes = g.nodes().map(v => {
+        let nodesToRender = g.nodes().map(v => {
             let node = g.node(v);
             if (node.key === 'kek') {
                 console.log(node.x, node.y, node.width, node.height);
@@ -134,19 +70,92 @@ class GraphViewer extends Component {
             );
         });
 
-        let edges = g.edges().map(e => {
+        let edgesToRender = g.edges().map(e => {
             let edge = g.edge(e);
             return <GraphEdge key={edge.key} points={edge.points}/>;
         });
 
         return (
             <div style={{position: "relative", width: graphWidth, height: graphHeight}}>
-                {edges}
-                {nodes}
+                {edgesToRender}
+                {nodesToRender}
             </div>
         );
     }
 }
 
+const getSymbolId = (state, props) => props.symbolId;
+
+const getSymbolTable = (state) => state.symboltable;
+
+const getHasLoadedGraph = (state, props) => state.canvas.viewers[props.viewerId].hasLoaded;
+
+function makeGetGraphFromHead() {
+    return createSelector(
+        [ getHasLoadedGraph, getSymbolId, getSymbolTable ],
+        (hasLoadedGraph, symbolId, symbolTable) => {
+            if (!hasLoadedGraph) {
+                return {
+                    nodes: [],
+                    edges: [],
+                }
+            }
+            let nodes = [];
+            let edges = [];
+            let checked = new Set();
+            let toCheck = [symbolId];
+            while (toCheck.length > 0) {
+                let nodeId = toCheck.pop();
+                if (checked.has(nodeId)) {
+                    continue;
+                }
+                checked.add(nodeId);
+                let symbolInfo = symbolTable[nodeId];
+                nodes.push({
+                    ...symbolInfo,
+                    symbolId: nodeId,
+                });
+                if (symbolInfo.type === 'graphdata') {
+                    if (symbolInfo.data.viewer.creatorop !== null) {
+                        toCheck.push(symbolInfo.data.viewer.creatorop);
+                        edges.push([symbolInfo.data.viewer.creatorop, nodeId]);
+                    }
+                }
+                if (symbolInfo.type === 'graphop') {
+                    symbolInfo.data.viewer.args.filter(arg => arg !== null).forEach(arg => {
+                            edges.push([arg, nodeId]);
+                            toCheck.push(arg);
+                        }
+                    );
+                    Object.values(symbolInfo.data.viewer.kwargs).forEach(kwarg => {
+                            toCheck.push(kwarg);
+                            edges.push([kwarg, nodeId]);
+                        }
+                    );
+                }
+            }
+            return {
+                nodes,
+                edges,
+            }
+        }
+    )
+}
+
+// Inject styles and data into component
+function makeMapStateToProps() {
+    const getGraphFromHead = makeGetGraphFromHead();
+    return (state, props) => {
+        return {
+            graph: getGraphFromHead(state, props),
+        }
+    }
+}
+function mapDispatchToProps(dispatch) {
+    return bindActionCreators({
+        ensureGraphLoaded: ensureGraphLoadedActionThunk,
+    }, dispatch);
+}
+
 export { nodeHeight, nodeWidth };
-export default withStyles(styles)(GraphViewer);
+export default connect(makeMapStateToProps, mapDispatchToProps)(withStyles(styles)(GraphViewer));

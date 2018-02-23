@@ -13,9 +13,7 @@ const styles = theme => ({
 class StringViewer extends Component {
     render() {
         return (
-            <Typography component="p" className={this.props.classes.label}>
-                    {this.props.data}
-            </Typography>
+            <div />
         );
     }
 }
