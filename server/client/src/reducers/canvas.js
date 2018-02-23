@@ -5,17 +5,22 @@ import { CanvasActions } from '../actions/canvas';
 /**
  * State slice structure for `canvas`: {
  *     'nextViewerId': 1,
- *     'viewers': {[
- *         {
+ *     'viewers': {
+ *         0: {
  *             symbolId: "@id:12345"
- *             viewerId: 0,
+ *             hasLoaded: false,
  *         }
- *     ]
+ *     },
+ *     'viewerPositions': [0],
  * }
  */
 
 /** Root reducer's initial state slice. */
-const initialState = Immutable([]);
+const initialState = Immutable({
+    nextViewerId: 0,
+    viewers: {},
+    viewerPositions: [],
+});
 
 /** Root reducer for updating the canvas view state. */
 export default function rootReducer(state = initialState, action) {
@@ -23,20 +28,36 @@ export default function rootReducer(state = initialState, action) {
     switch(type) {
         case CanvasActions.ADD_VIEWER:    return addViewerReducer(state, action);
         case CanvasActions.REMOVE_VIEWER: return removeViewerReducer(state, action);
+        case CanvasActions.VIEWER_DONE_LOADING: return viewerDoneLoadingReducer(state, action);
     }
     return state;  // No effect by default
 };
 
+/** Reducer for indicating that a viewer has finished loading. */
+function viewerDoneLoadingReducer(state, action) {
+    const { viewerId } = action;
+    return state.setIn(['viewers', viewerId, 'hasLoaded'], true);
+}
+
 /** Reducer for adding a viewer to `canvas`. Assumes `data` for symbol is already loaded.  */
 function addViewerReducer(state, action) {
     const { symbolId } = action;
-    return state.concat([{
-        symbolId: symbolId,
-    }]);
-};
+    const { nextViewerId } = state;
+    return state.merge(
+        {
+            viewers: {
+                [nextViewerId]: {
+                    symbolId,
+                    hasLoaded: false,
+                }
+            }
+        }, {deep: true}).set('nextViewerId', state.nextViewerId + 1).set('viewerPositions', [state.nextViewerId]);
+}
 
 /** Reducer for removing a viewer from `canvas`. */
 function removeViewerReducer(state, action) {
     const { viewerId } = action;
-    return state.slice(viewerId).concat(state.slice(viewerId+1));
-};
+    let viewerPos = state.viewerPositions.find(id => id === viewerId);
+    return state.set('viewerPositions',
+        state.viewerPositions.slice(0, viewerPos).concat(state.viewerPositions.slice(viewerPos+1)));
+}
