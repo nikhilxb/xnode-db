@@ -46,7 +46,7 @@ class VarList extends Component {
     /** Prop expected types object. */
     static propTypes = {
         classes: PropTypes.object.isRequired,
-    };
+    }; // TODO: Update
 
     constructor(props) {
         super(props);
@@ -60,9 +60,7 @@ class VarList extends Component {
         const {classes, topLevelItemIds} = this.props;
         let listItems = topLevelItemIds.map(itemId => <VarListItem key={itemId} itemId={itemId} nestedlevel={0}/>);
         return (
-            <List className={classes.root}
-                  dense={true}
-                  disablePadding={true}>
+            <List className={classes.root} dense disablePadding>
                 <ListSubheader className={classes.listSection}>Variables</ListSubheader>
                 {listItems}
             </List>
