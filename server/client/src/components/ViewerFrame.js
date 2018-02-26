@@ -31,7 +31,7 @@ class ViewerFrame extends Component {
      * Renders a frame with a close button, and any of the component's children..
      */
     render() {
-        const { classes, children, name, type } = this.props;
+        const { classes, children, name, type, viewerId, removeViewerFn } = this.props;
         return (
             <Card className={classes.card}>
                 <CardContent>
@@ -42,7 +42,8 @@ class ViewerFrame extends Component {
                         <Typography color="inherit" className={classes.title}>
                             {name ? name + " " + type : type}
                         </Typography>
-                        <IconButton className={classes.button} aria-label="Close">
+                        <IconButton className={classes.button} aria-label="Close"
+                                    onClick={() => removeViewerFn(viewerId)}>
                             <CloseIcon style={{width: 20, height: 20}}/>
                         </IconButton>
                     </div>

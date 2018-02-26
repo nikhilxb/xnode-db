@@ -88,7 +88,7 @@ const getSymbolId = (state, props) => props.symbolId;
 
 const getSymbolTable = (state) => state.symboltable;
 
-const getHasLoadedGraph = (state, props) => state.canvas.viewers[props.viewerId].hasLoaded;
+const getHasLoadedGraph = (state, props) => state.canvas.viewerObjects[props.viewerId].hasLoaded;
 
 function makeGetGraphFromHead() {
     return createSelector(

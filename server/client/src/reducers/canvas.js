@@ -5,7 +5,7 @@ import { CanvasActions } from '../actions/canvas';
 /**
  * State slice structure for `canvas`: {
  *     'nextViewerId': 1,
- *     'viewers': {
+ *     'viewerObjects': {
  *         0: {
  *             symbolId: "@id:12345"
  *             hasLoaded: false,
@@ -18,7 +18,7 @@ import { CanvasActions } from '../actions/canvas';
 /** Root reducer's initial state slice. */
 const initialState = Immutable({
     nextViewerId: 0,
-    viewers: {},
+    viewerObjects: {},
     viewerPositions: [],
 });
 
@@ -26,8 +26,8 @@ const initialState = Immutable({
 export default function rootReducer(state = initialState, action) {
     const { type } = action;
     switch(type) {
-        case CanvasActions.ADD_VIEWER:    return addViewerReducer(state, action);
-        case CanvasActions.REMOVE_VIEWER: return removeViewerReducer(state, action);
+        case CanvasActions.ADD_VIEWER:          return addViewerReducer(state, action);
+        case CanvasActions.REMOVE_VIEWER:       return removeViewerReducer(state, action);
         case CanvasActions.VIEWER_DONE_LOADING: return viewerDoneLoadingReducer(state, action);
     }
     return state;  // No effect by default
@@ -36,28 +36,25 @@ export default function rootReducer(state = initialState, action) {
 /** Reducer for indicating that a viewer has finished loading. */
 function viewerDoneLoadingReducer(state, action) {
     const { viewerId } = action;
-    return state.setIn(['viewers', viewerId, 'hasLoaded'], true);
+    return state.setIn(['viewerObjects', viewerId, 'hasLoaded'], true);
 }
 
 /** Reducer for adding a viewer to `canvas`. Assumes `data` for symbol is already loaded.  */
 function addViewerReducer(state, action) {
     const { symbolId } = action;
     const { nextViewerId } = state;
-    return state.merge(
-        {
-            viewers: {
-                [nextViewerId]: {
-                    symbolId,
-                    hasLoaded: false,
-                }
-            }
-        }, {deep: true}).set('nextViewerId', state.nextViewerId + 1).set('viewerPositions', [state.nextViewerId]);
+    return state.setIn(['viewerObjects', nextViewerId], {
+        symbolId,
+        hasLoaded: false,
+    }).update('nextViewerId', (prev) => prev + 1)
+        .update('viewerPositions', (prev) => prev.concat([state.nextViewerId]));
 }
 
 /** Reducer for removing a viewer from `canvas`. */
 function removeViewerReducer(state, action) {
     const { viewerId } = action;
-    let viewerPos = state.viewerPositions.find(id => id === viewerId);
-    return state.set('viewerPositions',
-        state.viewerPositions.slice(0, viewerPos).concat(state.viewerPositions.slice(viewerPos+1)));
+    let removeIdx = state.viewerPositions.indexOf(viewerId);
+    if(removeIdx === -1) return state;
+    return state.update('viewerPositions', (arr) => arr.slice(0, removeIdx).concat(arr.slice(removeIdx + 1)))
+                .setIn(['viewerObjects', viewerId], undefined);
 }
