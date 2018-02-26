@@ -154,6 +154,7 @@ class VisualizationEngine:
                 'contents': [self._sanitize_for_data_object(op, refs) for op in obj.contents],
                 'container': self._sanitize_for_data_object(obj.container, refs),
                 'temporal': self._sanitize_for_data_object(obj.is_temporal(), refs),
+                'height': self._sanitize_for_data_object(obj.height, refs),
             },
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)
         }, refs
@@ -170,6 +171,7 @@ class VisualizationEngine:
                     for kwarg, value in obj.kwargs.items()
                 },
                 'container': self._sanitize_for_data_object(obj.container, refs),
+                'numoutputs': self._sanitize_for_data_object(obj.num_outputs, refs),
             },
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)
         }, refs

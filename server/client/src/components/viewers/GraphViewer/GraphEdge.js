@@ -16,12 +16,11 @@ class GraphEdge extends Component {
         let points = this.props.points;
         let segments = [];
         for (let i=0; i < points.length - 1; i++) {
-            segments.push([points[i], points[i+1]]);
+            segments.push([points[i], points[i + 1]]);
         }
-        let lineComponents = segments.map((segment, i) =>
+        return segments.map((segment, i) =>
             <Line key={i} x0={segment[0].x} y0={segment[0].y} x1={segment[1].x} y1={segment[1].y}/>
         );
-        return lineComponents
     }
 }
 
@@ -56,7 +55,7 @@ class Line extends Component {
         const props = {
             className: this.props.className,
             style: Object.assign({}, defaultStyle, this.props.style, positionStyle),
-        }
+        };
 
         // We need a wrapper element to prevent an exception when then
         // React component is removed. This is because we manually

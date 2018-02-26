@@ -29,9 +29,20 @@ export default function rootReducer(state = initialState, action) {
         case CanvasActions.ADD_VIEWER:    return addViewerReducer(state, action);
         case CanvasActions.REMOVE_VIEWER: return removeViewerReducer(state, action);
         case CanvasActions.VIEWER_DONE_LOADING: return viewerDoneLoadingReducer(state, action);
+        case CanvasActions.SET_VIEWER_GRAPH: return setViewerGraphReducer(state, action);
     }
     return state;  // No effect by default
 };
+
+/** Sets the `graph` field of a viewer to hold onto a laid-out graph. ELK uses promises to create the graph, so we
+ * cannot just compute it in `render()` and display it. It needs to be stored in state.
+ * @param state
+ * @param action
+ */
+function setViewerGraphReducer(state, action) {
+    const { graph, viewerId } = action;
+    return state.setIn(['viewers', viewerId, 'graph'], graph)
+}
 
 /** Reducer for indicating that a viewer has finished loading. */
 function viewerDoneLoadingReducer(state, action) {

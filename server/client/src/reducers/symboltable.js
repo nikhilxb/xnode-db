@@ -30,23 +30,22 @@ export default function rootReducer(state = initialState, action) {
     new shells and fill in the symbol's data field. */
 function ensureSymbolDataLoadedReducer(state, action) {
     const { symbolId, data, shells } = action;
-    return state.merge(shells).setIn([symbolId, "data"], data);
-};
+    // It's important that `shells` be the first argument, so existing symbols are not overwritten
+    return Immutable.merge(shells, state, {deep: true}).setIn([symbolId, "data"], data);
+}
 
 /** Given a new namespace dict, reset the entire symbol table to only contain that namespace.
     TODO be smarter with updating; don't wipe data that you don't need to */
 function updateNamespaceReducer(state, action) {
     const { context, namespace } = action;
     // TODO: figure out where context string goes
-    console.log(namespace);
     return Immutable(namespace);
 }
 
 /** TODO: Reducer for synchronous action. */
 function syncReducer(state, action) {
     return state;
-};
-
+}
 
 /** TODO: Reducer for asynchronous action. */
 function asyncReducer(state, action) {
@@ -56,4 +55,4 @@ function asyncReducer(state, action) {
         failure: state => ({...state}),
         success: state => ({...state}),
     });
-};
+}

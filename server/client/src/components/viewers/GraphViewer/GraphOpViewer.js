@@ -19,13 +19,15 @@ const styles = theme => ({
  */
 class GraphOpViewer extends Component {
     render() {
-        return (<Card className={this.props.classes.card}>
-            <CardContent>
-                <Typography component="p" className={this.props.classes.label}>
-                    {this.props.name ? this.props.name : this.props.str}
-                </Typography>
-            </CardContent>
-        </Card>);
+        return (
+            <Card className={this.props.classes.card} style={{position: "absolute", top: this.props.y, left: this.props.x}}>
+                <CardContent>
+                    <Typography component="p" className={this.props.classes.label}>
+                        {this.props.symbolId}
+                    </Typography>
+                </CardContent>
+            </Card>
+        );
     }
 }
 

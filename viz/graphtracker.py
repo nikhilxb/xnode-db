@@ -41,7 +41,7 @@ class Nestable:
 
 class GraphOp(Nestable):
     """A record of a single function execution."""
-    def __init__(self, fn, args, kwargs):
+    def __init__(self, fn, num_outputs, args, kwargs):
         """Constructor.
 
         Args:
@@ -56,6 +56,7 @@ class GraphOp(Nestable):
             self.name = self.fn.__name__
         except AttributeError:
             self.name = self.fn.__class__.__name__
+        self.num_outputs = num_outputs
 
         # Arguments which were tracked via a call to `track_data()` (that is, should be shown in the graph) have a
         # `GraphData` object associated with them. We only record these objects (if they exist) in `self.args`,
@@ -164,18 +165,19 @@ class GraphData:
 # TODO handle paralellism
 class GraphContainer(Nestable):
     """Represents a collection of grouped `GraphOp` and `GraphContainer` objects."""
-    def __init__(self, contents=None, temporal_level=0):
+    def __init__(self, contents, temporal_level=0):
         """Constructor.
         Args:
-            contents (set or None): A list of `GraphOp` and `GraphContainer` objects grouped by the instance,
+            contents (set): A list of `GraphOp` and `GraphContainer` objects grouped by the instance,
                 or None if no items are grouped yet.
             temporal_level (int): The temporal "height" of the container. Abstractive containers have temporal level
                 0, and temporal containers have level > 0. New temporal containers can encapsulate only containers of
                 level `temporal_level-1`.
         """
         super(GraphContainer, self).__init__()
-        self.contents = contents if contents is not None else set()
+        self.contents = contents
         self.temporal_level = temporal_level
+        self.height = max([getattr(c, 'height', 0) for c in self.contents])
 
     def is_temporal(self):
         return self.temporal_level > 0
@@ -194,7 +196,7 @@ def _build_abstractive_container(outputs, inputs):
         outputs (list): `GraphData` objects which serve as the outputs of the new abstractive container.
         inputs (set): `GraphData` objects which serve as the inputs of the new abstractive container.
     """
-    container = GraphContainer()
+    contents = set()
     ops_checked = set()
     data_to_check = deque(outputs)
     while len(data_to_check) > 0:
@@ -204,9 +206,10 @@ def _build_abstractive_container(outputs, inputs):
         creator_op = data.creator_op
         if creator_op is not None and creator_op not in ops_checked:
             outermost_parent = creator_op.get_outermost_parent()
-            container.contents.add(outermost_parent)
+            contents.add(outermost_parent)
             data_to_check.extend(creator_op.get_tracked_args())
             ops_checked.add(creator_op)
+    container = GraphContainer(contents)
     # Update newly contained objects after iterating through the graph to prevent the new container from containing
     # itself (consider ops op1, op2, which share container c1. We are adding a new container c2. If we update the
     # container of op1 during iteration, then c1's container becomes c2. When we check op2, its outermost container
@@ -339,9 +342,9 @@ class OpGenerator(wrapt.ObjectProxy):
         # (since it takes as argument a list), but could be made to work with a wrapper that takes in any number of
         # inputs and collects them into a list before calling cat. If we do, how do we know when to stop diving,
         # and what do we do about output_props?
-        op = GraphOp(self.__wrapped__, args, kwargs)
         ret = self.__wrapped__(*args, **kwargs)
         multiple_returns = isinstance(ret, tuple) and len(ret) > 1
+        op = GraphOp(self.__wrapped__, len(ret) if multiple_returns else 1, args, kwargs)
         # TODO handle passthrough returns
         if multiple_returns:
             return tuple([track_data(r,
@@ -405,8 +408,7 @@ def tick(output, temporal_level):
             and output.creator_op.get_outermost_parent().temporal_level < temporal_level:
         tick(output, temporal_level - 1)
 
-    container = GraphContainer(temporal_level=temporal_level+1)
-
+    contents = set()
     ops_checked = set()
     ops_to_check = deque([output.creator_op])
 
@@ -417,8 +419,9 @@ def tick(output, temporal_level):
             highest = op.get_outermost_parent()
             assert highest.temporal_level >= temporal_level
             if highest.temporal_level == temporal_level:
-                container.contents.add(highest)
+                contents.add(highest)
                 ops_to_check.extend([arg.creator_op for arg in op.get_tracked_args()])
+    container = GraphContainer(contents, temporal_level=temporal_level+1)
     # Update container fields of new container's contents after iteration to prevent premature exiting (consider ops
     # op1, op2, which are in temporal container c1 of level 1. We now are adding a temporal container c2 of height 2. If
     # we update the container of c1 during iteration, then when iteration reaches op2, its outermost parent would be

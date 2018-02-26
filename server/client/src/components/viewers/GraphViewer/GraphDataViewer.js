@@ -5,33 +5,23 @@ import Typography from 'material-ui/Typography';
 import { nodeHeight, nodeWidth } from './GraphViewer.js';
 
 const styles = theme => ({
-  card: {
-      height: nodeHeight,
-      width: nodeWidth,
-      textAlign:'center',
-      textDecoration:'none',
-      overflow:'hidden',
-      textOverflow:'ellipsis',
-      whiteSpace:'nowrap',
-  },
-  label: {
-      textAlign: 'center',
-      textDecoration:'none',
-      overflow:'hidden',
-      textOverflow:'ellipsis',
-      whiteSpace:'nowrap',
-  }
+    card: {
+        height: nodeHeight,
+        width: nodeWidth,
+    },
+    label: {
+        textAlign: 'center',
+    }
 });
-
 /**
  * This class renders a data node in a computation graph.
  */
 class GraphDataViewer extends Component {
     render() {
-        return (<Card className={this.props.classes.card}>
+        return (<Card className={this.props.classes.card} style={{position: "absolute", top: this.props.y, left: this.props.x}}>
             <CardContent>
                 <Typography component="p" className={this.props.classes.label}>
-                    {this.props.name ? this.props.name : this.props.str}
+                    {this.props.symbolId}
                 </Typography>
             </CardContent>
         </Card>);

@@ -28,12 +28,11 @@ class StackLSTM(nn.Module):
             new_states = []
             x = token
             for i, l in enumerate(self.layers):
-                h, c = l(x, self.bundle(hiddens[i], states[i]))
+                h, c = gt.AbstractContainerGenerator(lambda x, h, c: l(x, self.bundle(h, c)))(x, hiddens[i], states[i])
                 new_hiddens.append(h)
                 new_states.append(c)
                 x = h
-                # gt.tick(h, 0)
+            gt.tick(x, 0)
             hiddens = new_hiddens
             states = new_states
-        print(x.xnode_graphdata.creator_op.args)
         return x

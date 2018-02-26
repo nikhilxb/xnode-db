@@ -31,13 +31,11 @@ class Canvas extends Component {
     createViewerComponent(viewerId, viewer) {
         switch(viewer.type) {
             case "number":
-                return <NumberViewer payload={viewer.payload}/>;
+                return <NumberViewer viewerId={viewerId} {...viewer} />;
             case "str":
-                return <StringViewer payload={viewer.payload}/>;
+                return <StringViewer viewerId={viewerId} {...viewer} />;
             case "graphdata":
-                return <GraphViewer symbolId={viewer.symbolId} viewerId={viewerId}/>;
-            // case "graph":
-            //     return <GraphViewer payload={viewer.payload}/>;
+                return <GraphViewer viewerId={viewerId} {...viewer} />;
             default:
                 return null;
             // TODO: Add more viewers

@@ -64,6 +64,10 @@ function ensureGraphLoadedRecurseActionThunk(symbolId, confirmed) {
                         dispatches.push(ensureGraphLoadedRecurseActionThunk(kwarg, confirmed));
                     });
                 }
+                if (viewerData.container && !confirmed.has(viewerData.container)) {
+                    confirmed.add(viewerData.container);
+                    dispatches.push(ensureGraphLoadedRecurseActionThunk(viewerData.container, confirmed));
+                }
                 return Promise.all(dispatches.map(fn => dispatch(fn)));
             }
         )

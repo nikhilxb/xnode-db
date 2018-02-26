@@ -191,7 +191,8 @@
 			"kwargs": {
 				"dim": "xnode$3032099235" // keyword : graphdata ref pairs for each keyword argument input; assumed None for any keys not present
 			},
-			"container":"xnode$98750897202"
+			"container":"xnode$98750897202",
+			"numoutputs": 5,
 		},
 		"attributes": {
 			// every non function attribute
@@ -205,7 +206,8 @@
 		"viewer": {
             "contents": ["xnode$98750", "xnode$97750"], // list of graphop.graphcontainer grouped by this container.
             "container": "xnode$3032099235",
-            "temporal": true
+            "temporal": true,
+            "height": 5,
 		},
 		"attributes": {
 			// every non function attribute

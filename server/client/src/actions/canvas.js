@@ -5,6 +5,7 @@ export const CanvasActions = {
     ADD_VIEWER:    "CANVAS::ADD_VIEWER",
     REMOVE_VIEWER: "CANVAS::REMOVE_VIEWER",
     VIEWER_DONE_LOADING: "CANVAS::VIEWER_DONE_LOADING",
+    SET_VIEWER_GRAPH: "CANVAS::SET_VIEWER_GRAPH",
 };
 
 /**
@@ -51,5 +52,17 @@ export function addViewerActionThunk(symbolId) {
         return dispatch(ensureSymbolDataLoadedActionThunk(symbolId)).then(
             () => dispatch(addViewerAction(symbolId))
         );
+    }
+}
+
+//TODO: combine setViewerGraphAction and setViewerDoneLoading into one setViewerState(key, value) function? These
+// functions are only used by GraphViewer, and both just set some key in the viewer object to a value, so they could
+// be generalized. However, this would mean that the actions would need some knowledge of what the state should look
+// like.
+export function setViewerGraphAction(viewerId, graph) {
+    return {
+        type: CanvasActions.SET_VIEWER_GRAPH,
+        viewerId,
+        graph,
     }
 }
