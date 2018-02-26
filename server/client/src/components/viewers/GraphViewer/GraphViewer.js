@@ -386,16 +386,26 @@ function sliceEdges(unslicedEdges, nodes, symbolTable, containers) {
                 slicedEdges[fromContainer].push([toOutPort(fromId, fromPort), toInPort(toId, toPort)]);
                 break;
             }
-            if (!toContainer || (fromContainer && containerHeight(toContainer, symbolTable) > containerHeight(fromContainer, symbolTable))) {
-                ({ fromId, fromPort, fromContainer } = linkOutputs(fromId, fromPort, fromContainer, slicedEdges, symbolTable, nodes));
+            if (!toContainer || (fromContainer &&
+                    containerHeight(toContainer, symbolTable) > containerHeight(fromContainer, symbolTable))) {
+                ({
+                    fromId,
+                    fromPort,
+                    fromContainer
+                } = linkOutputs(fromId, fromPort, fromContainer, slicedEdges, symbolTable, nodes));
                 continue;
             }
-            if (!fromContainer || (toContainer !== null && containerHeight(toContainer, symbolTable) < containerHeight(fromContainer, symbolTable))) {
-                ({ toId, toPort, toContainer} = linkInputs(toId, toPort, toContainer, slicedEdges, symbolTable, nodes));
+            if (!fromContainer || (toContainer !== null &&
+                    containerHeight(toContainer, symbolTable) < containerHeight(fromContainer, symbolTable))) {
+                ({toId, toPort, toContainer} = linkInputs(toId, toPort, toContainer, slicedEdges, symbolTable, nodes));
                 continue;
             }
-            ({ fromId, fromPort, fromContainer } = linkOutputs(fromId, fromPort, fromContainer, slicedEdges, symbolTable, nodes));
-            ({ toId, toPort, toContainer} = linkInputs(toId, toPort, toContainer, slicedEdges, symbolTable, nodes));
+            ({
+                fromId,
+                fromPort,
+                fromContainer
+            } = linkOutputs(fromId, fromPort, fromContainer, slicedEdges, symbolTable, nodes));
+            ({toId, toPort, toContainer} = linkInputs(toId, toPort, toContainer, slicedEdges, symbolTable, nodes));
         }
     });
     // Any edges that are not the child of any container become the child of the graph's root node (all nodes in an ELK
@@ -414,7 +424,7 @@ function makeGetGraphFromHead() {
         [
             (state) => state.symboltable,
             (state, props) => props.symbolId,
-            (state, props) => state.canvas.viewers[props.viewerId].hasLoaded
+            (state, props) => state.canvas.viewerObjects[props.viewerId].hasLoaded
         ],
         (symbolTable, headSymbolId, hasLoadedGraph) => {
             if (!hasLoadedGraph) {

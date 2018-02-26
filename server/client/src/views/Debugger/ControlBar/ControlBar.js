@@ -24,6 +24,10 @@ const styles = theme => ({
     controls: {
         maxWidth: 300,
         margin: `${theme.spacing.unit}px auto`,
+    },
+    button: {
+        width:  theme.spacing.unit * 4,
+        height: theme.spacing.unit * 4,
     }
 });
 
@@ -48,32 +52,42 @@ class ControlBar extends Component {
                 <div className={classes.controls}>
                     <Paper>
                         <Tooltip title="Continue">
-                            <IconButton aria-label="Continue" onClick={() => executeDebuggerCommand('continue')}>
-                                <ContinueIcon/>
+                            <IconButton aria-label="Continue"
+                                        classes={{root: classes.button}}
+                                        onClick={() => executeDebuggerCommand('continue')}>
+                                <img src={ContinueIcon}/>
                             </IconButton>
                         </Tooltip>
 
                         <Tooltip title="Step Next">
-                            <IconButton aria-label="Step Next" onClick={() => executeDebuggerCommand('step_over')}>
-                                <StepNextIcon/>
+                            <IconButton aria-label="Step Next"
+                                        classes={{root: classes.button}}
+                                        onClick={() => executeDebuggerCommand('step_over')}>
+                                <img src={StepNextIcon}/>
                             </IconButton>
                         </Tooltip>
 
                         <Tooltip title="Step In">
-                            <IconButton aria-label="Step In" onClick={() => executeDebuggerCommand('step_into')}>
-                                <StepInIcon/>
+                            <IconButton aria-label="Step In"
+                                        classes={{root: classes.button}}
+                                        onClick={() => executeDebuggerCommand('step_into')}>
+                                <img src={StepInIcon}/>
                             </IconButton>
                         </Tooltip>
 
                         <Tooltip title="Step Out">
-                            <IconButton aria-label="Step Out" onClick={() => executeDebuggerCommand('step_out')}>
-                                <StepOutIcon/>
+                            <IconButton aria-label="Step Out"
+                                        classes={{root: classes.button}}
+                                        onClick={() => executeDebuggerCommand('step_out')}>
+                               <img src={StepOutIcon}/>
                             </IconButton>
                         </Tooltip>
 
                         <Tooltip title="Stop">
-                            <IconButton aria-label="Stop" onClick={() => executeDebuggerCommand('stop')}>
-                                <StopIcon/>
+                            <IconButton aria-label="Stop"
+                                        classes={{root: classes.button}}
+                                        onClick={() => executeDebuggerCommand('stop')}>
+                                <img src={StopIcon}/>
                             </IconButton>
                         </Tooltip>
                     </Paper>

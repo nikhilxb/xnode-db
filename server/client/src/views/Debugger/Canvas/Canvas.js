@@ -9,7 +9,7 @@ import ViewerFrame  from '../../../components/ViewerFrame';
 import NumberViewer from '../../../components/viewers/NumberViewer';
 import StringViewer from '../../../components/viewers/StringViewer';
 import GraphViewer  from '../../../components/viewers/GraphViewer';
-import { addViewerActionThunk,removeViewerAction } from "../../../actions/canvas";
+import { addViewerActionThunk, removeViewerAction } from "../../../actions/canvas";
 
 
 /**
@@ -21,21 +21,21 @@ class Canvas extends Component {
     /** Prop expected types object. */
     static propTypes = {
         classes: PropTypes.object.isRequired,
-        viewers: PropTypes.object.isRequired,
+        viewerObjects: PropTypes.object.isRequired,
         viewerPositions: PropTypes.array.isRequired,
     };
 
     /**
      * Returns the [*]Viewer component of the proper type for the given viewer data object.
      */
-    createViewerComponent(viewerId, viewer) {
+    createViewerComponent(viewer) {
         switch(viewer.type) {
             case "number":
-                return <NumberViewer viewerId={viewerId} {...viewer} />;
+                return <NumberViewer {...viewer} />;
             case "str":
-                return <StringViewer viewerId={viewerId} {...viewer} />;
+                return <StringViewer {...viewer} />;
             case "graphdata":
-                return <GraphViewer viewerId={viewerId} {...viewer} />;
+                return <GraphViewer {...viewer} />;
             default:
                 return null;
             // TODO: Add more viewers
@@ -46,20 +46,19 @@ class Canvas extends Component {
      * Renders the inspector canvas and any viewers currently registered to it.
      */
     render() {
-        const { classes, viewers, viewerPositions } = this.props;
-
-        let framedViewers = viewerPositions.map((viewerId) => {
-            let viewer = viewers[viewerId];
+        const { classes, viewers, removeViewerFn } = this.props;
+        let framedViewers = viewers.map((viewer) => {
             return (
                 <div className={classes.frameContainer}>
                     <ViewerFrame key={viewer.viewerId}
                                  viewerId={viewer.viewerId}
                                  type={viewer.type}
-                                 name={viewer.name}>
-                        {this.createViewerComponent(viewerId, viewer)}
+                                 name={viewer.name}
+                                 removeViewerFn={removeViewerFn}>
+                        {this.createViewerComponent(viewer, viewer)}
                     </ViewerFrame>
                 </div>
-            );
+            )
         });
 
         return (
@@ -95,33 +94,47 @@ const styles = theme => ({
  *         type: "number",
  *         name: "myInt",
  *         str:  "86",
- *         payload: {}
+ *         payload: {...}
  *     }
  * ]
  */
 const viewersSelector = createSelector(
-    [(state) => state.canvas.viewers, (state) => state.symboltable],
-    (viewers, symboltable) => {
-        let newViewers = {};
-        Object.entries(viewers).forEach(([viewerId, viewer]) => {
-            let symbol = symboltable[viewer.symbolId];
-            newViewers[viewerId] = {
-                ...viewer,
-                "type": symbol.type,
-                "name": symbol.name,
-                "str": symbol.str,
-                "payload": symbol.data.viewer,
+    [(state) => state.canvas.viewerObjects, (state) => state.canvas.viewerPositions, (state) => state.symboltable],
+    (viewerObjects, viewerPositions, symbolTable) => {
+        return viewerPositions.map((viewerId) => {
+            let viewerObj = viewerObjects[viewerId];
+            let symbol = symbolTable[viewerObj.symbolId];
+            return {
+                symbolId: viewerObj.symbolId,
+                viewerId: viewerId,
+                type: symbol.type,
+                name: symbol.name,
+                str:  symbol.str,
+                payload: symbol.data && symbol.data.viewer,
             };
         });
-        return newViewers;
     }
+    // [(state) => state.canvas.viewers, (state) => state.symboltable],
+    // (viewers, symboltable) => {
+    //     let newViewers = {};
+    //     Object.entries(viewers).forEach(([viewerId, viewer]) => {
+    //         let symbol = symboltable[viewer.symbolId];
+    //         newViewers[viewerId] = {
+    //             ...viewer,
+    //             "type":    symbol.type,
+    //             "name":    symbol.name,
+    //             "str":     symbol.str,
+    //             "payload": symbol.data.viewer,
+    //         };
+    //     });
+    //     return newViewers;
+    // }
 );
 
 /** Connects application state objects to component props. */
 function mapStateToProps(state, props) {
     return {
-        viewers:         viewersSelector(state),
-        viewerPositions: state.canvas.viewerPositions,
+        viewers: viewersSelector(state),
     };
 }
 

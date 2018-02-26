@@ -2,14 +2,14 @@ import { ensureSymbolDataLoadedActionThunk } from "./symboltable";
 
 /** Action type definitions. */
 export const CanvasActions = {
-    ADD_VIEWER:    "CANVAS::ADD_VIEWER",
-    REMOVE_VIEWER: "CANVAS::REMOVE_VIEWER",
+    ADD_VIEWER:          "CANVAS::ADD_VIEWER",
+    REMOVE_VIEWER:       "CANVAS::REMOVE_VIEWER",
     VIEWER_DONE_LOADING: "CANVAS::VIEWER_DONE_LOADING",
     SET_VIEWER_GRAPH: "CANVAS::SET_VIEWER_GRAPH",
 };
 
 /**
- * Action creator to add a viewer to the canvas for the symbol with the given `symbolId`. It is possible to have
+ * Action creator thunk to add a viewer to the canvas for the symbol with the given `symbolId`. It is possible to have
  * multiple viewers with the same `symbolId` -- each will have a viewer with linked properties to the others.
  * @param symbolId Symbol to create new viewer for.
  * @returns {{type: string, symbolId: *}}
@@ -19,6 +19,13 @@ function addViewerAction(symbolId) {
         type: CanvasActions.ADD_VIEWER,
         symbolId
     };
+}
+export function addViewerActionThunk(symbolId) {
+    return (dispatch) => {
+        return dispatch(ensureSymbolDataLoadedActionThunk(symbolId)).then(
+            () => dispatch(addViewerAction(symbolId))
+        );
+    }
 }
 
 /**
@@ -30,7 +37,7 @@ function addViewerAction(symbolId) {
  */
 export function setViewerDoneLoadingAction(viewerId) {
     return {
-        type: CanvasActions.VIEWER_DONE_LOADING,
+        type: CanvasActions.VIEWER_DONE_LOADING,  // TODO: What is this?
         viewerId,
     }
 }
@@ -45,14 +52,6 @@ export function removeViewerAction(viewerId) {
         type: CanvasActions.REMOVE_VIEWER,
         viewerId
     };
-}
-
-export function addViewerActionThunk(symbolId) {
-    return (dispatch) => {
-        return dispatch(ensureSymbolDataLoadedActionThunk(symbolId)).then(
-            () => dispatch(addViewerAction(symbolId))
-        );
-    }
 }
 
 //TODO: combine setViewerGraphAction and setViewerDoneLoading into one setViewerState(key, value) function? These
