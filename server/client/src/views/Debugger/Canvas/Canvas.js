@@ -9,6 +9,7 @@ import ViewerFrame  from '../../../components/ViewerFrame';
 import NumberViewer from '../../../components/viewers/NumberViewer';
 import StringViewer from '../../../components/viewers/StringViewer';
 import GraphViewer  from '../../../components/viewers/GraphViewer';
+import { addViewerActionThunk,removeViewerAction } from "../../../actions/canvas";
 
 
 /**
@@ -129,7 +130,8 @@ function mapStateToProps(state, props) {
 /** Connects bound action creator functions to component props. */
 function mapDispatchToProps(dispatch) {
     return bindActionCreators({
-        // propName: doSomethingAction,
+        addViewerFn: addViewerActionThunk,
+        removeViewerFn: removeViewerAction,
     }, dispatch);
 }
 

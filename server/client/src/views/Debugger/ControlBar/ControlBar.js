@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { withStyles } from 'material-ui/styles';
-import { executeDebuggerCommand } from '../../../actions/controlbar.js';
+import { executeDebuggerCommand } from '../../../actions/controlbar';
 import { connect }            from 'react-redux';
 import { bindActionCreators } from 'redux';
 
@@ -9,6 +9,7 @@ import Paper      from 'material-ui/Paper';
 import Tooltip    from 'material-ui/Tooltip';
 import IconButton from 'material-ui/IconButton';
 
+import Svg from 'react-inlinesvg';
 import ContinueIcon from 'material-ui-icons/PlayArrow';
 import StopIcon     from 'material-ui-icons/Stop';
 import StepNextIcon from 'material-ui-icons/ArrowForward';
