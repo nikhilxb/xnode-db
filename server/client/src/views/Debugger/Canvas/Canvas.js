@@ -107,10 +107,10 @@ const viewersSelector = createSelector(
             return {
                 symbolId: viewerObj.symbolId,
                 viewerId: viewerId,
-                type: symbol.type,
-                name: symbol.name,
-                str:  symbol.str,
-                payload: symbol.data && symbol.data.viewer,
+                type:     symbol.type,
+                name:     symbol.name,
+                str:      symbol.str,
+                payload:  symbol.data && symbol.data.viewer,
             };
         });
     }

@@ -25,6 +25,9 @@ const styles = theme => ({
         maxWidth: 300,
         margin: `${theme.spacing.unit}px auto`,
     },
+    paper: {
+        padding: 2,
+    },
     button: {
         width:  theme.spacing.unit * 4,
         height: theme.spacing.unit * 4,
@@ -50,7 +53,7 @@ class ControlBar extends Component {
         return (
             <div className={classes.container}>
                 <div className={classes.controls}>
-                    <Paper>
+                    <Paper className={classes.paper}>
                         <Tooltip title="Continue">
                             <IconButton aria-label="Continue"
                                         classes={{root: classes.button}}
