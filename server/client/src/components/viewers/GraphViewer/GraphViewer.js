@@ -415,7 +415,7 @@ function sliceEdges(unslicedEdges, nodes, symbolTable, containers) {
 }
 
 /**
- * A thunk which returns a selector. The selector builds objects containing the graph's nodes and edges.
+ * A thunk which returns a selector. The selector builds objects containing the graph's nodes and edges. TODO
  * @returns {Object} Maps 'nodes' to `{symbolId: {properties}` for each node in the graph; see `getNode` for structure.
  *      Also maps 'edges' to `{container: [edges within container]}`, as this is the format needed by ELK.
  */
@@ -433,6 +433,7 @@ function makeGetGraphFromHead() {
                     edges: {},
                 }
             }
+
             let headViewerData = symbolTable[headSymbolId].data.viewer;
 
             let { opNodes, dataOutputs, containersToCheck } = getOpNodes(headViewerData.creatorop, symbolTable);
@@ -443,7 +444,9 @@ function makeGetGraphFromHead() {
                 ...opNodes,
                 ...dataNodes,
                 ...containerNodes,
-                [headSymbolId]: getNode(headSymbolId, symbolTable[headSymbolId], 1, 0, true)};
+                [headSymbolId]: getNode(headSymbolId, symbolTable[headSymbolId], 1, 0, true)
+            };
+
             unslicedEdges.push([headViewerData.creatorop, headViewerData.creatorpos, headSymbolId, 0]);
             let edges = sliceEdges(unslicedEdges, nodes, symbolTable, containers);
             return {
