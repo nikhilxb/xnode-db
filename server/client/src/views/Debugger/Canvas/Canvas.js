@@ -114,21 +114,6 @@ const viewersSelector = createSelector(
             };
         });
     }
-    // [(state) => state.canvas.viewers, (state) => state.symboltable],
-    // (viewers, symboltable) => {
-    //     let newViewers = {};
-    //     Object.entries(viewers).forEach(([viewerId, viewer]) => {
-    //         let symbol = symboltable[viewer.symbolId];
-    //         newViewers[viewerId] = {
-    //             ...viewer,
-    //             "type":    symbol.type,
-    //             "name":    symbol.name,
-    //             "str":     symbol.str,
-    //             "payload": symbol.data.viewer,
-    //         };
-    //     });
-    //     return newViewers;
-    // }
 );
 
 /** Connects application state objects to component props. */

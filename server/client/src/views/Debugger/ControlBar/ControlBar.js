@@ -9,11 +9,11 @@ import Paper      from 'material-ui/Paper';
 import Tooltip    from 'material-ui/Tooltip';
 import IconButton from 'material-ui/IconButton';
 
-import ContinueIcon from 'material-ui-icons/PlayArrow';
-import StopIcon     from 'material-ui-icons/Stop';
-import StepNextIcon from 'material-ui-icons/ArrowForward';
-import StepInIcon   from 'material-ui-icons/ArrowDownward';
-import StepOutIcon  from 'material-ui-icons/ArrowUpward';
+import ContinueIcon from './assets/continue.svg';
+import StopIcon     from './assets/stop.svg';
+import StepNextIcon from './assets/stepOver.svg';
+import StepInIcon   from './assets/stepIn.svg';
+import StepOutIcon  from './assets/stepOut.svg';
 
 
 /** Component styling object. */
@@ -24,6 +24,9 @@ const styles = theme => ({
     controls: {
         maxWidth: 300,
         margin: `${theme.spacing.unit}px auto`,
+    },
+    paper: {
+        padding: 2,
     },
     button: {
         width:  theme.spacing.unit * 4,
@@ -42,7 +45,7 @@ class ControlBar extends Component {
     };
 
     /**
-     * Renders ___.
+     * Renders the control icon buttons in a floating horizontal toolbar.
      */
     render() {
         const { classes, executeDebuggerCommand } = this.props;
@@ -50,7 +53,7 @@ class ControlBar extends Component {
         return (
             <div className={classes.container}>
                 <div className={classes.controls}>
-                    <Paper>
+                    <Paper className={classes.paper}>
                         <Tooltip title="Continue">
                             <IconButton aria-label="Continue"
                                         classes={{root: classes.button}}
