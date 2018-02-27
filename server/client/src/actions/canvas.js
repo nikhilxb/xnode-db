@@ -28,6 +28,7 @@ export function addViewerActionThunk(symbolId) {
 }
 
 /**
+ * Action creator to associate `key` with `value` in the viewer's payload object.
  */
 export function addViewerPayloadItemAction(viewerId, key, value) {
     return {

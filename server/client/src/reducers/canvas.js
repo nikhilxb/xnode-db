@@ -34,6 +34,7 @@ export default function rootReducer(state = initialState, action) {
 };
 
 /**
+ * Reducer for adding a key-value pair to an object's payload object.
  */
 function addViewerPayloadItemReducer(state, action) {
     const { key, value, viewerId } = action;

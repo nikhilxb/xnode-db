@@ -19,6 +19,11 @@ const nodeWidth = 150;
 
 /**
  * This class builds and contains all the components of a computation graph.
+ * Payload state slice:
+ * {
+ *      hasLoadedGraph: false,
+ *      graph: {},
+ * }
  */
 class GraphViewer extends Component {
     componentDidMount() {

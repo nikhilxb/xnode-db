@@ -75,8 +75,8 @@ function ensureGraphLoadedRecurseActionThunk(symbolId, confirmed) {
 }
 
 /**
- * Checks if a graph starting at `symbolId` has been loaded, and loads it if it has not. Then, it sets the `hasLoaded`
- * property of the viewer containing the graph to `true`.
+ * Checks if a graph starting at `symbolId` has been loaded, and loads it if it has not. Then, it sets the
+ * `hasLoadedGraph` property of the viewer containing the graph to `true`.
  */
 export function ensureGraphLoadedActionThunk(symbolId, viewerId) {
     return (dispatch) => {
