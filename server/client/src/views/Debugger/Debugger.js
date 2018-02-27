@@ -18,33 +18,6 @@ import GraphOpViewer    from '../../components/viewers/GraphViewer/GraphOpViewer
 import {loadGlobals, loadSymbol, REF} from '../../services/mockdata.js';
 
 
-
-
-/** Custom theme object that affects visual properties (fonts, colors, spacing, etc.) of Material UI components.
- *  For in depth description and list of overridable keys: https://material-ui-next.com/customization/themes/ */
-const theme = createMuiTheme({
-});
-
-/** Component styling object. */
-const styles = theme => ({
-    mainContainer: {
-        display: 'flex',
-        height: '100vh',
-    },
-    leftContainer: {
-        maxWidth: '350px',
-        width: '100%',
-    },
-    rightContainer: {
-        backgroundColor: grey[100],
-        textAlign: 'center',
-        display: 'flex',
-        flexGrow: 1,
-        flexDirection: 'column',
-    }
-
-});
-
 /**
  * This smart component defines the main layout of the debugging view.
  */
@@ -78,15 +51,51 @@ class Debugger extends Component {
     }
 }
 
-// Inject styles and data into component
+
+// To inject styles into component
+// -------------------------------
+
+/** CSS-in-JS custom theme object that affects visual properties (fonts, colors, spacing, etc.) of Material UI
+ *  components. For in depth description and list of overridable keys: <material-ui-next.com/customization/themes/> */
+const theme = createMuiTheme({
+});
+
+/** CSS-in-JS styling object. */
+const styles = theme => ({
+    mainContainer: {
+        display: 'flex',
+        height: '100vh',
+    },
+    leftContainer: {
+        maxWidth: '350px',
+        width: '100%',
+    },
+    rightContainer: {
+        backgroundColor: grey[200],
+        textAlign: 'center',
+        display: 'flex',
+        flexGrow: 1,
+        flexDirection: 'column',
+    }
+
+});
+
+
+// To inject application state into component
+// ------------------------------------------
+
+/** Connects application state objects to component props. */
 function mapStateToProps(state) {
     return {
         // propName: state.subslice,
     };
 }
+
+/** Connects bound action creator functions to component props. */
 function mapDispatchToProps(dispatch) {
     return bindActionCreators({
         // propName: doSomethingAction,
     }, dispatch);
 }
+
 export default connect(mapStateToProps, mapDispatchToProps)(withStyles(styles)(Debugger));

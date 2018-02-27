@@ -9,36 +9,9 @@ import List, {ListItem, ListItemText, ListSubheader} from 'material-ui/List';
 import VarListItem from './VarListItem.js';
 import blueGrey from 'material-ui/colors/blueGrey';
 
-/** Component styling object. */
-const styles = theme => ({
-    root: {
-        overflowY: 'auto',
-        overflowX: 'hidden',
-        height: '100%',
-        backgroundColor: theme.palette.background.paper,
-    },
-    listSection: {
-        backgroundColor: 'inherit',
-    },
-    text: {
-        fontFamily: '"Roboto Mono", monospace',
-    },
-    varName: {
-        fontWeight: 800,
-    },
-    varSeparator: {
-        fontWeight: 800,
-    },
-    varString: {
-        color: blueGrey[500],
-    },
-    varKey: {
-
-    }
-});
 
 /**
- * This component displays a list of all variables in the debugged program's namespace when execution is paused
+ * This smart component displays a list of all variables in the debugged program's namespace when execution is paused
  * (e.g. at a breakpoint). The list is recursively nested and lazy-loaded, so only on expansion will data requested.
  */
 class VarList extends Component {
@@ -46,7 +19,9 @@ class VarList extends Component {
     /** Prop expected types object. */
     static propTypes = {
         classes: PropTypes.object.isRequired,
-    }; // TODO: Update
+        topLevelItemIds: PropTypes.array.isRequired,
+        getNamespace: PropTypes.func.isRequired,
+    };
 
     constructor(props) {
         super(props);
@@ -58,9 +33,12 @@ class VarList extends Component {
      */
     render() {
         const {classes, topLevelItemIds} = this.props;
-        let listItems = topLevelItemIds.map(itemId => <VarListItem key={itemId} itemId={itemId} nestedlevel={0}/>);
+        let listItems = topLevelItemIds.map(itemId => {
+            return <VarListItem key={itemId} itemId={itemId} nestedlevel={0}/>;
+        });
+
         return (
-            <List className={classes.root} dense disablePadding>
+            <List className={classes.root} dense>
                 <ListSubheader className={classes.listSection}>Variables</ListSubheader>
                 {listItems}
             </List>
@@ -68,15 +46,38 @@ class VarList extends Component {
     }
 }
 
-// Inject styles and data into component
+
+// To inject styles into component
+// -------------------------------
+
+/** CSS-in-JS styling object. */
+const styles = theme => ({
+    root: {
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        height: '100%',
+        backgroundColor: theme.palette.background.paper,
+        paddingTop: 0,
+        paddingBottom: 0,
+    },
+});
+
+
+// To inject application state into component
+// ------------------------------------------
+
+/** Connects application state objects to component props. */
 function mapStateToProps(state) {
     return {
         topLevelItemIds: state.varlist.topLevelItemIds,
     };
 }
+
+/** Connects bound action creator functions to component props. */
 function mapDispatchToProps(dispatch) {
     return bindActionCreators({
         getNamespace: updateNamespaceActionThunk,
     }, dispatch);
 }
+
 export default connect(mapStateToProps, mapDispatchToProps)(withStyles(styles)(VarList));

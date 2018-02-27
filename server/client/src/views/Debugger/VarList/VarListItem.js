@@ -3,54 +3,76 @@ import PropTypes from "prop-types";
 import { withStyles } from 'material-ui/styles';
 import { connect }            from 'react-redux';
 import { bindActionCreators } from 'redux';
+import { createSelector } from "reselect";
 
 import { addViewerActionThunk } from '../../../actions/canvas';
 import { toggleVarListItemExpandedActionThunk } from '../../../actions/varlist';
 
-import List, {ListItem, ListItemText, ListSubheader} from 'material-ui/List';
+import List, {ListItem, ListItemIcon, ListItemSecondaryAction} from 'material-ui/List';
 import Collapse from 'material-ui/transitions/Collapse';
 import IconButton from 'material-ui/IconButton';
-import Divider from 'material-ui/Divider';
 import { LinearProgress } from 'material-ui/Progress';
-import ExpandLess from 'material-ui-icons/ExpandLess';
-import ExpandMore from 'material-ui-icons/ExpandMore';
 import blueGrey from 'material-ui/colors/blueGrey';
-import {createSelector} from "reselect";
+
+import OpenInNewIcon from 'material-ui-icons/OpenInNew';
+import SearchIcon from 'material-ui-icons/Search';
+import AddIcon from 'material-ui-icons/Add';
+import InsertChartIcon from 'material-ui-icons/InsertChart';
+import DropDownIcon from 'material-ui-icons/ArrowDropDown';
 
 
-// TODO: Add helpful comments
+/**
+ * This smart component
+ */
 class VarListItem extends Component {
 
+    /**
+     * Renders the list item for the variable, as well as a collapsible sub-list of nested variables. Clicking the
+     * main button toggles whether the sublist is expanded. Clicking the icon button, adds a viewer for the variable
+     * to the canvas.
+     */
     render() {
-        let { itemId, classes, onExpandClick, onButtonClick, nestedlevel, str } = this.props;
+        let { itemId, classes, toggleExpandedFn, addViewerFn, nestedlevel, str } = this.props;
         let { name, symbolId, payload, expanded, loading, children } = this.props.itemInfo;
         let varString = payload === null ? (str === null ? symbolId : str) : payload;
-        let childComponents = [];
-        if (children) {
-            childComponents = children.map(childId => {
-                return <ConnectedVarListItem nestedlevel={nestedlevel + 1} key={childId} itemId={childId}/>;
-            })
-        }
+        let childComponents = (!children) ? [] : children.map(childId => {
+            return <ConnectedVarListItem nestedlevel={nestedlevel + 1} key={childId} itemId={childId}/>;
+        });
+
+        const handleExpandClick = (e) => {
+            e.stopPropagation();
+            e.nativeEvent.stopImmediatePropagation();
+            toggleExpandedFn(itemId);
+        };
+
+        const handleAddViewerClick = () => {
+            addViewerFn(symbolId);
+        };
 
         return (
-            // TODO make indentation cleaner
             <div>
-                <ListItem button onClick={() => onButtonClick(symbolId)} style={{paddingLeft: nestedlevel * 30}}>
+                <ListItem button onClick={handleExpandClick}
+                          classes={{dense: classes.dense}}
+                          style={{paddingLeft: nestedlevel * 24 + 8}}>
+                    <ListItemIcon onClick={handleExpandClick} className={classes.arrows}>
+                        {expanded ? <DropDownIcon/> : <DropDownIcon className={classes.rotated}/>}
+                    </ListItemIcon>
                     <span className={classes.text}>
-                        <span className={classes.varName}>{name}</span>
-                        <span className={classes.varSeparator}>&nbsp;&nbsp;:&nbsp;&nbsp;</span>
+                        <span className={classes.varName}>{name || "(unnamed)"}</span>
+                        <span className={classes.varSeparator}>:&nbsp;</span>
                         <span className={classes.varString}>{varString}</span>
                     </span>
-                    <IconButton className={classes.expandButton} onClick={(e) => {e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); onExpandClick(itemId);} }>
-                        {expanded ? <ExpandLess /> : <ExpandMore />}
-                    </IconButton>
+                    <ListItemSecondaryAction>
+                        <IconButton aria-label="Add Viewer" onClick={handleAddViewerClick}>
+                            <SearchIcon/>
+                        </IconButton>
+                    </ListItemSecondaryAction>
                 </ListItem>
-                <Divider/>
                 {loading && <LinearProgress/>}
-                <Collapse in={expanded} timeout="auto">
-                    <List className={classes.root} disablePadding dense>
-                    {childComponents}
-                </List>
+                <Collapse in={expanded} timeout={50}>
+                    <List className={classes.root} dense>
+                        {childComponents}
+                    </List>
                 </Collapse>
             </div>
         );
@@ -68,7 +90,11 @@ const styles = theme => ({
         height: '100%',
         backgroundColor: theme.palette.background.paper,
     },
-        text: {
+    dense: {
+        paddingTop: 4,
+        paddingBottom: 4,
+    },
+    text: {
         fontFamily: '"Roboto Mono", monospace',
         overflow:'hidden',
         textOverflow:'ellipsis',
@@ -76,18 +102,20 @@ const styles = theme => ({
         width: '100%',
         fontSize: '0.8em',
     },
-        varName: {
+    varName: {
         fontWeight: 800,
     },
-        varSeparator: {
+    varSeparator: {
         fontWeight: 800,
     },
-        varString: {
+    varString: {
         color: blueGrey[500],
     },
-        expandButton: {
-        height: '100%',
-        width: 'auto',
+    arrows: {
+        marginRight: 4,
+    },
+    rotated: {
+        transform: "rotate(-90deg)",
     }
 });
 
@@ -95,28 +123,27 @@ const styles = theme => ({
 // To inject application state into component
 // ------------------------------------------
 
-const getSymbolId = (state, props) => state.varlist.varListItems[props.itemId].symbolId;
-const getSymbolTable = (state) => state.symboltable;
-function makeGetVarListItemStr() {
+/**
+ * Creates function to create derived data structure for `str`: "hello".
+ */
+function getItemStrSelectorGen() {
     return createSelector(
-        [ getSymbolId, getSymbolTable ],
+        [
+            (state, props) => state.varlist.varListItems[props.itemId].symbolId,
+            (state) => state.symboltable,
+        ],
         (symbolId, symbolTable) => {
-            if (symbolId in symbolTable) {
-                return symbolTable[symbolId].str;
-            }
-            else {
-                return null;
-            }
+            return (symbolId in symbolTable) ? symbolTable[symbolId].str : null;
         }
     )
 }
 
 /** Connects application state objects to component props. */
-function makeMapStateToProps() {
-    const getVarListItemStr = makeGetVarListItemStr();
+function mapStateToPropsGen() {
+    const getItemStr = getItemStrSelectorGen();
     return (state, props) => {
         return {
-            str: getVarListItemStr(state, props),
+            str: getItemStr(state, props),
             itemInfo: state.varlist.varListItems[props.itemId],
         }
     }
@@ -125,10 +152,10 @@ function makeMapStateToProps() {
 /** Connects bound action creator functions to component props. */
 function mapDispatchToProps(dispatch) {
     return bindActionCreators({
-        onExpandClick: toggleVarListItemExpandedActionThunk,
-        onButtonClick: addViewerActionThunk,
+        toggleExpandedFn: toggleVarListItemExpandedActionThunk,
+        addViewerFn: addViewerActionThunk,
     }, dispatch);
 }
 
-const ConnectedVarListItem = connect(makeMapStateToProps, mapDispatchToProps)(withStyles(styles)(VarListItem));
+const ConnectedVarListItem = connect(mapStateToPropsGen, mapDispatchToProps)(withStyles(styles)(VarListItem));
 export default ConnectedVarListItem;
