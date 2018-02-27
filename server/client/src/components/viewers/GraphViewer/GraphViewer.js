@@ -4,7 +4,7 @@ import ELK from 'elkjs';
 import GraphEdge from './GraphEdge.js';
 import { bindActionCreators } from 'redux';
 import {ensureGraphLoadedActionThunk} from "../../../actions/symboltable";
-import {setViewerGraphAction} from '../../../actions/canvas';
+import {addViewerPayloadItemAction} from '../../../actions/canvas';
 import {connect} from "react-redux";
 import GraphDataViewer from './GraphDataViewer.js';
 import GraphOpViewer from './GraphOpViewer.js';
@@ -92,8 +92,7 @@ class GraphViewer extends Component {
      * @param nextProps
      */
     componentWillReceiveProps(nextProps) {
-        let { nodes, viewerId, setGraph } = this.props;
-        console.log(nodes);
+        let { nodes, viewerId, addToPayload } = this.props;
         let { nodes: nextNodes, edges: nextEdges } = nextProps;
         if (Object.keys(nodes).length === Object.keys(nextNodes).length) {
             return;
@@ -102,7 +101,7 @@ class GraphViewer extends Component {
         let elk = new ELK();
         elk.layout(graph)
             .then(laidOutGraph => {
-                setGraph(viewerId, laidOutGraph);
+                addToPayload(viewerId, 'graph', laidOutGraph);
             })
             .catch(console.error);
     }
@@ -160,7 +159,7 @@ class GraphViewer extends Component {
      * Renders all of the graph's op and data components, laid out by ELK.
      */
     render() {
-        let { graph } = this.props;
+        let { graph } = this.props.payload;
         if (!graph) {
             // TODO loading bar
             return <div />;
@@ -349,7 +348,6 @@ function linkOutputs(child, childPort, parent, slicedEdges, symbolTable, nodes) 
  * @returns {{toId: *, toPort: number, toContainer}}
  */
 function linkInputs(child, childPort, parent, slicedEdges, symbolTable, nodes) {
-    console.log(parent);
     let grandparent = symbolTable[parent].data.viewer.container;
     slicedEdges[grandparent].push([toInPort(parent, nodes[parent].inPorts), toInPort(child, childPort)]);
     nodes[parent].inPorts += 1;
@@ -424,7 +422,7 @@ function makeGetGraphFromHead() {
         [
             (state) => state.symboltable,
             (state, props) => props.symbolId,
-            (state, props) => state.canvas.viewerObjects[props.viewerId].hasLoaded
+            (state, props) => state.canvas.viewerObjects[props.viewerId].payload.hasLoadedGraph,
         ],
         (symbolTable, headSymbolId, hasLoadedGraph) => {
             if (!hasLoadedGraph) {
@@ -466,7 +464,7 @@ function makeMapStateToProps() {
 function mapDispatchToProps(dispatch) {
     return bindActionCreators({
         ensureGraphLoaded: ensureGraphLoadedActionThunk,
-        setGraph: setViewerGraphAction,
+        addToPayload: addViewerPayloadItemAction,
     }, dispatch);
 }
 

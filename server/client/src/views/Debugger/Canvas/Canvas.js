@@ -110,7 +110,7 @@ const viewersSelector = createSelector(
                 type: symbol.type,
                 name: symbol.name,
                 str:  symbol.str,
-                payload: symbol.data && symbol.data.viewer,
+                payload: Object.assign({}, viewerObj.payload, symbol.data && symbol.data.viewer),
             };
         });
     }

@@ -4,8 +4,7 @@ import { ensureSymbolDataLoadedActionThunk } from "./symboltable";
 export const CanvasActions = {
     ADD_VIEWER:          "CANVAS::ADD_VIEWER",
     REMOVE_VIEWER:       "CANVAS::REMOVE_VIEWER",
-    VIEWER_DONE_LOADING: "CANVAS::VIEWER_DONE_LOADING",
-    SET_VIEWER_GRAPH: "CANVAS::SET_VIEWER_GRAPH",
+    ADD_PAYLOAD_ITEM:    "CANVAS::ADD_PAYLOAD_ITEM",
 };
 
 /**
@@ -29,16 +28,13 @@ export function addViewerActionThunk(symbolId) {
 }
 
 /**
- * Action creator to set a viewer's `hasLoaded` property to `true`. The behavior induced by this change, as well as when
- * (if ever) this property is used, is determined by the viewer itself. Currently used only by `GraphViewer` to indicate
- * that all components have been loaded.
- * @param viewerId
- * @returns {{type: string, viewerId: *}}
  */
-export function setViewerDoneLoadingAction(viewerId) {
+export function addViewerPayloadItemAction(viewerId, key, value) {
     return {
-        type: CanvasActions.VIEWER_DONE_LOADING,  // TODO: What is this?
+        type: CanvasActions.ADD_PAYLOAD_ITEM,
         viewerId,
+        key,
+        value,
     }
 }
 
@@ -52,16 +48,4 @@ export function removeViewerAction(viewerId) {
         type: CanvasActions.REMOVE_VIEWER,
         viewerId
     };
-}
-
-//TODO: combine setViewerGraphAction and setViewerDoneLoading into one setViewerState(key, value) function? These
-// functions are only used by GraphViewer, and both just set some key in the viewer object to a value, so they could
-// be generalized. However, this would mean that the actions would need some knowledge of what the state should look
-// like.
-export function setViewerGraphAction(viewerId, graph) {
-    return {
-        type: CanvasActions.SET_VIEWER_GRAPH,
-        viewerId,
-        graph,
-    }
 }
