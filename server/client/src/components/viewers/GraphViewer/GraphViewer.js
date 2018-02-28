@@ -20,8 +20,17 @@ const styles = theme => ({
  * This class builds and contains all the components of a computation graph.
  * Payload state slice:
  * {
- *      hasLoadedGraph: false,
- *      graph: {},
+ *      graphState: {
+ *          symbolId: {
+ *              expanded: false,
+ *          }
+ *      },
+ *      graph: {
+ *          id: 'root',
+ *          children: [{...}, {...}],
+ *          edges: [{...}, {...}],
+ *      }
+ *      stateChanged: false,
  * }
  */
 class GraphViewer extends Component {
