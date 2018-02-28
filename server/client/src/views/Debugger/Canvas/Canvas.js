@@ -69,6 +69,7 @@ class Canvas extends Component {
     }
 }
 
+
 // To inject styles into component
 // -------------------------------
 
@@ -82,6 +83,7 @@ const styles = theme => ({
         display: "block",
     }
 });
+
 
 // To inject application state into component
 // ------------------------------------------

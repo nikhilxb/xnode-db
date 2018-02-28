@@ -16,26 +16,8 @@ import StepInIcon   from './assets/stepIn.svg';
 import StepOutIcon  from './assets/stepOut.svg';
 
 
-/** Component styling object. */
-const styles = theme => ({
-    container: {
-        display: 'block',
-    },
-    controls: {
-        maxWidth: 300,
-        margin: `${theme.spacing.unit}px auto`,
-    },
-    paper: {
-        padding: 2,
-    },
-    button: {
-        width:  theme.spacing.unit * 4,
-        height: theme.spacing.unit * 4,
-    }
-});
-
 /**
- * This component ___.
+ * This smart component displays the buttons used to control the debugger execution.
  */
 class ControlBar extends Component {
 
@@ -100,15 +82,44 @@ class ControlBar extends Component {
     }
 }
 
-// Inject styles and data into component
+
+// To inject styles into component
+// -------------------------------
+
+/** CSS-in-JS styling object. */
+const styles = theme => ({
+    container: {
+        display: 'block',
+    },
+    controls: {
+        maxWidth: 300,
+        margin: `${theme.spacing.unit}px auto`,
+    },
+    paper: {
+        padding: 2,
+    },
+    button: {
+        width:  theme.spacing.unit * 4,
+        height: theme.spacing.unit * 4,
+    }
+});
+
+
+// To inject application state into component
+// ------------------------------------------
+
+/** Connects application state objects to component props. */
 function mapStateToProps(state, props) {
     return {
-        // TODO get the pause/unpaused state of the program here
+
     };
 }
+
+/** Connects bound action creator functions to component props. */
 function mapDispatchToProps(dispatch) {
     return bindActionCreators({
         executeDebuggerCommand,
     }, dispatch);
 }
+
 export default connect(mapStateToProps, mapDispatchToProps)(withStyles(styles)(ControlBar));
