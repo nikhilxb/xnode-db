@@ -4,19 +4,27 @@ import PropTypes from "prop-types";
 
 
 /**
- * This class renders a number variable in the enclosing frame.
+ * This class renders a tensor variable in the enclosing frame, with `payload`: {
+ *     contents: [[...]...],
+ *     type: "float32",
+ *     size: [3, 4, ...],
+ * }
  */
-class NumberViewer extends Component {
+class TensorViewer extends Component {
 
     /** Prop expected types object. */
     static propTypes = {
         classes: PropTypes.object.isRequired,
+        payload: PropTypes.object.isRequired,
     };
 
     render() {
-        console.log("NumberViewer render() with props:", this.props);
+        const {payload} = this.props;
+        console.log("TensorViewer render() with props:", this.props);
         return (
-            <div />
+            <div>
+                {payload.contents}
+            </div>
         );
     }
 }
@@ -31,4 +39,4 @@ const styles = theme => ({
     }
 });
 
-export default withStyles(styles)(NumberViewer);
+export default withStyles(styles)(TensorViewer);

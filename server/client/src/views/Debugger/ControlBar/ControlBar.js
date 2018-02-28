@@ -38,7 +38,6 @@ class ControlBar extends Component {
                     <Paper className={classes.paper}>
                         <Tooltip title="Continue">
                             <IconButton aria-label="Continue"
-                                        classes={{root: classes.button}}
                                         onClick={() => executeDebuggerCommand('continue')}>
                                 <img src={ContinueIcon}/>
                             </IconButton>
@@ -46,7 +45,6 @@ class ControlBar extends Component {
 
                         <Tooltip title="Step Next">
                             <IconButton aria-label="Step Next"
-                                        classes={{root: classes.button}}
                                         onClick={() => executeDebuggerCommand('step_over')}>
                                 <img src={StepNextIcon}/>
                             </IconButton>
@@ -54,7 +52,6 @@ class ControlBar extends Component {
 
                         <Tooltip title="Step In">
                             <IconButton aria-label="Step In"
-                                        classes={{root: classes.button}}
                                         onClick={() => executeDebuggerCommand('step_into')}>
                                 <img src={StepInIcon}/>
                             </IconButton>
@@ -62,7 +59,6 @@ class ControlBar extends Component {
 
                         <Tooltip title="Step Out">
                             <IconButton aria-label="Step Out"
-                                        classes={{root: classes.button}}
                                         onClick={() => executeDebuggerCommand('step_out')}>
                                <img src={StepOutIcon}/>
                             </IconButton>
@@ -70,7 +66,6 @@ class ControlBar extends Component {
 
                         <Tooltip title="Stop">
                             <IconButton aria-label="Stop"
-                                        classes={{root: classes.button}}
                                         onClick={() => executeDebuggerCommand('stop')}>
                                 <img src={StopIcon}/>
                             </IconButton>
@@ -98,10 +93,6 @@ const styles = theme => ({
     paper: {
         padding: 2,
     },
-    button: {
-        width:  theme.spacing.unit * 4,
-        height: theme.spacing.unit * 4,
-    }
 });
 
 

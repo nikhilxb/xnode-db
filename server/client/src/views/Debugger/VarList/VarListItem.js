@@ -10,6 +10,7 @@ import { toggleVarListItemExpandedActionThunk } from '../../../actions/varlist';
 
 import List, {ListItem, ListItemIcon, ListItemSecondaryAction} from 'material-ui/List';
 import Collapse from 'material-ui/transitions/Collapse';
+import Tooltip    from 'material-ui/Tooltip';
 import IconButton from 'material-ui/IconButton';
 import { LinearProgress } from 'material-ui/Progress';
 import blueGrey from 'material-ui/colors/blueGrey';
@@ -30,6 +31,8 @@ class VarListItem extends Component {
      * Renders the list item for the variable, as well as a collapsible sub-list of nested variables. Clicking the
      * main button toggles whether the sublist is expanded. Clicking the icon button, adds a viewer for the variable
      * to the canvas.
+     * TODO: This is being called ~300 times when loading Variable, instead of just once when all the sublist is done.
+     *       This suggests that the state is being touched too much, and the LinearProgress does not animate.
      */
     render() {
         let { itemId, classes, toggleExpandedFn, addViewerFn, nestedlevel, str } = this.props;
@@ -49,11 +52,13 @@ class VarListItem extends Component {
             addViewerFn(symbolId);
         };
 
+        // TODO: LinearProgress not working
         return (
             <div>
                 <ListItem button onClick={handleExpandClick}
-                          classes={{dense: classes.dense}}
-                          style={{paddingLeft: nestedlevel * 24 + 8}}>
+                          classes={{root: classes.item, container: classes.itemhover}}
+                          style={{paddingLeft: nestedlevel * 20 + 8}}
+                          key={symbolId}>
                     <ListItemIcon onClick={handleExpandClick} className={classes.arrows}>
                         {expanded ? <DropDownIcon/> : <DropDownIcon className={classes.rotated}/>}
                     </ListItemIcon>
@@ -62,15 +67,18 @@ class VarListItem extends Component {
                         <span className={classes.varSeparator}>:&nbsp;</span>
                         <span className={classes.varString}>{varString}</span>
                     </span>
-                    <ListItemSecondaryAction>
-                        <IconButton aria-label="Add Viewer" onClick={handleAddViewerClick}>
-                            <SearchIcon/>
-                        </IconButton>
+                    <ListItemSecondaryAction className={classes.icon}>
+                        <Tooltip title="Inspect" placement="right">
+                            <IconButton aria-label="Inspect"
+                                        onClick={handleAddViewerClick}>
+                                <SearchIcon/>
+                            </IconButton>
+                        </Tooltip>
                     </ListItemSecondaryAction>
                 </ListItem>
                 {loading && <LinearProgress/>}
                 <Collapse in={expanded} timeout={50}>
-                    <List className={classes.root} dense>
+                    <List classes={{dense: classes.list}} dense>
                         {childComponents}
                     </List>
                 </Collapse>
@@ -84,15 +92,27 @@ class VarListItem extends Component {
 
 /** CSS-in-JS styling object. */
 const styles = theme => ({
-    root: {
-        overflowY: 'auto',
-        overflowX: 'hidden',
-        height: '100%',
-        backgroundColor: theme.palette.background.paper,
+    list: {
+        paddingTop: 0,
+        paddingBottom: 0,
     },
-    dense: {
-        paddingTop: 4,
-        paddingBottom: 4,
+    item: {
+        paddingTop: 0,
+        paddingBottom: 0,
+    },
+    arrows: {
+        marginRight: 4,
+    },
+    rotated: {
+        transform: 'rotate(-90deg)',
+    },
+    icon: {
+        visibility: 'hidden',
+    },
+    itemhover: {
+        '&:hover $icon': {
+            visibility: 'inherit',
+        }
     },
     text: {
         fontFamily: '"Roboto Mono", monospace',
@@ -100,7 +120,7 @@ const styles = theme => ({
         textOverflow:'ellipsis',
         whiteSpace:'nowrap',
         width: '100%',
-        fontSize: '0.8em',
+        fontSize: '9pt',
     },
     varName: {
         fontWeight: 800,
@@ -111,12 +131,6 @@ const styles = theme => ({
     varString: {
         color: blueGrey[500],
     },
-    arrows: {
-        marginRight: 4,
-    },
-    rotated: {
-        transform: "rotate(-90deg)",
-    }
 });
 
 

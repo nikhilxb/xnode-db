@@ -11,11 +11,6 @@ import grey             from 'material-ui/colors/grey';
 import VarList          from './VarList';
 import Canvas           from './Canvas';
 import ControlBar       from './ControlBar';
-import GraphViewer      from '../../components/viewers/GraphViewer/GraphViewer.js';
-import GraphDataViewer  from '../../components/viewers/GraphViewer/GraphDataViewer.js';
-import GraphOpViewer    from '../../components/viewers/GraphViewer/GraphOpViewer.js';
-
-import {loadGlobals, loadSymbol, REF} from '../../services/mockdata.js';
 
 
 /**
@@ -58,6 +53,9 @@ class Debugger extends Component {
 /** CSS-in-JS custom theme object that affects visual properties (fonts, colors, spacing, etc.) of Material UI
  *  components. For in depth description and list of overridable keys: <material-ui-next.com/customization/themes/> */
 const theme = createMuiTheme({
+    spacing: {
+        unit: 5,
+    },
 });
 
 /** CSS-in-JS styling object. */

@@ -8,7 +8,9 @@ import { withStyles } from 'material-ui/styles';
 import ViewerFrame  from '../../../components/ViewerFrame';
 import NumberViewer from '../../../components/viewers/NumberViewer';
 import StringViewer from '../../../components/viewers/StringViewer';
+import TensorViewer from '../../../components/viewers/TensorViewer';
 import GraphViewer  from '../../../components/viewers/GraphViewer';
+
 import { addViewerActionThunk, removeViewerAction } from "../../../actions/canvas";
 
 
@@ -29,13 +31,19 @@ class Canvas extends Component {
      * Returns the [*]Viewer component of the proper type for the given viewer data object.
      */
     createViewerComponent(viewer) {
+        const props = {
+            payload: viewer.payload,
+        };
+
         switch(viewer.type) {
             case "number":
-                return <NumberViewer {...viewer} />;
+                return <NumberViewer {...props}/>;
             case "str":
-                return <StringViewer {...viewer} />;
+                return <StringViewer {...props}/>;
+            case "tensor":
+                return <TensorViewer {...props}/>;
             case "graphdata":
-                return <GraphViewer {...viewer} />;
+                return <GraphViewer {...props}/>;
             default:
                 return null;
             // TODO: Add more viewers
@@ -76,7 +84,7 @@ class Canvas extends Component {
 /** CSS-in-JS styling object. */
 const styles = theme => ({
     canvasContainer: {
-        flexGrow: 1,
+        // flexGrow: 1,
         padding: theme.spacing.unit * 4,
     },
     frameContainer: {
@@ -109,10 +117,10 @@ const viewersSelector = createSelector(
             return {
                 symbolId: viewerObj.symbolId,
                 viewerId: viewerId,
-                type: symbol.type,
-                name: symbol.name,
-                str:  symbol.str,
-                payload: Object.assign({}, viewerObj.payload, symbol.data && symbol.data.viewer),
+                type:     symbol.type,
+                name:     symbol.name,
+                str:      symbol.str,
+                payload:  viewerObj.payload.merge(symbol.data && symbol.data.viewer),
             };
         });
     }
