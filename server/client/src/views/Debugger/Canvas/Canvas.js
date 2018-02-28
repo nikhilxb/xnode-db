@@ -32,6 +32,8 @@ class Canvas extends Component {
      */
     createViewerComponent(viewer) {
         const props = {
+            symbolId: viewer.symbolId,
+            viewerId: viewer.viewerId,
             payload: viewer.payload,
         };
 
