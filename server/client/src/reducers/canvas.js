@@ -28,7 +28,7 @@ export default function rootReducer(state = initialState, action) {
     switch(type) {
         case CanvasActions.ADD_VIEWER:          return addViewerReducer(state, action);
         case CanvasActions.REMOVE_VIEWER:       return removeViewerReducer(state, action);
-        case CanvasActions.ADD_PAYLOAD_ITEM:    return addViewerPayloadItemReducer(state, action);
+        case CanvasActions.SET_IN_PAYLOAD:      return setInViewerPayloadReducer(state, action);
     }
     return state;  // No effect by default
 };
@@ -36,9 +36,9 @@ export default function rootReducer(state = initialState, action) {
 /**
  * Reducer for adding a key-value pair to an object's payload object.
  */
-function addViewerPayloadItemReducer(state, action) {
-    const { key, value, viewerId } = action;
-    return state.setIn(['viewerObjects', viewerId, 'payload', key], value);
+function setInViewerPayloadReducer(state, action) {
+    const { keyArray, value, viewerId } = action;
+    return state.setIn(['viewerObjects', viewerId, 'payload'].concat(keyArray), value);
 }
 
 /** Reducer for adding a viewer to `canvas`. Assumes `data` for symbol is already loaded.  */

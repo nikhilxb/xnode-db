@@ -4,11 +4,12 @@ import ELK from 'elkjs';
 import GraphEdge from './GraphEdge.js';
 import { bindActionCreators } from 'redux';
 import {ensureGraphLoadedActionThunk} from "../../../actions/symboltable";
-import {addViewerPayloadItemAction} from '../../../actions/canvas';
+import {setInViewerPayloadAction} from '../../../actions/canvas';
 import {makeGetGraphFromHead} from "./layout";
 import {connect} from "react-redux";
 import GraphDataViewer from './GraphDataViewer.js';
 import GraphOpViewer from './GraphOpViewer.js';
+import GraphContainerViewer from './GraphContainerViewer.js';
 import {createSelector} from "reselect";
 
 const styles = theme => ({
@@ -35,13 +36,15 @@ class GraphViewer extends Component {
      * @param nextProps
      */
     componentWillReceiveProps(nextProps) {
-        let { graphSkeleton, viewerId, addToPayload } = this.props;
-        let { graphSkeleton: nextGraphSkeleton } = nextProps;
-        if (!graphSkeleton && nextGraphSkeleton) {
+        let { graphSkeleton, viewerId, setInPayload } = this.props;
+        let { graphSkeleton: nextGraphSkeleton} = nextProps;
+        let { stateChanged } = nextProps.payload;
+        if (nextGraphSkeleton && (!graphSkeleton || stateChanged)) {
+            setInPayload(viewerId, ['stateChanged'], false);
             let elk = new ELK();
             elk.layout(nextGraphSkeleton)
                 .then(laidOutGraph => {
-                    addToPayload(viewerId, 'graph', laidOutGraph);
+                    setInPayload(viewerId, ['graph'], laidOutGraph);
                 })
                 .catch(console.error);
         }
@@ -82,7 +85,6 @@ class GraphViewer extends Component {
     buildNodeComponents(children, components=[], offset={x: 0, y: 0}) {
         for (let i = 0; i < children.length; i++) {
             let {viewerObj, width, height, x, y} = children[i];
-            console.log(children[i]);
             let { type, symbolId } = viewerObj;
             if (type === 'graphdata') {
                 components.push(<div style={{position: "absolute", left: x + offset.x, top: y + offset.y, width, height}}><GraphDataViewer key={symbolId} {...viewerObj} /></div>);
@@ -91,19 +93,18 @@ class GraphViewer extends Component {
                 components.push(<div style={{position: "absolute", left: x + offset.x, top: y + offset.y, width, height}}><GraphOpViewer key={symbolId} {...viewerObj} /></div>);
             }
             if (type === 'graphcontainer') {
-                components.push(<div style={{
-                    position: "absolute",
-                    top: y + offset.y,
-                    left: x + offset.x,
-                    opacity: 0.33,
-                    background: '#333',
-                    width,
-                    height
-                }} key={symbolId}/>);
+                components.push(<div style={{position: "absolute", left: x + offset.x, top: y + offset.y, width, height}}><GraphContainerViewer key={symbolId} {...viewerObj} toggleExpanded={(nodeId) => this.toggleExpanded(nodeId)}/></div>);
             }
             this.buildNodeComponents(children[i].children, components, {x: x + offset.x, y: y + offset.y});
         }
         return components;
+    }
+
+    toggleExpanded(symbolId) {
+        let { setInPayload, viewerId } = this.props;
+        let { expanded } = this.props.payload.graphState[symbolId];
+        setInPayload(viewerId, ['graphState', symbolId, 'expanded'], !expanded);
+        setInPayload(viewerId, ['stateChanged'], true);
     }
 
     /**
@@ -138,7 +139,7 @@ function makeMapStateToProps() {
 function mapDispatchToProps(dispatch) {
     return bindActionCreators({
         ensureGraphLoaded: ensureGraphLoadedActionThunk,
-        addToPayload: addViewerPayloadItemAction,
+        setInPayload: setInViewerPayloadAction,
     }, dispatch);
 }
 

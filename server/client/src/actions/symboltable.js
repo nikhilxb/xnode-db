@@ -1,7 +1,7 @@
 import { REF } from '../services/mockdata.js';
 
 import { resetVarListAction } from './varlist.js';
-import { addViewerPayloadItemAction } from './canvas.js';
+import { setInViewerPayloadAction } from './canvas.js';
 
 /** Action type definitions. */
 export const SymbolTableActions = {
@@ -80,8 +80,14 @@ function ensureGraphLoadedRecurseActionThunk(symbolId, confirmed) {
  */
 export function ensureGraphLoadedActionThunk(symbolId, viewerId) {
     return (dispatch) => {
-        return dispatch(ensureGraphLoadedRecurseActionThunk(symbolId, new Set())).then(
-            () => dispatch(addViewerPayloadItemAction(viewerId, 'hasLoadedGraph', true)),
+        let confirmed = new Set();
+        return dispatch(ensureGraphLoadedRecurseActionThunk(symbolId, confirmed)).then(
+            () => {
+                let graphState = {};
+                confirmed.forEach(symbolId => graphState[symbolId] = {expanded: false});
+                dispatch(setInViewerPayloadAction(viewerId, ['stateChanged'], true));
+                dispatch(setInViewerPayloadAction(viewerId, ['graphState'], graphState));
+            },
         )
     }
 }

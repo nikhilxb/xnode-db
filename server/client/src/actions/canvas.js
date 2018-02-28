@@ -4,7 +4,7 @@ import { ensureSymbolDataLoadedActionThunk } from "./symboltable";
 export const CanvasActions = {
     ADD_VIEWER:          "CANVAS::ADD_VIEWER",
     REMOVE_VIEWER:       "CANVAS::REMOVE_VIEWER",
-    ADD_PAYLOAD_ITEM:    "CANVAS::ADD_PAYLOAD_ITEM",
+    SET_IN_PAYLOAD:      "CANVAS::SET_IN_PAYLOAD",
 };
 
 /**
@@ -28,13 +28,13 @@ export function addViewerActionThunk(symbolId) {
 }
 
 /**
- * Action creator to associate `key` with `value` in the viewer's payload object.
+ * Action creator to setIn `value` at the location of `keyArray` in the viewer's payload object.
  */
-export function addViewerPayloadItemAction(viewerId, key, value) {
+export function setInViewerPayloadAction(viewerId, keyArray, value) {
     return {
-        type: CanvasActions.ADD_PAYLOAD_ITEM,
+        type: CanvasActions.SET_IN_PAYLOAD,
         viewerId,
-        key,
+        keyArray,
         value,
     }
 }

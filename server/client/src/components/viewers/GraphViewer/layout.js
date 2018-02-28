@@ -163,7 +163,7 @@ const containerHeight = (containerId, symbolTable) => symbolTable[containerId].d
  */
 function linkOutputs(child, childPort, parent, slicedEdges, symbolTable, nodes) {
     let grandparent = symbolTable[parent].data.viewer.container;
-    slicedEdges[grandparent].push([toOutPort(child, childPort), toOutPort(parent, nodes[parent].outPorts)]);
+    slicedEdges[grandparent].push([toOutPort(child, childPort), toOutPort(parent, nodes[parent].outPorts), parent]);
     nodes[parent].outPorts += 1;
     return { fromId: parent, fromPort: nodes[parent].outPorts - 1, fromContainer: grandparent };
 }
@@ -181,7 +181,7 @@ function linkOutputs(child, childPort, parent, slicedEdges, symbolTable, nodes) 
  */
 function linkInputs(child, childPort, parent, slicedEdges, symbolTable, nodes) {
     let grandparent = symbolTable[parent].data.viewer.container;
-    slicedEdges[grandparent].push([toInPort(parent, nodes[parent].inPorts), toInPort(child, childPort)]);
+    slicedEdges[grandparent].push([toInPort(parent, nodes[parent].inPorts), toInPort(child, childPort), parent]);
     nodes[parent].inPorts += 1;
     return { toId: parent, toPort: nodes[parent].inPorts - 1, toContainer: grandparent };
 }
@@ -213,7 +213,7 @@ function sliceEdges(unslicedEdges, nodes, symbolTable, containers) {
         }
         while (true) {
             if (toContainer === fromContainer) {
-                slicedEdges[fromContainer].push([toOutPort(fromId, fromPort), toInPort(toId, toPort)]);
+                slicedEdges[fromContainer].push([toOutPort(fromId, fromPort), toInPort(toId, toPort), fromContainer]);
                 break;
             }
             if (!toContainer || (fromContainer &&
@@ -244,13 +244,23 @@ function sliceEdges(unslicedEdges, nodes, symbolTable, containers) {
     return slicedEdges;
 }
 
-function getElkNode(symbolId, nodes, edges) {
+function slicedEdgesToElk(edges, graphState) {
+    return edges.filter(([fromId, toId, trueParent]) => {
+        return (!graphState[trueParent] || graphState[trueParent].expanded);
+    }).map(([fromId, toId]) => {
+        return {id: fromId + toId, sources: [fromId], targets: [toId]};
+    })
+}
+
+function getElkNode(symbolId, nodes, edges, graphState) {
     let node = nodes[symbolId];
     let children = [];
-    // won't let me map or iterate over node.contents for some reason
-    for (let i=0; i < node.contents.length; i++) {
-        let childId = node.contents[i];
-        children.push(getElkNode(childId, nodes, edges));
+    if (graphState[symbolId].expanded) {
+        // won't let me map or iterate over node.contents for some reason
+        for (let i=0; i < node.contents.length; i++) {
+            let childId = node.contents[i];
+            children.push(getElkNode(childId, nodes, edges, graphState));
+        }
     }
     let ports = [];
     for (let i=0; i < node.inPorts; i++) {
@@ -274,14 +284,12 @@ function getElkNode(symbolId, nodes, edges) {
         edges: [],
     };
 
-    if (node.type === 'graphcontainer' && symbolId in edges) {
+    if (node.type === 'graphcontainer' && symbolId in edges && graphState[symbolId].expanded) {
         elkNode = Object.assign(elkNode, {
-            edges: edges[symbolId].map(([fromId, toId]) => {
-                return {id: fromId + toId, sources: [fromId], targets: [toId]};
-            }),
+            edges: slicedEdgesToElk(edges[symbolId], graphState),
         });
     }
-    if (node.type === 'graphdata' || node.type === 'graphop') {
+    if (node.type === 'graphdata' || node.type === 'graphop' || !graphState[symbolId].expanded) {
         elkNode = Object.assign(elkNode, {
             height: nodeHeight,
             width: nodeWidth,
@@ -290,15 +298,13 @@ function getElkNode(symbolId, nodes, edges) {
     return elkNode;
 }
 
-function getElkGraph(nodes, edges) {
+function getElkGraph(nodes, edges, graphState) {
     return {
         id: 'root',
         layoutOptions: {'elk.algorithm': 'layered', 'elk.direction': 'DOWN'},
-        children: Object.entries(nodes).filter(([symbolId, node]) => node.outermost).map(([symbolId]) => getElkNode(symbolId, nodes, edges)),
-        edges: edges['root'].map(([fromId, toId]) => {
-            return {id: fromId + toId, sources: [fromId], targets: [toId]};
-        }),
-    }
+        children: Object.entries(nodes).filter(([symbolId, node]) => node.outermost).map(([symbolId]) => getElkNode(symbolId, nodes, edges, graphState)),
+        edges: slicedEdgesToElk(edges['root'], graphState),
+    };
 }
 
 /**
@@ -311,13 +317,12 @@ export function makeGetGraphFromHead() {
         [
             (state) => state.symboltable,
             (state, props) => props.symbolId,
-            (state, props) => state.canvas.viewerObjects[props.viewerId].payload.hasLoadedGraph,
+            (state, props) => state.canvas.viewerObjects[props.viewerId].payload.graphState,
         ],
-        (symbolTable, headSymbolId, hasLoadedGraph) => {
-            if (!hasLoadedGraph) {
+        (symbolTable, headSymbolId, graphState) => {
+            if (!graphState) {
                 return null;
             }
-
             let headViewerData = symbolTable[headSymbolId].data.viewer;
 
             let { opNodes, dataOutputs, containersToCheck } = getOpNodes(headViewerData.creatorop, symbolTable);
@@ -333,7 +338,7 @@ export function makeGetGraphFromHead() {
 
             unslicedEdges.push([headViewerData.creatorop, headViewerData.creatorpos, headSymbolId, 0]);
             let edges = sliceEdges(unslicedEdges, nodes, symbolTable, containers);
-            return getElkGraph(nodes, edges);
+            return getElkGraph(nodes, edges, graphState);
         }
     )
 }
