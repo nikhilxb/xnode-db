@@ -118,7 +118,8 @@ class VisualizationEngine:
                 # This is deliberately not datafied to prevent the lists from being turned into references.
                 'contents': obj.cpu().numpy().tolist(),
                 'type': list(obj.size()),
-                'size': self._sanitize_for_data_object(self.TENSOR_TYPES[obj.type()], refs)
+                'size': self._sanitize_for_data_object(self.TENSOR_TYPES[obj.type()], refs),
+                'maxmag': obj.abs().max(),
             },
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)
         }, refs
