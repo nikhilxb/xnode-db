@@ -23,8 +23,6 @@ class Canvas extends Component {
     /** Prop expected types object. */
     static propTypes = {
         classes: PropTypes.object.isRequired,
-        viewerObjects: PropTypes.object.isRequired,
-        viewerPositions: PropTypes.array.isRequired,
     };
 
     /**
@@ -59,7 +57,7 @@ class Canvas extends Component {
         const { classes, viewers, removeViewerFn } = this.props;
         let framedViewers = viewers.map((viewer) => {
             return (
-                <div className={classes.frameContainer}>
+                <div key={viewer.viewerId} className={classes.frameContainer}>
                     <ViewerFrame key={viewer.viewerId}
                                  viewerId={viewer.viewerId}
                                  type={viewer.type}

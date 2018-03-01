@@ -19,7 +19,7 @@ class ViewerFrame extends Component {
 
     /** Prop expected types object. */
     static propTypes = {
-        children: PropTypes.array,
+        children: PropTypes.object,
         classes:  PropTypes.object.isRequired,
         key:      PropTypes.number.isRequired,
         viewerId: PropTypes.number.isRequired,
