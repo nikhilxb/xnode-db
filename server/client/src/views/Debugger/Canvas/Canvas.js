@@ -86,7 +86,7 @@ class Canvas extends Component {
 /** CSS-in-JS styling object. */
 const styles = theme => ({
     canvasContainer: {
-        // flexGrow: 1,
+        flexGrow: 1,
         padding: theme.spacing.unit * 4,
     },
     frameContainer: {

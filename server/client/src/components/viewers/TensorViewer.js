@@ -15,12 +15,13 @@ class TensorViewer extends Component {
     /** Prop expected types object. */
     static propTypes = {
         classes: PropTypes.object.isRequired,
+        symbolId: PropTypes.string.isRequired,
+        viewerId: PropTypes.number.isRequired,
         payload: PropTypes.object.isRequired,
     };
 
     render() {
         const {payload} = this.props;
-        console.log("TensorViewer render() with props:", this.props);
         return (
             <div>
                 {payload.contents}

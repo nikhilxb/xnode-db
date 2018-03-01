@@ -13,7 +13,8 @@ myNone = None
 
 myList = [1, 2.3, False, "hello", None, [10, 11, ["This", "is", "the", "end"]]]
 myDict = {"key1": "value1"}
-
+myTensor = torch.rand(6,7)
+myTensor2 = torch.ones(3,4)
 
 def myFn(arg1):
     return arg1 + 5

@@ -11,6 +11,9 @@ class NumberViewer extends Component {
     /** Prop expected types object. */
     static propTypes = {
         classes: PropTypes.object.isRequired,
+        symbolId: PropTypes.string.isRequired,
+        viewerId: PropTypes.number.isRequired,
+        payload: PropTypes.object.isRequired,
     };
 
     render() {

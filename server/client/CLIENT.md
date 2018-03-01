@@ -202,4 +202,5 @@ various patterns, libraries, and philosophies for Redux integration with React a
 
 # Miscellaneous
 normalizer: <https://github.com/paularmstrong/normalizr> <br/>
-react-treebeard: <https://github.com/alexcurtis/react-treebeard>
+react-treebeard: <https://github.com/alexcurtis/react-treebeard> <br/>
+react-grid-layout: <https://github.com/STRML/react-grid-layout> <br/>

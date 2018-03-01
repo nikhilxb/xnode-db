@@ -71,8 +71,8 @@ const styles = theme => ({
     rightContainer: {
         backgroundColor: grey[200],
         textAlign: 'center',
-        display: 'flex',
         flexGrow: 1,
+        display: 'flex',
         flexDirection: 'column',
     }
 
