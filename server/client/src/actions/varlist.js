@@ -57,6 +57,7 @@ export function resetVarListActionThunk(namespace) {
     }
 }
 
+//TODO figure out why varlist re-renders 400 times when this is called
 export function toggleVarListItemExpandedActionThunk(itemId) {
     return (dispatch, getState) => {
         if (getState().varlist.varListItems[itemId].expanded) {

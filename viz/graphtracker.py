@@ -165,7 +165,7 @@ class GraphData:
 # TODO handle paralellism
 class GraphContainer(Nestable):
     """Represents a collection of grouped `GraphOp` and `GraphContainer` objects."""
-    def __init__(self, contents, temporal_level=0):
+    def __init__(self, contents, temporal_level=0, temporal_step=-1):
         """Constructor.
         Args:
             contents (set): A list of `GraphOp` and `GraphContainer` objects grouped by the instance,
@@ -177,10 +177,8 @@ class GraphContainer(Nestable):
         super(GraphContainer, self).__init__()
         self.contents = contents
         self.temporal_level = temporal_level
-        self.height = max([getattr(c, 'height', 0) for c in self.contents])
-
-    def is_temporal(self):
-        return self.temporal_level > 0
+        self.height = max([getattr(c, 'height', 0) + 1 for c in self.contents])
+        self.temporal_step = temporal_step
 
 
 def _build_abstractive_container(outputs, inputs):
@@ -411,6 +409,7 @@ def tick(output, temporal_level):
     contents = set()
     ops_checked = set()
     ops_to_check = deque([output.creator_op])
+    max_temporal_step = -1
 
     while len(ops_to_check) > 0:
         op = ops_to_check.popleft()
@@ -421,7 +420,9 @@ def tick(output, temporal_level):
             if highest.temporal_level == temporal_level:
                 contents.add(highest)
                 ops_to_check.extend([arg.creator_op for arg in op.get_tracked_args()])
-    container = GraphContainer(contents, temporal_level=temporal_level+1)
+            else:
+                max_temporal_step = max(max_temporal_step, highest.temporal_step)
+    container = GraphContainer(contents, temporal_level=temporal_level+1, temporal_step=max_temporal_step+1)
     # Update container fields of new container's contents after iteration to prevent premature exiting (consider ops
     # op1, op2, which are in temporal container c1 of level 1. We now are adding a temporal container c2 of height 2. If
     # we update the container of c1 during iteration, then when iteration reaches op2, its outermost parent would be

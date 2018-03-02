@@ -117,8 +117,8 @@ class VisualizationEngine:
             self.VIEWER_KEY: {
                 # This is deliberately not datafied to prevent the lists from being turned into references.
                 'contents': obj.cpu().numpy().tolist(),
-                'type': list(obj.size()),
-                'size': self._sanitize_for_data_object(self.TENSOR_TYPES[obj.type()], refs),
+                'size': list(obj.size()),
+                'type': self._sanitize_for_data_object(self.TENSOR_TYPES[obj.type()], refs),
                 'maxmag': obj.abs().max(),
             },
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)
@@ -154,7 +154,7 @@ class VisualizationEngine:
             self.VIEWER_KEY: {
                 'contents': [self._sanitize_for_data_object(op, refs) for op in obj.contents],
                 'container': self._sanitize_for_data_object(obj.container, refs),
-                'temporal': self._sanitize_for_data_object(obj.is_temporal(), refs),
+                'temporalstep': self._sanitize_for_data_object(obj.temporal_step, refs),
                 'height': self._sanitize_for_data_object(obj.height, refs),
             },
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)

@@ -84,7 +84,7 @@ export function ensureGraphLoadedActionThunk(symbolId, viewerId) {
         return dispatch(ensureGraphLoadedRecurseActionThunk(symbolId, confirmed)).then(
             () => {
                 let graphState = {};
-                confirmed.forEach(symbolId => graphState[symbolId] = {expanded: false});
+                confirmed.forEach(symbolId => graphState[symbolId] = {expanded: true});
                 dispatch(setInViewerPayloadAction(viewerId, ['stateChanged'], true));
                 dispatch(setInViewerPayloadAction(viewerId, ['graphState'], graphState));
             },
