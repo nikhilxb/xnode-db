@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "d3-scale": "^2.0.0",
+    "d3": "^4.13.0",
     "dagre": "^0.8.2",
     "elkjs": "^0.3.0",
     "material-ui": "^1.0.0-beta.33",

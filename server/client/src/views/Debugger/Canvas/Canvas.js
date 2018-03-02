@@ -56,6 +56,7 @@ class Canvas extends Component {
     render() {
         const { classes, viewers, removeViewerFn } = this.props;
         let framedViewers = viewers.map((viewer) => {
+            console.log(viewer.viewerId);
             return (
                 <div key={viewer.viewerId} className={classes.frameContainer}>
                     <ViewerFrame key={viewer.viewerId}

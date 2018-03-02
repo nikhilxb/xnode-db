@@ -1,17 +1,20 @@
 import React, { Component, PureComponent } from 'react';
 import { withStyles } from 'material-ui/styles';
 import PropTypes from 'prop-types';
-import { scaleLinear } from 'd3-scale';
+import { scaleLinear, color } from 'd3';
+
 
 // Configurable units
 const SIZE = 20;    // Maximum size (in px) of pixel square
-const SPACING = 1;  // Space (in px) between adjacent pixel squares
+const SPACING = 0;  // Space (in px) between adjacent pixel squares
+const PADDING = 5;  // Space (in px) around the entire pixel display
 
 // Derived units
 const COLOR = scaleLinear().domain([-1, 0, 1]).range(['#0571b0', '#f7f7f7', '#ca0020']).clamp(true);
 const JUMP = SIZE + SPACING;  // Distance between adjacent pixel centers
 const OFFSET = SIZE / 2;      // Distance from pixel edge to center
 
+// TODO: Why isn't this as responsive as the example?
 class TensorPixels extends PureComponent {
 
     /** Prop expected types object. */
@@ -20,18 +23,17 @@ class TensorPixels extends PureComponent {
         handleHighlight: PropTypes.func.isRequired
     };
 
-    // <rect width={SIZE} height={SIZE} x={p.cx} y={p.cy}
-    // onMouseEnter={handleHighlight(p)} onMouseLeave={handleHighlight(null)}/>
     render() {
         const { pixels, handleHighlight } = this.props;
         return (
-            <g>
+            <g className="pixels">
                 {pixels.map((p, i) => {
                     return (
                         <g key={i}>
                             <rect width={p.size} height={p.size} x={p.x} y={p.y} fill={p.color} />
-                            <rect width={JUMP} height={JUMP} x={p.cx} y={p.cy} style={{opacity: 0}}
-                                  onMouseEnter={console.log(p)}/>
+                            <rect width={JUMP} height={JUMP} x={p.cx} y={p.cy} fill={"transparent"}
+                                  onMouseEnter={() => handleHighlight(p)}
+                                  onMouseOut={() => handleHighlight(null)}/>
                         </g>
                     );
                 })}
@@ -51,8 +53,10 @@ class TensorHighlight extends PureComponent {
         const { highlight: h } = this.props;
         if(!h) return null;
         return (
-            <g>
-                <rect width={h.size} height={h.size} x={h.x} y={h.y} stroke={"#000000"} />
+            <g className="highlight">
+                <rect width={SIZE} height={SIZE} x={h.cx} y={h.cy} fill={h.color}
+                      strokeWidth={4} stroke={color(h.color).darker()}
+                      pointerEvents="none"/>
             </g>
         );
     }
@@ -98,7 +102,6 @@ class TensorViewer extends Component {
     }
 
     generateElements(payload = this.props.payload) {
-        console.log("Generate Elements");
         const { contents } = payload;
         const [ROWS, COLS] = [contents.length, contents[0].length]
         let maxmag = payload.maxmag || 1;
@@ -128,12 +131,12 @@ class TensorViewer extends Component {
     }
 
     render() {
-        console.log("Render TensorViewer");
         const { elements, highlight } = this.state;
         const { pixels, width, height } = elements;
 
         return (
-            <svg width={width} height={height}>
+            <svg width={width + 2*PADDING} height={height + 2*PADDING}
+                 viewBox={`${-PADDING} ${-PADDING} ${width + 2*PADDING} ${height + 2*PADDING}`}>
                 <TensorPixels pixels={pixels} handleHighlight={this.handleHighlight.bind(this)}/>
                 <TensorHighlight highlight={highlight}/>
             </svg>
