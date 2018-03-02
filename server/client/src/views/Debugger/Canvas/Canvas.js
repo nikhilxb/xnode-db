@@ -5,7 +5,7 @@ import { bindActionCreators } from 'redux';
 import { createSelector } from 'reselect';
 import { withStyles } from 'material-ui/styles';
 
-import GridLayout from 'react-grid-layout';
+import GridLayout, { WidthProvider } from 'react-grid-layout';
 
 import ViewerFrame  from '../../../components/ViewerFrame';
 import NumberViewer from '../../../components/viewers/NumberViewer';
@@ -15,6 +15,8 @@ import GraphViewer  from '../../../components/viewers/GraphViewer';
 
 import { addViewerActionThunk, removeViewerAction, updateLayoutAction } from "../../../actions/canvas";
 
+
+const FlexibleGridLayout = WidthProvider(GridLayout);
 
 /**
  * This smart component serves as an interactive workspace for inspecting variable viewers. It displays in sequence
@@ -73,10 +75,10 @@ class Canvas extends Component {
 
         return (
             <div className={classes.canvasContainer}>
-                <GridLayout className="" layout={layout} cols={6} rowHeight={100} width={1000} autoSize={true}
-                            onLayoutChange={updateLayoutFn}>
+                <FlexibleGridLayout layout={layout} cols={6} rowHeight={50} autoSize={true}
+                                    onLayoutChange={updateLayoutFn}>
                     {frames}
-                </GridLayout>
+                </FlexibleGridLayout>
             </div>
         );
     }
@@ -90,7 +92,8 @@ class Canvas extends Component {
 const styles = theme => ({
     canvasContainer: {
         flexGrow: 1,
-        padding: theme.spacing.unit * 4,
+        margin: theme.spacing.unit * 4,
+        overflow: 'auto',
     },
     frameContainer: {
         display: "block",

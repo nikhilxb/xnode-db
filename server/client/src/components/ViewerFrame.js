@@ -1,12 +1,10 @@
 import React, { Component } from 'react';
+import PropTypes from "prop-types";
 import { withStyles } from 'material-ui/styles';
+
 import Paper from 'material-ui/Paper';
 import IconButton from 'material-ui/IconButton';
 import CloseIcon from 'material-ui-icons/Close';
-import TimelineIcon from 'material-ui-icons/Timeline';
-import Typography from 'material-ui/Typography';
-import Divider from 'material-ui/Divider';
-import PropTypes from "prop-types";
 
 
 /**
@@ -41,7 +39,9 @@ class ViewerFrame extends Component {
                     </IconButton>
                 </div>
                 <div className={classes.content}>
-                    {children}
+                    <div className={classes.children}>
+                        {children}
+                    </div>
                 </div>
             </Paper>
         );
@@ -56,16 +56,18 @@ const styles = theme => ({
     card: {
         textAlign: 'center',
         height: '100%',
-        overflow: 'scroll',
+        display: 'flex',
+        flexDirection: 'column',
     },
     header: {
-        position: 'sticky',
-        top: 0,
         background: '#232323',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: 4,
+    },
+    content: {
+        overflow: 'auto',
     },
     button: {
         height: 15,
