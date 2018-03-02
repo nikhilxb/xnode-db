@@ -83,16 +83,9 @@ class TensorViewer extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            elements: this.generateElements(),
+            elements: this.generateElements(props.payload),
             highlight: null,
         };
-    }
-
-    componentWillReceiveProps(nextProps) {
-        this.setState({
-            elements: this.generateElements(nextProps),
-            highlight: null,
-        })
     }
 
     handleHighlight(h) {
@@ -101,8 +94,10 @@ class TensorViewer extends Component {
         });
     }
 
-    generateElements(payload = this.props.payload) {
+    generateElements(payload) {
+        console.log("Payload", payload);
         const { contents } = payload;
+        console.log("Contents", contents);
         const [ROWS, COLS] = [contents.length, contents[0].length]
         let maxmag = payload.maxmag || 1;
 

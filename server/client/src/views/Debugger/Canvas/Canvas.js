@@ -5,13 +5,15 @@ import { bindActionCreators } from 'redux';
 import { createSelector } from 'reselect';
 import { withStyles } from 'material-ui/styles';
 
+import GridLayout from 'react-grid-layout';
+
 import ViewerFrame  from '../../../components/ViewerFrame';
 import NumberViewer from '../../../components/viewers/NumberViewer';
 import StringViewer from '../../../components/viewers/StringViewer';
 import TensorViewer from '../../../components/viewers/TensorViewer';
 import GraphViewer  from '../../../components/viewers/GraphViewer';
 
-import { addViewerActionThunk, removeViewerAction } from "../../../actions/canvas";
+import { addViewerActionThunk, removeViewerAction, updateLayoutAction } from "../../../actions/canvas";
 
 
 /**
@@ -54,9 +56,8 @@ class Canvas extends Component {
      * Renders the inspector canvas and any viewers currently registered to it.
      */
     render() {
-        const { classes, viewers, removeViewerFn } = this.props;
-        let framedViewers = viewers.map((viewer) => {
-            console.log(viewer.viewerId);
+        const { classes, viewers, removeViewerFn, layout, updateLayoutFn } = this.props;
+        let frames = viewers.map((viewer) => {
             return (
                 <div key={viewer.viewerId} className={classes.frameContainer}>
                     <ViewerFrame key={viewer.viewerId}
@@ -72,7 +73,10 @@ class Canvas extends Component {
 
         return (
             <div className={classes.canvasContainer}>
-                {framedViewers}
+                <GridLayout className="" layout={layout} cols={6} rowHeight={100} width={1000} autoSize={true}
+                            onLayoutChange={updateLayoutFn}>
+                    {frames}
+                </GridLayout>
             </div>
         );
     }
@@ -112,7 +116,8 @@ const styles = theme => ({
 const viewersSelector = createSelector(
     [(state) => state.canvas.viewerObjects, (state) => state.canvas.viewerPositions, (state) => state.symboltable],
     (viewerObjects, viewerPositions, symbolTable) => {
-        return viewerPositions.map((viewerId) => {
+        return viewerPositions.map((viewerPosition) => {
+            let viewerId = parseInt(viewerPosition.i);
             let viewerObj = viewerObjects[viewerId];
             let symbol = symbolTable[viewerObj.symbolId];
             return {
@@ -121,7 +126,7 @@ const viewersSelector = createSelector(
                 type:     symbol.type,
                 name:     symbol.name,
                 str:      symbol.str,
-                payload:  viewerObj.payload.merge(symbol.data && symbol.data.viewer),
+                payload:  viewerObj.payload.merge(symbol.data && symbol.data.viewer),  // TODO: Why this?
             };
         });
     }
@@ -131,14 +136,16 @@ const viewersSelector = createSelector(
 function mapStateToProps(state, props) {
     return {
         viewers: viewersSelector(state),
+        layout:  state.canvas.viewerPositions,
     };
 }
 
 /** Connects bound action creator functions to component props. */
 function mapDispatchToProps(dispatch) {
     return bindActionCreators({
-        addViewerFn: addViewerActionThunk,
+        addViewerFn:    addViewerActionThunk,
         removeViewerFn: removeViewerAction,
+        updateLayoutFn: updateLayoutAction,
     }, dispatch);
 }
 

@@ -1,8 +1,6 @@
 import React, { Component } from 'react';
 import { withStyles } from 'material-ui/styles';
-import Card, { CardActions, CardContent } from 'material-ui/Card';
-import Toolbar from 'material-ui/Toolbar';
-import AppBar from 'material-ui/AppBar';
+import Paper from 'material-ui/Paper';
 import IconButton from 'material-ui/IconButton';
 import CloseIcon from 'material-ui-icons/Close';
 import TimelineIcon from 'material-ui-icons/Timeline';
@@ -32,24 +30,20 @@ class ViewerFrame extends Component {
     render() {
         const { classes, children, name, type, viewerId, removeViewerFn } = this.props;
         return (
-            <Card className={classes.card}>
-                <CardContent>
-                    <div className={classes.header}>
-                        <IconButton className={classes.button}>
-                            <TimelineIcon style={{width: 20, height: 20}}/>
-                        </IconButton>
-                        <Typography color="inherit" className={classes.title}>
-                            {name ? name + " " + type : type}
-                        </Typography>
-                        <IconButton className={classes.button} aria-label="Close"
-                                    onClick={() => removeViewerFn(viewerId)}>
-                            <CloseIcon style={{width: 20, height: 20}}/>
-                        </IconButton>
-                    </div>
-                    <Divider />
+            <Paper className={classes.card}>
+                <div className={classes.header}>
+                    <span className={classes.title}>
+                        {`${name ? name + " " : ""}[${type}]`}
+                    </span>
+                    <IconButton className={classes.button} aria-label="Close"
+                                onClick={() => removeViewerFn(viewerId)}>
+                        <CloseIcon style={{width: 15, height: 15, color: '#FFFFFF'}}/>
+                    </IconButton>
+                </div>
+                <div className={classes.content}>
                     {children}
-                </CardContent>
-            </Card>
+                </div>
+            </Paper>
         );
     }
 }
@@ -61,19 +55,27 @@ class ViewerFrame extends Component {
 const styles = theme => ({
     card: {
         textAlign: 'center',
+        height: '100%',
+        overflow: 'scroll',
     },
     header: {
+        position: 'sticky',
+        top: 0,
+        background: '#232323',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        padding: 4,
     },
     button: {
         height: 15,
         width: 15,
     },
     title: {
-        color: theme.palette.text.secondary,
         flex: 1,
+        fontFamily: '"Roboto Mono", monospace',
+        color: '#FFFFFF',
+        fontSize: '9pt',
     },
 });
 

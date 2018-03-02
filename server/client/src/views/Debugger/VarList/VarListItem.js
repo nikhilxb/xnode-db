@@ -15,10 +15,7 @@ import IconButton from 'material-ui/IconButton';
 import { LinearProgress } from 'material-ui/Progress';
 import blueGrey from 'material-ui/colors/blueGrey';
 
-import OpenInNewIcon from 'material-ui-icons/OpenInNew';
 import SearchIcon from 'material-ui-icons/Search';
-import AddIcon from 'material-ui-icons/Add';
-import InsertChartIcon from 'material-ui-icons/InsertChart';
 import DropDownIcon from 'material-ui-icons/ArrowDropDown';
 
 

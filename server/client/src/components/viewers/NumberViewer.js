@@ -17,7 +17,6 @@ class NumberViewer extends Component {
     };
 
     render() {
-        console.log("NumberViewer render() with props:", this.props);
         return (
             <div />
         );
