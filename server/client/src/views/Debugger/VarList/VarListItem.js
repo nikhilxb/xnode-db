@@ -60,7 +60,7 @@ class VarListItem extends Component {
                         {expanded ? <DropDownIcon/> : <DropDownIcon className={classes.rotated}/>}
                     </ListItemIcon>
                     <span className={classes.text}>
-                        <span className={classes.varName}>{name || "(unnamed)"}</span>
+                        <span className={classes.varName}>{name || "<unnamed>"}</span>
                         <span className={classes.varSeparator}>:&nbsp;</span>
                         <span className={classes.varString}>{varString}</span>
                     </span>

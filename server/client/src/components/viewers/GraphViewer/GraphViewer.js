@@ -1,24 +1,24 @@
 import React, { Component } from 'react';
-import { withStyles } from 'material-ui/styles';
-import ELK from 'elkjs';
-import GraphEdge from './GraphEdge.js';
+import PropTypes from 'prop-types';
+import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import {ensureGraphLoadedActionThunk} from "../../../actions/symboltable";
-import {setInViewerPayloadAction} from '../../../actions/canvas';
-import {makeGetGraphFromHead} from "./layout";
-import {connect} from "react-redux";
+import { withStyles } from 'material-ui/styles';
+import { createSelector } from "reselect";
+import ELK from 'elkjs';
+
+import { ensureGraphLoadedActionThunk } from "../../../actions/symboltable";
+import { setInViewerPayloadAction } from '../../../actions/canvas';
+import { makeGetGraphFromHead } from "./layout";
+
+import GraphEdge from './GraphEdge.js';
 import GraphDataViewer from './GraphDataViewer.js';
 import GraphOpViewer from './GraphOpViewer.js';
 import GraphContainerViewer from './GraphContainerViewer.js';
-import {createSelector} from "reselect";
 
-const styles = theme => ({
-
-});
 
 /**
- * This class builds and contains all the components of a computation graph.
- * Payload state slice:
+ * This smart component builds and contains all the components of a computation graph.
+ * The `payload` prop:
  * {
  *      graphState: {
  *          symbolId: {
@@ -34,6 +34,7 @@ const styles = theme => ({
  * }
  */
 class GraphViewer extends Component {
+
     componentDidMount() {
         let { ensureGraphLoaded, symbolId, viewerId } = this.props;
         ensureGraphLoaded(symbolId, viewerId);

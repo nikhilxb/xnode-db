@@ -14,7 +14,9 @@ const COLOR = scaleLinear().domain([-1, 0, 1]).range(['#0571b0', '#f7f7f7', '#ca
 const JUMP = SIZE + SPACING;  // Distance between adjacent pixel centers
 const OFFSET = SIZE / 2;      // Distance from pixel edge to center
 
-// TODO: Why isn't this as responsive as the example?
+/**
+ * This dumb component renders the pixels of a tensor. Each pixel represents an element in the tensor.
+ */
 class TensorPixels extends PureComponent {
 
     /** Prop expected types object. */
@@ -42,6 +44,9 @@ class TensorPixels extends PureComponent {
     }
 }
 
+/**
+ * This dumb component renders elements that appear on highlight of a single pixel.
+ */
 class TensorHighlight extends PureComponent {
 
     /** Prop expected types object. */
@@ -63,7 +68,8 @@ class TensorHighlight extends PureComponent {
 }
 
 /**
- * This class renders a tensor variable in the enclosing frame, with `payload`: {
+ * This dumb component renders a tensor variable in the enclosing frame, with
+ * `payload`: {
  *     contents: [[...]...],
  *     type: "float32",
  *     size: [3, 4, ...],
@@ -80,6 +86,7 @@ class TensorViewer extends Component {
         payload: PropTypes.object.isRequired,
     };
 
+    /** Constructor. */
     constructor(props) {
         super(props);
         this.state = {
@@ -88,16 +95,25 @@ class TensorViewer extends Component {
         };
     }
 
+    /**
+     * Triggered on highlight start and end to update state.
+     * @param h The highlighted `pixel` object; `null` if none highlighted.
+     */
     handleHighlight(h) {
         this.setState({
             highlight: h,
         });
     }
 
+    /**
+     * Transforms the `contents` of `payload` into visualization elements (e.g. pixel squares).
+     * TODO: Adapt this to scale to arbitrary dimensions.
+     * TODO: Add more information, colorbar, options, etc.
+     * @param payload
+     * @returns {{pixels: Array, width: number, height: number}}
+     */
     generateElements(payload) {
-        console.log("Payload", payload);
         const { contents } = payload;
-        console.log("Contents", contents);
         const [ROWS, COLS] = [contents.length, contents[0].length]
         let maxmag = payload.maxmag || 1;
 
@@ -125,6 +141,7 @@ class TensorViewer extends Component {
         return { pixels: pixels, width: JUMP * COLS, height: JUMP * ROWS };
     }
 
+    /** Renders the pixels and highlight elements in an svg. */
     render() {
         const { elements, highlight } = this.state;
         const { pixels, width, height } = elements;
