@@ -206,7 +206,7 @@
 		"viewer": {
             "contents": ["xnode$98750", "xnode$97750"], // list of graphop.graphcontainer grouped by this container.
             "container": "xnode$3032099235",
-            "temporal": true,
+            "temporalstep": 1,  // -1 for abstractive containers, >=0 for temporal
             "height": 5,
 		},
 		"attributes": {

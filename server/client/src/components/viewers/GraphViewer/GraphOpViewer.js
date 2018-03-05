@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { withStyles } from 'material-ui/styles';
-import Card, { CardActions, CardContent } from 'material-ui/Card';
+import Paper from 'material-ui/Paper';
 import Typography from 'material-ui/Typography';
 
 const styles = theme => ({
@@ -17,13 +17,8 @@ const styles = theme => ({
 class GraphOpViewer extends Component {
     render() {
         return (
-            <Card className={this.props.classes.card}>
-                <CardContent>
-                    <Typography component="p" className={this.props.classes.label}>
-                        {this.props.symbolId}
-                    </Typography>
-                </CardContent>
-            </Card>
+            <Paper style={{background:'#75CE8A', height:'100%', width:'100%'}}  className={this.props.classes.card}>
+            </Paper>
         );
     }
 }
