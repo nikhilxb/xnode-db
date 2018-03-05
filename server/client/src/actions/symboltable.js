@@ -86,6 +86,7 @@ export function ensureGraphLoadedActionThunk(symbolId, viewerId) {
                 let graphState = {};
                 confirmed.forEach(symbolId => graphState[symbolId] = {expanded: true});
                 dispatch(setInViewerPayloadAction(viewerId, ['stateChanged'], true));
+                dispatch(setInViewerPayloadAction(viewerId, ['graphLoaded'], true));
                 dispatch(setInViewerPayloadAction(viewerId, ['graphState'], graphState));
             },
         )
