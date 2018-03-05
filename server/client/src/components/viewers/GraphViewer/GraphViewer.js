@@ -8,7 +8,7 @@ import ELK from 'elkjs';
 
 import { ensureGraphLoadedActionThunk } from "../../../actions/symboltable";
 import { setInViewerPayloadAction } from '../../../actions/canvas';
-import { makeGetGraphFromHead, layoutGraph } from "./layout";
+import { makeGetElkGraphFromHead, layoutGraph } from "./layout";
 
 import GraphEdge from './GraphEdge.js';
 import GraphDataViewer from './GraphDataViewer.js';
@@ -164,7 +164,18 @@ class GraphViewer extends Component {
     }
 }
 
-// Inject styles and data into component
+// To inject styles into component
+// -------------------------------
+
+/** CSS-in-JS styling object. */
+const styles = theme => ({
+    // css-key: value,
+});
+
+// To inject application state into component
+// ------------------------------------------
+
+/** Connects application state objects to component props. */
 function makeMapStateToProps() {
     const getGraphFromHead = makeGetElkGraphFromHead();
     return (state, props) => {
@@ -173,6 +184,8 @@ function makeMapStateToProps() {
         }
     }
 }
+
+/** Connects bound action creator functions to component props. */
 function mapDispatchToProps(dispatch) {
     return bindActionCreators({
         ensureGraphLoaded: ensureGraphLoadedActionThunk,
