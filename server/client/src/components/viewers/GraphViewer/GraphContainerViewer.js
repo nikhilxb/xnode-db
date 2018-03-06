@@ -1,26 +1,38 @@
 import React, { Component } from 'react';
 import { withStyles } from 'material-ui/styles';
-import Paper from 'material-ui/Paper';
+import PropTypes from "prop-types";
 
-const styles = theme => ({
-  card: {
-  },
-  label: {
-      textAlign: 'center',
-  }
-});
 
 /**
- * This class renders an op node in a computation graph.
+ * This dumb component renders an op node in a computation graph.
  */
 class GraphContainerViewer extends Component {
+
+    /** Prop expected types object. */
+    static propTypes = {
+        classes: PropTypes.object.isRequired,
+
+    };
+
     render() {
-        let { toggleExpanded, symbolId } = this.props;
+        // TODO: Make into one
+        let { classes, toggleExpanded, symbolId } = this.props;
         return (
-            <Paper style={{background:'#333', opacity:0.33, height:'100%', width:'100%'}} onClick={() => toggleExpanded(symbolId)}>
-            </Paper>
+            <rect width={this.props.width} height={this.props.height} x={this.props.x} y={this.props.y} fill='#75CE8A'
+                  onClick={() => toggleExpanded(symbolId)} className={classes.graphContainer} />
         );
     }
 }
+
+
+// To inject styles into component
+// -------------------------------
+
+/** CSS-in-JS styling object. */
+const styles = theme => ({
+    graphContainer: {
+        opacity: 0.3,
+    }
+});
 
 export default withStyles(styles)(GraphContainerViewer);

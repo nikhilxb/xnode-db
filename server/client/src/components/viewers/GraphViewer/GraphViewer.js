@@ -145,18 +145,12 @@ class GraphViewer extends Component {
             // TODO loading bar
             return <div />;
         }
+        console.log(graph);
         let nodeComponents = this.buildNodeComponents(graph);
         let edgeComponents = this.buildEdgeComponents(graph);
 
-        //let nodeComponents = graph.map(({ children }) => this.buildNodeComponents(children));
-       // let edgeComponents = graph.map(subgraph => this.buildEdgeComponents(subgraph));
-       //  let subgraphs = nodeComponents.map((nodes, i) => {
-       //      return <div style={{position: "absolute", left: i * 100, top: 0}}>{nodes.concat(edgeComponents[i])}</div>;
-       //  });
-
-
         return (
-            <div style={{position: "relative"}}>
+            <div style={{position: "relative", width: graph.width, height: graph.height}}>
                 {nodeComponents}
                 {edgeComponents}
             </div>

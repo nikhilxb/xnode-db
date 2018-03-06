@@ -1,26 +1,31 @@
 import React, { Component } from 'react';
 import { withStyles } from 'material-ui/styles';
-import Paper from 'material-ui/Paper';
-import Typography from 'material-ui/Typography';
+import PropTypes from "prop-types";
 
-const styles = theme => ({
-  card: {
-  },
-  label: {
-      textAlign: 'center',
-  }
-});
 
 /**
- * This class renders an op node in a computation graph.
+ * This dumb component renders an op node in a computation graph.
  */
 class GraphOpViewer extends Component {
+
+    /** Prop expected types object. */
+    static propTypes = {
+        classes: PropTypes.object.isRequired,
+    };
+
     render() {
         return (
-            <Paper style={{background:'#75CE8A', height:'100%', width:'100%'}}  className={this.props.classes.card}>
-            </Paper>
+            <rect width="20px" height="20px" x={this.props.x} y={this.props.y} fill='#75CE8A'/>
         );
     }
 }
+
+// To inject styles into component
+// -------------------------------
+
+/** CSS-in-JS styling object. */
+const styles = theme => ({
+    // css-key: value,
+});
 
 export default withStyles(styles)(GraphOpViewer);

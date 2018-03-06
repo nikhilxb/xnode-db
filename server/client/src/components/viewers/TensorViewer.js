@@ -33,7 +33,7 @@ class TensorPixels extends PureComponent {
                     return (
                         <g key={i}>
                             <rect width={p.size} height={p.size} x={p.x} y={p.y} fill={p.color} />
-                            <rect width={JUMP} height={JUMP} x={p.cx} y={p.cy} fill={"transparent"}
+                            <rect width={JUMP} height={JUMP} x={p.cx} y={p.cy} fill={'transparent'}
                                   onMouseEnter={() => handleHighlight(p)}
                                   onMouseOut={() => handleHighlight(null)}/>
                         </g>
