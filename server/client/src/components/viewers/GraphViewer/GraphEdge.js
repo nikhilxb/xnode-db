@@ -16,6 +16,7 @@ class GraphEdge extends Component {
     render() {
         const { classes, points } = this.props;
         let segments = [];
+        // TODO: Turn into curves
         for (let i=0; i < points.length - 1; i++) {
             segments.push([points[i], points[i + 1]]);
         }
@@ -33,8 +34,8 @@ class GraphEdge extends Component {
 /** CSS-in-JS styling object. */
 const styles = theme => ({
     graphEdge: {
-        stroke: '#FF0000',
-        strokeWidth: 3,
+        stroke: '#333333',
+        strokeWidth: 2.5,
     }
 });
 

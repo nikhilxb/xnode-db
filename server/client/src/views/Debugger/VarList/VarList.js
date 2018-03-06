@@ -39,7 +39,7 @@ class VarList extends Component {
 
         return (
             <List className={classes.root} dense>
-                <ListSubheader className={classes.listSection}>Variables</ListSubheader>
+                <ListSubheader>Variables</ListSubheader>
                 {listItems}
             </List>
         );

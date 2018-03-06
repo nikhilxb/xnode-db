@@ -79,10 +79,8 @@ class GraphViewer extends Component {
      *     The edge also contains an array `sections`, also of length exactly one (ELK supports hyperedges, hence
      *     why everything is a list). This section object has a start point and an end point, as well as an array
      *     of bend points, indicating points the final edge should pass through.
-     *
      * @param components
      *     The list to which new edge components should be added.
-     *
      * @param offset
      *     The position offset at which new edges should be rendered. Edge positions are relative, so we must
      *     maintain an offset value to position them globally. Edges aren't just offset from their parent node,
@@ -104,10 +102,8 @@ class GraphViewer extends Component {
      *     A node in the ELK graph, containing a (possibly empty) list of child nodes as well as `width`, `height`,
      *     `x`, `y`, and `viewerObj` fields. `viewerObj` contains the properties needed to render the node (type,
      *     name, str, symbolId, and data.viewer).
-     *
      * @param components
      *     The array to which node components should be added.
-     *
      * @param offset
      *     The pixel offset at which the component should be rendered. ELK uses relative positioning, meaning that a
      *     node's global position should be equal to its parent's global position, plus the node's `x` and `y` values.

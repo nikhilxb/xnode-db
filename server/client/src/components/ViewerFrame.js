@@ -28,7 +28,7 @@ class ViewerFrame extends Component {
     render() {
         const { classes, children, name, type, viewerId, removeViewerFn } = this.props;
         return (
-            <Paper className={classes.card}>
+            <Paper className={classes.container}>
                 <div className={classes.header}>
                     <span className={classes.title}>
                         {`${name ? name + " " : ""}[${type}]`}
@@ -53,7 +53,7 @@ class ViewerFrame extends Component {
 
 /** CSS-in-JS styling object. */
 const styles = theme => ({
-    card: {
+    container: {
         textAlign: 'center',
         height: '100%',
         display: 'flex',
@@ -65,6 +65,7 @@ const styles = theme => ({
         alignItems: 'center',
         justifyContent: 'center',
         padding: 4,
+        minHeight: 15,
     },
     content: {
         overflow: 'auto',
@@ -78,6 +79,9 @@ const styles = theme => ({
         fontFamily: '"Roboto Mono", monospace',
         color: '#FFFFFF',
         fontSize: '9pt',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
     },
 });
 

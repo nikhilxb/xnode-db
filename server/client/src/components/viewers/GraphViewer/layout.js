@@ -1,36 +1,46 @@
-import {createSelector} from "reselect";
+import { createSelector } from "reselect";
 
 
 //TODO add data to edges
 /**
- * Layout constants.
+ * Graph layout constants.
+ * -----------------------
  */
-const opNodeHeight = 60;
-const opNodeWidth = 60;
-const dataNodeHeight = 45;
-const dataNodeWidth = 45;
-const collapsedAbstractiveHeight = 80;
-const collapsedAbstractiveWidth = 80;
-const collapsedTemporalHeight = 120;
-const collapsedTemporalWidth = 60;
-const elkEdgePadding = 10;
+const kDataNodeHeight = 25;
+const kDataNodeWidth = 25;
+const kOpNodeHeight = 40;
+const kOpNodeWidth = 80;
+const kCollapsedAbstractiveHeight = 40;
+const kCollapsedAbstractiveWidth = 80;
+const kCollapsedTemporalHeight = 120;
+const kCollapsedTemporalWidth = 60;
+const kEdgePadding = 10;
 
 /**
  * Creates a "node object" which can be translated into a node in the ELK graph; data, ops, and container nodes are
  * represented as node objects.
- * @param nodeId: unique identifier for the node object.
- * @param symbolId: id of the symbol represented by the node. Note that two node objects may share a symbol id, as
- *                  GraphData which are used in multiple timesteps have a node created in each temporal container.
- * @param symbolInfo: the symbol's entry in the symbol table.
- * @param container: the node id of the node's container.
- * @param outPorts: the number of output ports the node has; typically modified after node object creation. For example,
- *                  an op node might be created before all of its outputs have been explored in the graph, meaning that
- *                  `outPorts` cannot be set until after the whole graph is created.
- * @param height: how many layers are nested within the node. 0 for ops and data.
- * @param contents: a list of all node ids contained by the node.
- * @param containsTemporal: whether the node contains any temporal containers; needed for proper orientation of
- *                          contents in the ELK graph.
- * @param isTemporal: whether the node is a temporal container.
+ *
+ * @param nodeId
+ *     Unique identifier for the node object.
+ * @param symbolId
+ *     Id of the symbol represented by the node. Note that two node objects may share a symbol id, as GraphData
+ *     which are used in multiple timesteps have a node created in each temporal container.
+ * @param symbolInfo
+ *     The symbol's entry in the symbol table.
+ * @param container
+ *     The node id of the node's container.
+ * @param outPorts
+ *     The number of output ports the node has; typically modified after node object creation. For example, an op
+ *     node might be created before all of its outputs have been explored in the graph, meaning that `outPorts`
+ *     cannot be set until after the whole graph is created.
+ * @param height
+ *     How many layers are nested within the node. 0 for ops and data.
+ * @param contents
+ *     A list of all node ids contained by the node.
+ * @param containsTemporal
+ *     Whether the node contains any temporal containers; needed for proper orientation of contents in the ELK graph.
+ * @param isTemporal
+ *     Whether the node is a temporal container.
  */
 function createNodeObj(nodeId, symbolId, symbolInfo, container, outPorts=0, height=0, contents=[], containsTemporal=false, isTemporal=false) {
     return {
@@ -321,21 +331,21 @@ function createElkNode(nodeId, nodes, edges, graphState) {
             }
         }
         else if (getNodeIsTemporal(nodeObj)) {
-            elkNode.height = collapsedTemporalHeight;
-            elkNode.width = collapsedTemporalWidth;
+            elkNode.height = kCollapsedTemporalHeight;
+            elkNode.width = kCollapsedTemporalWidth;
         }
         else {
-            elkNode.height = collapsedAbstractiveHeight;
-            elkNode.width = collapsedAbstractiveWidth;
+            elkNode.height = kCollapsedAbstractiveHeight;
+            elkNode.width = kCollapsedAbstractiveWidth;
         }
     }
     else if (nodeObj.type === 'graphop') {
-        elkNode.height = opNodeHeight;
-        elkNode.width = opNodeWidth;
+        elkNode.height = kOpNodeHeight;
+        elkNode.width = kOpNodeWidth;
     }
     else if (nodeObj.type === 'graphdata') {
-        elkNode.height = dataNodeHeight;
-        elkNode.width = dataNodeWidth;
+        elkNode.height = kDataNodeHeight;
+        elkNode.width = kDataNodeWidth;
     }
     return elkNode;
 }
@@ -554,7 +564,7 @@ const getPortYOffset = (hierarchyToTerminal, numTemporalPortsByTerminal) => {
     else {
         numTemporalPortsByTerminal[terminalId] = 1;
     }
-    return elkEdgePadding * numTemporalPortsByTerminal[terminalId];
+    return kEdgePadding * numTemporalPortsByTerminal[terminalId];
 };
 
 // TODO center the ports; currently starts from the top of the terminal
