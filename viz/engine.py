@@ -289,44 +289,55 @@ class VisualizationEngine:
     NUMBER          = VisualizationType('number', test_fn=lambda obj: isinstance(obj, (float, int)),
                                         data_fn=_generate_data_primitive, is_primitive=True)
     STRING          = VisualizationType('string', test_fn=lambda obj: isinstance(obj, str),
-                                        data_fn=_generate_data_primitive, is_primitive=True)
+                                        data_fn=_generate_data_primitive,
+                                        str_fn=lambda obj: '"{}"'.format(obj),
+                                        is_primitive=True)
     BOOL            = VisualizationType('bool', test_fn=lambda obj: isinstance(obj, bool),
                                         data_fn=_generate_data_primitive, is_primitive=True)
     NONE            = VisualizationType('none', test_fn=lambda obj: obj is None,
                                         data_fn=_generate_data_primitive, is_primitive=True)
     TENSOR          = VisualizationType('tensor', test_fn=lambda obj: isinstance(obj, _TensorBase),
-                                        str_fn=lambda obj: 'Tensor{}({})'.format(list(obj.size()),
-                                                                                 VisualizationEngine.TENSOR_TYPES),
+                                        str_fn=lambda obj: 'tensor <{}>{}'.format(VisualizationEngine.TENSOR_TYPES
+                                                                                  [obj.type()], list(obj.size())),
                                         data_fn=_generate_data_tensor)
     GRAPH_DATA      = VisualizationType('graphdata',
                                         test_fn=lambda obj: isinstance(obj, GraphData) or has_graphdata(obj),
+                                        str_fn=lambda obj: VisualizationEngine._get_type_info_obj(obj, ['graphdata'])
+                                        .str_fn(obj),
                                         data_fn=_generate_data_graphdata)
     GRAPH_CONTAINER = VisualizationType('graphcontainer', test_fn=lambda obj: isinstance(obj, GraphContainer),
+                                        str_fn=lambda obj: 'graphcontainer[{}]'.format(len(obj.contents)),
                                         data_fn=_generate_data_graphcontainer)
     GRAPH_OP        = VisualizationType('graphop', test_fn=lambda obj: isinstance(obj, GraphOp),
-                                        str_fn=lambda obj: obj.name,
+                                        str_fn=lambda obj: 'graphop <{}>'.format(obj.name),
                                         data_fn=_generate_data_graphop)
     DICT            = VisualizationType('dict', test_fn=lambda obj: isinstance(obj, dict),
-                                        str_fn=lambda obj: 'Dict[{}]'.format(len(obj)),
+                                        str_fn=lambda obj: 'dict[{}]'.format(len(obj)),
                                         data_fn=_generate_data_dict)
     LIST            = VisualizationType('list', test_fn=lambda obj: isinstance(obj, list),
-                                        str_fn=lambda obj: 'List[{}]'.format(len(obj)),
+                                        str_fn=lambda obj: 'list[{}]'.format(len(obj)),
                                         data_fn=_generate_data_sequence)
     SET             = VisualizationType('set', test_fn=lambda obj: isinstance(obj, set),
-                                        str_fn=lambda obj: 'Set[{}]'.format(len(obj)),
+                                        str_fn=lambda obj: 'set[{}]'.format(len(obj)),
                                         data_fn=_generate_data_sequence)
     TUPLE           = VisualizationType('tuple', test_fn=lambda obj: isinstance(obj, tuple),
+                                        str_fn=lambda obj: 'tuple[{}]'.format(len(obj)),
                                         data_fn=_generate_data_sequence)
     FUNCTION        = VisualizationType('fn', test_fn=lambda obj: isinstance(obj, (types.FunctionType, types.MethodType,
                                                                                    types.BuiltinFunctionType,
                                                                                    types.BuiltinFunctionType,
                                                                                    type(all.__call__))),
+                                        str_fn=lambda obj: 'function {}{}'.format(obj.__name__, '()'
+                                        if inspect.isbuiltin(obj) else str(inspect.signature(obj))),
                                         data_fn=_generate_data_function)
     MODULE          = VisualizationType('module', test_fn=inspect.ismodule,
+                                        str_fn=lambda obj: 'module <{}>'.format(obj.__name__),
                                         data_fn=_generate_data_module)
     CLASS           = VisualizationType('class', test_fn=inspect.isclass,
+                                        str_fn=lambda obj: 'class <{}>'.format(obj.__name__),
                                         data_fn=_generate_data_class)
     INSTANCE        = VisualizationType('obj', test_fn=lambda obj: True,
+                                        str_fn=lambda obj: 'object <{}>'.format(obj.__class__.__name__, str(obj)),
                                         data_fn=_generate_data_instance)
 
     # A list of all `VisualizationType` objects, in the order in which type should be tested. For example, the
@@ -467,13 +478,13 @@ class VisualizationEngine:
         """
         return str(id(obj))
 
-    def _get_type_info(self, symbol_id):
+    def _get_type_info_symbol(self, symbol_id):
         """Returns the `VisualizationType` object associated with a particular symbol ID.
 
         If the symbol ID has not yet been associated with a `VisualizationType` object in the cache, the association is made
         here. Otherwise, the cached value is returned.
         Args:
-            symbol_id (str): ID for a symbol, as defined by self._get_symbol_id.
+            symbol_id (str): ID for a symbol, as defined by `self._get_symbol_id()`.
 
         Returns:
             (VisualizationType): the `VisualizationType` object associated with the symbol's type.
@@ -482,11 +493,25 @@ class VisualizationEngine:
             raise KeyError('Symbol id {} not found in cache.'.format(symbol_id))
         if self.TYPE_INFO not in self.cache[symbol_id]:
             obj = self.cache[symbol_id][self.OBJ]
-            for type_info in self.TYPES:
-                if type_info.test_fn(obj):
-                    self.cache[symbol_id][self.TYPE_INFO] = type_info
-                    break
+            self.cache[symbol_id][self.TYPE_INFO] = self._get_type_info_obj(obj)
         return self.cache[symbol_id][self.TYPE_INFO]
+
+    @staticmethod
+    def _get_type_info_obj(obj, exclude_types=None):
+        """Returns the `VisualizationType` object associated with a given object.
+
+        Does not perform any caching; if the object is associated with a symbol ID in the symbol table,
+        `get_type_info_symbol()` should be used.
+        Args:
+            obj (object): an object of unknown visualization type.
+            exclude_types (list or None): a list of visualization type names that may not be returned.
+
+        Returns:
+            (VisualizationType): the `VisualizationType` object associated with the object's type.
+        """
+        for type_info in VisualizationEngine.TYPES:
+            if (exclude_types is None or type_info.type_name not in exclude_types) and type_info.test_fn(obj):
+                return type_info
 
     def _load_symbol_data(self, symbol_id):
         """Builds the data object for a symbol.
@@ -500,7 +525,7 @@ class VisualizationEngine:
         Returns:
             (object): The symbol's data object.
         """
-        symbol_type_info = self._get_type_info(symbol_id)
+        symbol_type_info = self._get_type_info_symbol(symbol_id)
         symbol_obj = self.cache[symbol_id][self.OBJ]
         return symbol_type_info.data_fn(self, symbol_obj)
 
@@ -540,7 +565,7 @@ class VisualizationEngine:
         if self.OBJ not in self.cache[symbol_id]:
             raise KeyError('No object reference found for symbol {}'.format(symbol_id))
         if self.SHELL not in self.cache[symbol_id]:
-            symbol_type_info = self._get_type_info(symbol_id)
+            symbol_type_info = self._get_type_info_symbol(symbol_id)
             symbol_obj = self.cache[symbol_id][self.OBJ]
             self.cache[symbol_id][self.SHELL] = {
                 'type': symbol_type_info.type_name,

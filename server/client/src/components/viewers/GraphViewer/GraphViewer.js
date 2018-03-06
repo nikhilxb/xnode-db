@@ -91,26 +91,10 @@ class GraphViewer extends Component {
      *     in `elkNode`'s children, while the target is stored in the container's node  object. In this case, the
      *     edge is offset not by `elkNode`'s position, but by the position of the container node.
      */
-    buildEdgeComponents(elkNode, components=[], offset={x: 0, y: 0}) {
-        for (let i = 0; i < elkNode.edges.length; i++) {
-            let points = [];
-            // If the edge connects a container to its child, offset it by the position of the container
-            let extraOffset = {x: 0, y: 0};
-            let { startPoint, endPoint } = elkNode.edges[i].sections[0];
-            points.push({x: startPoint.x + offset.x + extraOffset.x, y: startPoint.y + offset.y + extraOffset.y});
-            if (elkNode.edges[i].sections[0].bendPoints) {
-                elkNode.edges[i].sections[0].bendPoints.forEach(({x, y}) => {
-                    points.push({x: x + offset.x + extraOffset.x, y: y + offset.y + extraOffset.y});
-                });
-            }
-            points.push({x: endPoint.x + offset.x + extraOffset.x, y: endPoint.y + offset.y + extraOffset.y});
-            components.push(<GraphEdge points={points}/>);
-        }
-        for (let i = 0; i< elkNode.children.length; i ++) {
-            let {x, y} = elkNode.children[i];
-            this.buildEdgeComponents(elkNode.children[i], components, {x: offset.x + x, y: offset.y + y});
-        }
-        return components;
+    buildEdgeComponents(edges) {
+        return edges.map(edge => {
+            return (<GraphEdge {...edge} />);
+        });
     }
 
     /**
@@ -128,35 +112,26 @@ class GraphViewer extends Component {
      *     The pixel offset at which the component should be rendered. ELK uses relative positioning, meaning that a
      *     node's global position should be equal to its parent's global position, plus the node's `x` and `y` values.
      */
-    buildNodeComponents(elkNode, components=[], offset={x: 0, y: 0}) {
-        for (let i = 0; i < elkNode.children.length; i++) {
-            let { viewerObj, width, height, x, y } = elkNode.children[i];
-            let { type, symbolId } = viewerObj;
+    buildNodeComponents(nodes) {
+        return nodes.map(({type, key, viewerObj, x, y, width, height}) => {
             const layoutObj = {
                 width,
                 height,
-                x: x + offset.x,
-                y: y + offset.y,
+                x,
+                y,
             };
-
             switch(type) {
                 case 'graphdata':
-                    components.push(<GraphDataViewer key={symbolId} {...viewerObj} {...layoutObj} />);
-                    break;
+                    return (<GraphDataViewer key={key} {...viewerObj} {...layoutObj} />);
 
                 case 'graphop':
-                    components.push(<GraphOpViewer key={symbolId} {...viewerObj} {...layoutObj} />);
-                    break;
+                    return (<GraphOpViewer key={key} {...viewerObj} {...layoutObj} />);
 
                 case 'graphcontainer':
-                    components.push(<GraphContainerViewer key={symbolId} {...viewerObj} {...layoutObj}
-                                     toggleExpanded={() => this.toggleExpanded(viewerObj.symbolId)} />);
-                    break;
+                    return (<GraphContainerViewer key={key} {...viewerObj} {...layoutObj}
+                        toggleExpanded={() => this.toggleExpanded(viewerObj.symbolId)} />);
             }
-
-            this.buildNodeComponents(elkNode.children[i], components, {x: x + offset.x, y: y + offset.y});
-        }
-        return components;
+        });
     }
 
     toggleExpanded(symbolId) {
@@ -174,9 +149,8 @@ class GraphViewer extends Component {
         if (!graph) {
             return <CircularProgress />;
         }
-        console.log(graph);
-        let nodeComponents = this.buildNodeComponents(graph);
-        let edgeComponents = this.buildEdgeComponents(graph);
+        const nodeComponents = this.buildNodeComponents(graph.nodes);
+        const edgeComponents = this.buildEdgeComponents(graph.edges);
 
         return (
             <svg width={graph.width} height={graph.height}>

@@ -24,8 +24,8 @@ myVGG = vgg16()
 myVGGOutput = myVGG(myVGGInput)
 
 myRNNBatchSize = 5
-myRNNDims = [10, 10, 10]
-myRNNInput = [gt.track_data(Variable(torch.ones(5, myRNNDims[0])), {'obj': None}) for _ in range(2)]
+myRNNDims = [10, 10, 10, 10]
+myRNNInput = [gt.track_data(Variable(torch.ones(5, myRNNDims[0])), {'obj': None}) for _ in range(4)]
 myRNN = StackLSTM(5, myRNNDims)
 myRNNOutput = myRNN(myRNNInput)
 

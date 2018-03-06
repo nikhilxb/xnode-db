@@ -61,3 +61,7 @@
  the client; handling it in code introduces a lot of weird cases (what happens when I wrap ops in an abstractive
  container -- does it go above or below their already-existing-but-still-growing temporal container?)
  
+ ### Unsorted Notes
+  - temporal containers must be joined by gradient
+  - temporal containers do not need to be homogeneous
+ 

@@ -361,12 +361,13 @@ function getElkGraph(nodes, edges, graphState) {
  * Create a new edge which connects a node's input port to  a new input port on its parent container.
  * @param toNode: node object
  * @param toContainer: node object
+ * @param metadata: object containing non-ELK properties of the edge
  */
-function linkInputs(toNode, toContainer) {
+function linkInputs(toNode, toContainer, metadata) {
     let newEdge = [
         nodeIdToPortId(toContainer.nodeId, toContainer.inPorts, true),
         nodeIdToPortId(toNode.nodeId, toNode.inPorts, true),
-        {}
+        metadata
     ];
     toNode.inPorts += 1;
     return {newEdge, toNodeId: toContainer.nodeId, toContainerNodeId: toContainer.container}
@@ -378,12 +379,13 @@ function linkInputs(toNode, toContainer) {
  * @param fromNode: node object
  * @param fromPortNum: number identifying the port on `fromNode`
  * @param fromContainer: node object
+ * @param metadata: object containing non-ELK properties of the edge
  */
-function linkOutputs(fromNode, fromPortNum, fromContainer) {
+function linkOutputs(fromNode, fromPortNum, fromContainer, metadata) {
     let newEdge = [
         nodeIdToPortId(fromNode.nodeId, fromPortNum),
         nodeIdToPortId(fromContainer.nodeId, fromContainer.outPorts),
-        {}
+        metadata
     ];
     fromContainer.outPorts += 1;
     return {newEdge, fromPortNum: fromContainer.outPorts - 1, fromNodeId: fromContainer.nodeId, fromContainerNodeId: fromContainer.container};
@@ -399,7 +401,7 @@ function linkOutputs(fromNode, fromPortNum, fromContainer) {
  */
 function sliceEdges(nodes, unslicedEdges) {
     let slicedEdges = [];
-    unslicedEdges.forEach(edge => {
+    unslicedEdges.forEach((edge, joinedEdgeId) => {
         let [fromNodeId, fromPortNum, toNodeId] = edge;
         let fromContainerNodeId = nodes[fromNodeId].container;
         let toContainerNodeId = nodes[toNodeId].container;
@@ -407,13 +409,18 @@ function sliceEdges(nodes, unslicedEdges) {
         // the new "to edge" slices. This allows us to maintain port alignment and prevent ELK's ugly attempts at making
         // these edges work.
         let toEdgeSlices = [];
+        let joinedEdgeOrder = 0;
         while (true) {
             if (toContainerNodeId === fromContainerNodeId) {
                 let finalEdge = [
                     nodeIdToPortId(fromNodeId, fromPortNum),
                     nodeIdToPortId(toNodeId, nodes[toNodeId].inPorts, true),
-                    {}
+                    {
+                        joinedEdgeId,
+                        joinedEdgeOrder,
+                    }
                 ];
+                joinedEdgeOrder += 1;
                 // If the edge bridges two temporal containers, then we don't actually return `toEdgeSlices`. Instead,
                 // we will create a new, prettier edge after the graph has been laid out, since ELK doesn't handle
                 // the right-oriented cross-temporal edges well.
@@ -421,6 +428,10 @@ function sliceEdges(nodes, unslicedEdges) {
                     finalEdge[2].routeToTerminal = [toNodeId].concat(toEdgeSlices.reverse().map(([fromPortId, toPortId]) => toPortId));
                 }
                 else{
+                    toEdgeSlices.reverse().forEach(edgeSlice => {
+                       edgeSlice[2].joinedEdgeOrder = joinedEdgeOrder;
+                       joinedEdgeOrder += 1;
+                    });
                     slicedEdges = slicedEdges.concat(toEdgeSlices);
                 }
                 nodes[toNodeId].inPorts += 1;
@@ -429,22 +440,24 @@ function sliceEdges(nodes, unslicedEdges) {
             }
             if (fromContainerNodeId === 'root' || nodes[fromContainerNodeId].height > nodes[toContainerNodeId].height) {
                 let newEdge = null;
-                ({ newEdge, toNodeId, toContainerNodeId } = linkInputs(nodes[toNodeId], nodes[toContainerNodeId]));
+                ({ newEdge, toNodeId, toContainerNodeId } = linkInputs(nodes[toNodeId], nodes[toContainerNodeId], {joinedEdgeId, joinedEdgeOrder}));
                 toEdgeSlices.push(newEdge);
                 continue;
             }
             if (toContainerNodeId === 'root' || nodes[toContainerNodeId].height > nodes[fromContainerNodeId].height) {
                 let newEdge = null;
-                ({ newEdge, fromNodeId, fromPortNum, fromContainerNodeId} = linkOutputs(nodes[fromNodeId], fromPortNum, nodes[fromContainerNodeId]));
+                ({ newEdge, fromNodeId, fromPortNum, fromContainerNodeId} = linkOutputs(nodes[fromNodeId], fromPortNum, nodes[fromContainerNodeId], {joinedEdgeId, joinedEdgeOrder}));
+                joinedEdgeOrder += 1;
                 slicedEdges.push(newEdge);
                 continue;
             }
             let newToEdge = null;
-            ({ newEdge: newToEdge, toNodeId, toContainerNodeId } = linkInputs(nodes[toNodeId], nodes[toContainerNodeId]));
+            ({ newEdge: newToEdge, toNodeId, toContainerNodeId } = linkInputs(nodes[toNodeId], nodes[toContainerNodeId], {joinedEdgeId, joinedEdgeOrder}));
             toEdgeSlices.push(newToEdge);
 
             let newFromEdge = null;
-            ({ newEdge: newFromEdge, fromNodeId, fromPortNum, fromContainerNodeId} = linkOutputs(nodes[fromNodeId], fromPortNum, nodes[fromContainerNodeId]));
+            ({ newEdge: newFromEdge, fromNodeId, fromPortNum, fromContainerNodeId} = linkOutputs(nodes[fromNodeId], fromPortNum, nodes[fromContainerNodeId], {joinedEdgeId, joinedEdgeOrder}));
+            joinedEdgeOrder += 1;
             slicedEdges.push(newFromEdge);
         }
     });
@@ -516,7 +529,15 @@ function getTemporalOutPort(root, toPortId) {
  * @param toPortId
  */
 function getRouteToTerminal(parent, toPortId) {
-    return parent.edges.filter(({targets}) => targets[0] === toPortId)[0].metadata.routeToTerminal;
+    return parent.edges.find(({targets}) => targets[0] === toPortId).metadata.routeToTerminal;
+}
+
+function getJoinedEdgeId(parent, toPortId) {
+    return parent.edges.find(({targets}) => targets[0] === toPortId).metadata.joinedEdgeId;
+}
+
+function getJoinedEdgeLength(parent, toPortId) {
+    return parent.edges.find(({targets}) => targets[0] === toPortId).metadata.joinedEdgeOrder + 1;
 }
 
 /**
@@ -562,7 +583,12 @@ function fixTemporalPortPositions(node, parent, numTemporalPortsByTerminal, hier
             inPort.y = yOffsetTerminalPort;
             let connectedOutPort = getTemporalOutPort(parent, inPort.id);
             connectedOutPort.y = yOffsetTerminalPort;
-            temporalEdges.push({hierarchyToSource: hierarchyToNode.slice(0).concat([portIdToNodeId(connectedOutPort.id), connectedOutPort.id]), hierarchyToTerminal: hierarchyToNode.slice(0).concat(hierarchyToTerminal)})
+            temporalEdges.push({
+                hierarchyToSource: hierarchyToNode.slice(0).concat([portIdToNodeId(connectedOutPort.id), connectedOutPort.id]),
+                hierarchyToTerminal: hierarchyToNode.slice(0).concat(hierarchyToTerminal),
+                joinedEdgeId: getJoinedEdgeId(parent, inPort.id),
+                joinedEdgeOrder: getJoinedEdgeLength(parent, inPort.id),
+            })
         });
     }
     hierarchyToNode.push(node.id);
@@ -602,12 +628,64 @@ function getOffsetFromHierarchy(root, hierarchy) {
  */
 function getTemporalConnectorEdges(root, edges) {
     let retEdges = [];
-    edges.forEach(({hierarchyToSource, hierarchyToTerminal}, i) => {
+    edges.forEach(({hierarchyToSource, hierarchyToTerminal, joinedEdgeId, joinedEdgeOrder}, i) => {
         let sourcePos = getOffsetFromHierarchy(root, hierarchyToSource);
         let terminalPos = getOffsetFromHierarchy(root, hierarchyToTerminal);
-        retEdges.push({id: `temporal${i}`, sections: [{startPoint: sourcePos, endPoint: {x: terminalPos.x, y: sourcePos.y}}]});
+        retEdges.push({id: `temporal${i}`, sections: [{startPoint: sourcePos, endPoint: {x: terminalPos.x, y: sourcePos.y}}], metadata: {joinedEdgeId, joinedEdgeOrder}});
     });
     return retEdges;
+}
+
+function elkGraphToNodeList(elkNode, nodes=[], offset={x: 0, y: 0}) {
+    for (let i = 0; i < elkNode.children.length; i++) {
+        let {viewerObj, width, height, x, y, id} = elkNode.children[i];
+        let { type, symbolId } = viewerObj;
+        nodes.push({key: id, type, symbolId, viewerObj, x: x + offset.x, y: y + offset.y, width, height});
+        elkGraphToNodeList(elkNode.children[i], nodes, {x: x + offset.x, y: y + offset.y});
+    }
+    return nodes;
+}
+
+function getEdgePoints(edge, offset) {
+    let points = [];
+    let { startPoint, endPoint, bendPoints } = edge.sections[0];
+    points.push({x: startPoint.x + offset.x, y: startPoint.y + offset.y});
+    if (bendPoints) {
+        bendPoints.forEach(({x, y}) => {
+            points.push({x: x + offset.x, y: y + offset.y});
+        });
+    }
+    points.push({x: endPoint.x + offset.x, y: endPoint.y + offset.y});
+    return points;
+}
+
+function elkGraphToEdgeGroups(elkNode, edgeGroups={}, offset={x: 0, y: 0}) {
+    for (let i = 0; i < elkNode.edges.length; i++) {
+        let edge = elkNode.edges[i];
+        let points = getEdgePoints(edge, offset);
+        if (!(edge.metadata.joinedEdgeId in edgeGroups)) {
+            edgeGroups[edge.metadata.joinedEdgeId] = [];
+        }
+        edgeGroups[edge.metadata.joinedEdgeId].push({points, order: edge.metadata.joinedEdgeOrder});
+    }
+    for (let i = 0; i< elkNode.children.length; i ++) {
+        let {x, y} = elkNode.children[i];
+        elkGraphToEdgeGroups(elkNode.children[i], edgeGroups, {x: offset.x + x, y: offset.y + y});
+    }
+    return edgeGroups;
+}
+
+function elkGraphToEdgeList(root) {
+    let edgeGroups = elkGraphToEdgeGroups(root);
+    let edges = [];
+    Object.entries(edgeGroups).forEach(([groupId, edgeGroup]) => {
+        let edgeGroupSorted = edgeGroup.splice(0).sort(({order: order1}, {order: order2}) => order1 - order2);
+        let newEdge = [edgeGroupSorted[0].points[0]];
+        edgeGroupSorted.forEach(({points}) => points.forEach((point, i) => {if (i > 0) {newEdge.push(point)}}));
+        edges.push({key: groupId, points: newEdge});
+    });
+    console.log(edges);
+    return edges;
 }
 
 /**
@@ -625,7 +703,6 @@ export function makeGetElkGraphFromHead() {
             if (!graphState || !fullGraph) {
                 return null;
             }
-            console.log('stategraph');
             let { nodes, edges } = fullGraph;
             // we must assign parents here because the objects produced are preserved throughout layouting; creating
             // them in `makeGetFullGraphFromHead()` persists data like breakpoints
@@ -651,7 +728,7 @@ export function layoutGraph(elk, rootNode, viewerId, setInPayload) {
             elk.layout(graphSpacedForTemporal).then(
                 (laidOutGraph) => {
                     laidOutGraph.edges = laidOutGraph.edges.concat(getTemporalConnectorEdges(laidOutGraph, temporalEdges));
-                    setInPayload(viewerId, ['graph'], laidOutGraph)
+                    setInPayload(viewerId, ['graph'], {width: laidOutGraph.width, height: laidOutGraph.height, nodes: elkGraphToNodeList(laidOutGraph), edges: elkGraphToEdgeList(laidOutGraph)});
                 }
             );
         }
