@@ -4,22 +4,20 @@ import PropTypes from "prop-types";
 
 
 /**
- * This dumb component renders an op node in a computation graph.
+ * This dumb component renders a container in a computation graph.
  */
 class GraphContainerViewer extends Component {
 
     /** Prop expected types object. */
     static propTypes = {
         classes: PropTypes.object.isRequired,
-
     };
 
     render() {
-        // TODO: Make into one
-        let { classes, toggleExpanded, symbolId } = this.props;
+        const { classes, toggleExpanded, width, height, x, y } = this.props;
         return (
-            <rect width={this.props.width} height={this.props.height} x={this.props.x} y={this.props.y} fill='#75CE8A'
-                  onClick={() => toggleExpanded(symbolId)} className={classes.graphContainer} />
+            <rect width={width} height={height} x={x} y={y} fill='#75CE8A'
+                  onClick={toggleExpanded} className={classes.graphContainer} />
         );
     }
 }

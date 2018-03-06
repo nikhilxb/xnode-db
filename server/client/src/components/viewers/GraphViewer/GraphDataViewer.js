@@ -14,8 +14,9 @@ class GraphDataViewer extends Component {
     };
 
     render() {
+        const { width, height, x, y } = this.props;
         return (
-            <rect width="20px" height="20px" x={this.props.x} y={this.props.y} fill='#75CE8A'/>
+            <rect width={width} height={height} x={x} y={y} fill='#75CE8A'/>
         );
     }
 }

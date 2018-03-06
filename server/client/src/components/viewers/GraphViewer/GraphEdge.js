@@ -14,13 +14,14 @@ class GraphEdge extends Component {
     };
 
     render() {
-        let points = this.props.points;
+        const { classes, points } = this.props;
         let segments = [];
         for (let i=0; i < points.length - 1; i++) {
             segments.push([points[i], points[i + 1]]);
         }
         return segments.map((segment, i) =>
-            <line key={i} x1={segment[0].x} y1={segment[0].y} x2={segment[1].x} y2={segment[1].y} />
+            <line key={i} className={classes.graphEdge}
+                  x1={segment[0].x} y1={segment[0].y} x2={segment[1].x} y2={segment[1].y} stroke="blue" strokeWidth={3}  />
         );
     }
 }
@@ -31,7 +32,11 @@ class GraphEdge extends Component {
 
 /** CSS-in-JS styling object. */
 const styles = theme => ({
-    // css-key: value,
+    graphEdge: {
+        strokeWidth: 2,
+        strokeColor: '#FF0000',
+        color: '#FF0000'
+    }
 });
 
 export default withStyles(styles)(GraphEdge);

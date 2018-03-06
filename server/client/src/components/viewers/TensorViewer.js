@@ -149,8 +149,8 @@ class TensorViewer extends Component {
         return (
             <svg width={width + 2*PADDING} height={height + 2*PADDING}
                  viewBox={`${-PADDING} ${-PADDING} ${width + 2*PADDING} ${height + 2*PADDING}`}>
-                <TensorPixels pixels={pixels} handleHighlight={this.handleHighlight.bind(this)}/>
-                <TensorHighlight highlight={highlight}/>
+                <TensorPixels pixels={pixels} handleHighlight={this.handleHighlight.bind(this)} />
+                <TensorHighlight highlight={highlight} />
             </svg>
         );
     }
