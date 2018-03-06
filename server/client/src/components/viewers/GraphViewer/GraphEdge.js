@@ -21,7 +21,7 @@ class GraphEdge extends Component {
         }
         return segments.map((segment, i) =>
             <line key={i} className={classes.graphEdge}
-                  x1={segment[0].x} y1={segment[0].y} x2={segment[1].x} y2={segment[1].y} stroke="blue" strokeWidth={3}  />
+                  x1={segment[0].x} y1={segment[0].y} x2={segment[1].x} y2={segment[1].y} />
         );
     }
 }
@@ -33,9 +33,8 @@ class GraphEdge extends Component {
 /** CSS-in-JS styling object. */
 const styles = theme => ({
     graphEdge: {
-        strokeWidth: 2,
-        strokeColor: '#FF0000',
-        color: '#FF0000'
+        stroke: '#FF0000',
+        strokeWidth: 3,
     }
 });
 
