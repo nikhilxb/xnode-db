@@ -13,7 +13,7 @@ import Collapse from 'material-ui/transitions/Collapse';
 import Tooltip    from 'material-ui/Tooltip';
 import IconButton from 'material-ui/IconButton';
 import { LinearProgress } from 'material-ui/Progress';
-import blueGrey from 'material-ui/colors/blueGrey';
+import ColorBlueGrey from 'material-ui/colors/blueGrey';
 
 import SearchIcon from 'material-ui-icons/Search';
 import DropDownIcon from 'material-ui-icons/ArrowDropDown';
@@ -126,7 +126,7 @@ const styles = theme => ({
         fontWeight: 800,
     },
     varString: {
-        color: blueGrey[500],
+        color: ColorBlueGrey[500],
     },
 });
 
