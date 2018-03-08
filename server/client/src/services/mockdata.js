@@ -120,7 +120,7 @@ const anonListRefs2 = [];
 
 // Xnode graph objects
 // -------------------
-// - The computational graph is defined through links maintained within GraphOp and GraphData objects.
+// - The computational graph is defined through links maintained within GraphOpNode and GraphData objects.
 
 const namedGraphDataShell = {
     "type": "graphdata",
@@ -138,7 +138,7 @@ const namedGraphDataRefs = [`${REF}107`];
 
 const anonGraphOpShell = {
     "type": "graphop",
-    "str": "GraphOp",
+    "str": "GraphOpNode",
     "name": null,
     "data": null,
 };

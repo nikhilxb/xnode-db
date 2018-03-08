@@ -10,10 +10,10 @@ import { ensureGraphLoadedActionThunk } from "../../../actions/symboltable";
 import { setInViewerPayloadAction } from '../../../actions/canvas';
 import { makeGetElkGraphFromHead, layoutGraph } from "./layout";
 
-import GraphEdge from './GraphEdge';
-import GraphDataViewer from './GraphDataViewer';
-import GraphOpViewer from './GraphOpViewer';
-import GraphContainerViewer from './GraphContainerViewer';
+import GraphOpNode from './GraphOpNode';
+import GraphDataEdge from './GraphDataEdge';
+import GraphDataNode from './GraphDataNode';
+import GraphContainerNode from './GraphContainerNode';
 
 import { CircularProgress } from 'material-ui/Progress';
 
@@ -66,7 +66,7 @@ class GraphViewer extends Component {
     }
 
     /**
-     * Recursively adds new `GraphEdge` components to the `components` array.
+     * Recursively adds new `GraphDataEdge` components to the `components` array.
      *
      * @param elkNode
      *     An ELK node object which contains at least `x` and `y` fields, as well as an array of edge objects. Each
@@ -91,7 +91,7 @@ class GraphViewer extends Component {
      */
     buildEdgeComponents(edges) {
         return edges.map(edge => {
-            return (<GraphEdge {...edge} />);
+            return (<GraphDataEdge {...edge} />);
         });
     }
 
@@ -118,14 +118,14 @@ class GraphViewer extends Component {
             };
             switch(type) {
                 case 'graphdata':
-                    return (<GraphDataViewer key={key} {...viewerObj} {...layoutObj} />);
+                    return (<GraphDataNode key={key} {...viewerObj} {...layoutObj} />);
 
                 case 'graphop':
-                    return (<GraphOpViewer key={key} {...viewerObj} {...layoutObj} />);
+                    return (<GraphOpNode key={key} {...viewerObj} {...layoutObj} />);
 
                 case 'graphcontainer':
-                    return (<GraphContainerViewer key={key} {...viewerObj} {...layoutObj}
-                        toggleExpanded={() => this.toggleExpanded(viewerObj.symbolId)} />);
+                    return (<GraphContainerNode key={key} {...viewerObj} {...layoutObj}
+                                                toggleExpanded={() => this.toggleExpanded(viewerObj.symbolId)} />);
             }
         });
     }
