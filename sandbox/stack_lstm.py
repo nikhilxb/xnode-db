@@ -17,10 +17,12 @@ class StackLSTM(nn.Module):
         self.bundle = gt.OpGenerator(self._bundle_hc)
 
     @staticmethod
-    def _bundle_hc(h, c):
+    def _bundle_hc(h, c, dummy_h, dummy_c):
         return [h, c]
 
     def forward(self, input_seq):
+        older_hiddens = []
+        older_states = []
         hiddens = [gt.track_data(Variable(torch.randn(self.batch_size, dim)), {'obj': None}) for dim in self.dims[1:]]
         states = [gt.track_data(Variable(torch.randn(self.batch_size, dim)), {'obj': None}) for dim in self.dims[1:]]
         for token in input_seq:
@@ -28,11 +30,20 @@ class StackLSTM(nn.Module):
             new_states = []
             x = token
             for i, l in enumerate(self.layers):
-                h, c = gt.AbstractContainerGenerator(lambda x, h, c: l(x, self.bundle(h, c)))(x, hiddens[i], states[i])
+                if len(older_hiddens) > 0:
+                    h, c = gt.AbstractContainerGenerator(lambda x, h, c, h2, c2: l(x, self.bundle(h, c, h2, c2,
+                                                                                          )))(x, hiddens[i],
+                                                                                              states[i],
+                                                                                              older_hiddens[i],
+                                                                                              older_states[i])
+                else:
+                    h, c = gt.AbstractContainerGenerator(lambda x, h, c: l(x, self.bundle(h, c, h, c)))(x, hiddens[i], states[i])
                 new_hiddens.append(h)
                 new_states.append(c)
                 x = h
             gt.tick(x, 0)
+            older_hiddens = hiddens
+            older_states = states
             hiddens = new_hiddens
             states = new_states
         return x
