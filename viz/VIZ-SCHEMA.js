@@ -18,7 +18,7 @@
 // [ID] = "xnode$12345"
 // [TYPE] = number (int, float), string, bool
 //        = list, tuple, set, dict, class, module, object, function
-//        = tensor, GraphData, GraphOpNode
+//        = tensor, GraphData, GraphOp
 
 // We separate "viewer" from "attributes" because the Python object might have a field with the same name as one of the keywords
 // used by the data viewer in the client. For example, a subclass of list could define a value for a field "contents", causing
