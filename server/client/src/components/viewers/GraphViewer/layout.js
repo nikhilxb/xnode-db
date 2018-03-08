@@ -11,11 +11,10 @@ const kOpNodeHeight = 40;
 const kOpNodeWidth = 80;
 const kCollapsedAbstractiveHeight = 40;
 const kCollapsedAbstractiveWidth = 80;
-const kCollapsedTemporalHeight = 120;
-const kCollapsedTemporalWidth = 60;
 const kEdgeMargin = 12;
 const kContainerPadding = 12;
 const kTemporalContainerMargin = 20;
+const kEdgeThickness = 2.5;
 
 /**
  * Creates a "node object" which can be translated into a node in the ELK graph; data, ops, and container nodes are
@@ -62,7 +61,7 @@ function createNodeObj(nodeId, symbolId, symbolInfo, container, outPorts=[], hei
         contents,
         height,
         containsTemporal,
-        orientation: containsTemporal ? "RIGHT" : "DOWN",
+        orientation: containsTemporal ? "RIGHT" : "UP",
         isTemporal: temporalStep >= 0,
         temporalStep,
     };
@@ -329,7 +328,7 @@ function createElkNode(nodeId, nodes, edges, graphState) {
         },
         viewerObj: nodeObj.viewerObj,
         temporalStep: nodeObj.temporalStep,
-        zOrder: -nodeObj.height,
+        zOrder: nodeObj.height === 0 ? 1 : -nodeObj.height,
         edges: [],
         children: [],
         ports: [],
@@ -345,7 +344,7 @@ function createElkNode(nodeId, nodes, edges, graphState) {
         let newPort = {
             id: nodeIdToPortId(nodeObj.nodeId, i, true),
             properties: {
-                'port.side': getNodeIsTemporal(nodeObj) ? "WEST" : "NORTH",
+                'port.side': getNodeIsTemporal(nodeObj) ? "WEST" : "SOUTH",
             }
         };
         // On the initial graph construction, we lock all temporal ports to the top of the container. This forces the
@@ -360,7 +359,7 @@ function createElkNode(nodeId, nodes, edges, graphState) {
         let newPort = {
             id: nodeIdToPortId(nodeObj.nodeId, i, false),
             properties: {
-                'port.side': getNodeIsTemporal(nodeObj) ? "EAST": "SOUTH",
+                'port.side': getNodeIsTemporal(nodeObj) ? "EAST": "NORTH",
             }
         };
         if (getNodeIsTemporal(nodeObj)) {
@@ -373,10 +372,6 @@ function createElkNode(nodeId, nodes, edges, graphState) {
             if (nodeObj.nodeId in edges) {
                 elkNode.edges = edges[nodeObj.nodeId];
             }
-        }
-        else if (getNodeIsTemporal(nodeObj)) {
-            elkNode.height = kCollapsedTemporalHeight;
-            elkNode.width = kCollapsedTemporalWidth;
         }
         else {
             elkNode.height = kCollapsedAbstractiveHeight;
@@ -402,7 +397,7 @@ function createElkNode(nodeId, nodes, edges, graphState) {
  */
 function getElkGraph(nodes, edges, graphState) {
     let rootChildren =  Object.entries(nodes).filter(([nodeId, nodeObj]) => nodeObj.outermost).map(([nodeId]) => createElkNode(nodeId, nodes, edges, graphState));
-    let orientation = rootChildren.length > 0 && rootChildren[0].temporalStep >= 0 ? 'RIGHT' : 'DOWN';
+    let orientation = rootChildren.length > 0 && rootChildren[0].temporalStep >= 0 ? 'RIGHT' : 'UP';
     return {
         id: 'root',
         properties: {'elk.algorithm': 'layered', 'elk.direction': orientation},
@@ -493,7 +488,7 @@ function sliceEdges(nodes, unslicedEdges) {
                 joinedEdgeOrder,
                 edgeDataSymbolId,
                 isTemporalEdge,
-                zOrder: 1,
+                zOrder: 0,
             };
             if (toContainerNodeId === fromContainerNodeId) {
                 let finalEdge = [
@@ -507,7 +502,7 @@ function sliceEdges(nodes, unslicedEdges) {
                 // we will create a new, prettier edge after the graph has been laid out, since ELK doesn't handle
                 // the right-oriented cross-temporal edges well.
                 if (isTemporalEdge) {
-                    slicedEdges.push([nodeIdToPortId(edge[0], edge[1]), edge[2], {joinedEdgeOrder, joinedEdgeId, isTemporalEdge, edgeDataSymbolId, zOrder: -999}]);
+                    slicedEdges.push([nodeIdToPortId(edge[0], edge[1]), edge[2], {joinedEdgeOrder, joinedEdgeId, isTemporalEdge, edgeDataSymbolId, zOrder: 0}]);
                     break;
                     // finalEdge[2].routeToTerminal = [toNodeId].concat(toEdgeSlices.reverse().map(([fromPortId, toPortId]) => toPortId));
                     // slicedEdges = slicedEdges.concat(fromEdgeSlices);
@@ -695,10 +690,10 @@ function buildTemporalEdges(root, nodePositions, edges) {
         inputCountByNode[target] += 1;
 
         let startPoint = {x: nodePositions[source].x, y: nodePositions[source].y};
-        let endPoint = {x: nodePositions[target].x, y: nodePositions[target].y + kEdgeMargin * (inputCountByNode[target] - 1)};
+        let endPoint = {x: nodePositions[target].x, y: nodePositions[target].y + kEdgeMargin * (inputCountByNode[target] - 1) + kEdgeThickness};
         let bendPoints = [
-            {x: startPoint.x, y: startPoint.y + kEdgeMargin * outputCountByPort[source]},
-            {x: (endPoint.x + startPoint.x) / 2, y: startPoint.y + kEdgeMargin * outputCountByPort[source]},
+            {x: startPoint.x, y: startPoint.y - kEdgeMargin * outputCountByPort[source]},
+            {x: (endPoint.x + startPoint.x) / 2, y: startPoint.y - kEdgeMargin * outputCountByPort[source]},
             {x: (endPoint.x + startPoint.x) / 2, y: endPoint.y}
         ];
         return {id, sections: [{
@@ -740,6 +735,9 @@ export function layoutGraph(elk, rootNode, viewerId, setInPayload) {
                         });
                         rootNode.width += kContainerPadding * 2;
                         rootNode.height += kContainerPadding * 2;
+                        sortedContainers.forEach(child => {
+                           child.y = rootNode.height - kContainerPadding - child.height;
+                        });
                     }
                     if (viewerId !== null && setInPayload !== null) {
                         let positions = getNodeAndPortPositions(rootNode);
