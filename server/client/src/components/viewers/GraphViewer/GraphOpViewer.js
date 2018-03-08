@@ -15,7 +15,6 @@ class GraphOpViewer extends Component {
 
     render() {
         const { width, height, x, y } = this.props;
-        console.log(x, y, width, height);
         return (
             <rect width={width} height={height} x={x} y={y} fill='#75CE8A'/>
         );
