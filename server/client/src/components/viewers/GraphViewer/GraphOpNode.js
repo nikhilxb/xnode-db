@@ -42,7 +42,7 @@ const styles = theme => ({
     node: {
         fill: ColorPink[400],
         '&:hover': {
-            fill: ColorPink[500]
+            fill: ColorPink[600]
         }
     }
 });

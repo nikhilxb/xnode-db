@@ -31,8 +31,8 @@ class GraphContainerNode extends Component {
 /** CSS-in-JS styling object. */
 const styles = theme => ({
     node: {
-        fill: ColorLightBlue[300],
-        opacity: 0.3,
+        fill: ColorLightBlue[200],
+        opacity: 0.2,
         '&:hover': {
             fill: ColorLightBlue[400]
         }
