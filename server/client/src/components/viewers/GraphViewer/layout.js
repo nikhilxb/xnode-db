@@ -13,7 +13,7 @@ const kCollapsedAbstractiveHeight = 40;
 const kCollapsedAbstractiveWidth = 80;
 const kCollapsedTemporalHeight = 120;
 const kCollapsedTemporalWidth = 60;
-const kEdgePadding = 10;
+const kEdgeMargin = 12;
 const kContainerPadding = 12;
 const kTemporalContainerMargin = 20;
 
@@ -329,6 +329,7 @@ function createElkNode(nodeId, nodes, edges, graphState) {
         },
         viewerObj: nodeObj.viewerObj,
         temporalStep: nodeObj.temporalStep,
+        zOrder: -nodeObj.height,
         edges: [],
         children: [],
         ports: [],
@@ -492,6 +493,7 @@ function sliceEdges(nodes, unslicedEdges) {
                 joinedEdgeOrder,
                 edgeDataSymbolId,
                 isTemporalEdge,
+                zOrder: 1,
             };
             if (toContainerNodeId === fromContainerNodeId) {
                 let finalEdge = [
@@ -505,7 +507,7 @@ function sliceEdges(nodes, unslicedEdges) {
                 // we will create a new, prettier edge after the graph has been laid out, since ELK doesn't handle
                 // the right-oriented cross-temporal edges well.
                 if (isTemporalEdge) {
-                    slicedEdges.push([nodeIdToPortId(edge[0], edge[1]), edge[2], {joinedEdgeOrder, joinedEdgeId, isTemporalEdge, edgeDataSymbolId}]);
+                    slicedEdges.push([nodeIdToPortId(edge[0], edge[1]), edge[2], {joinedEdgeOrder, joinedEdgeId, isTemporalEdge, edgeDataSymbolId, zOrder: -999}]);
                     break;
                     // finalEdge[2].routeToTerminal = [toNodeId].concat(toEdgeSlices.reverse().map(([fromPortId, toPortId]) => toPortId));
                     // slicedEdges = slicedEdges.concat(fromEdgeSlices);
@@ -574,9 +576,9 @@ function makeGetFullGraphFromHead() {
 
 function elkGraphToNodeList(elkNode, nodes=[], offset={x: 0, y: 0}) {
     for (let i = 0; i < elkNode.children.length; i++) {
-        let {viewerObj, width, height, x, y, id} = elkNode.children[i];
+        let {viewerObj, width, height, x, y, id, zOrder} = elkNode.children[i];
         let { type, symbolId } = viewerObj;
-        nodes.push({key: id, type, symbolId, viewerObj, x: x + offset.x, y: y + offset.y, width, height});
+        nodes.push({key: id, type, symbolId, viewerObj, x: x + offset.x, y: y + offset.y, width, height, zOrder});
         elkGraphToNodeList(elkNode.children[i], nodes, {x: x + offset.x, y: y + offset.y});
     }
     return nodes;
@@ -602,7 +604,7 @@ function elkGraphToEdgeGroups(elkNode, edgeGroups={}, offset={x: 0, y: 0}) {
         if (!(edge.metadata.joinedEdgeId in edgeGroups)) {
             edgeGroups[edge.metadata.joinedEdgeId] = [];
         }
-        edgeGroups[edge.metadata.joinedEdgeId].push({points, order: edge.metadata.joinedEdgeOrder, symbolId: edge.metadata.edgeDataSymbolId});
+        edgeGroups[edge.metadata.joinedEdgeId].push({points, order: edge.metadata.joinedEdgeOrder, symbolId: edge.metadata.edgeDataSymbolId, zOrder: edge.metadata.zOrder});
     }
     for (let i = 0; i< elkNode.children.length; i ++) {
         let {x, y} = elkNode.children[i];
@@ -618,7 +620,7 @@ function elkGraphToEdgeList(root) {
         let edgeGroupSorted = edgeGroup.splice(0).sort(({order: order1}, {order: order2}) => order1 - order2);
         let newEdge = [edgeGroupSorted[0].points[0]];
         edgeGroupSorted.forEach(({points}) => points.forEach((point, i) => {if (i > 0) {newEdge.push(point)}}));
-        edges.push({key: groupId, points: newEdge, symbolId: edgeGroupSorted[0].symbolId});
+        edges.push({key: groupId, points: newEdge, symbolId: edgeGroupSorted[0].symbolId, zOrder: edgeGroupSorted[0].zOrder});
     });
     return edges;
 }
@@ -693,10 +695,10 @@ function buildTemporalEdges(root, nodePositions, edges) {
         inputCountByNode[target] += 1;
 
         let startPoint = {x: nodePositions[source].x, y: nodePositions[source].y};
-        let endPoint = {x: nodePositions[target].x, y: nodePositions[target].y + kEdgePadding * (inputCountByNode[target] - 1)};
+        let endPoint = {x: nodePositions[target].x, y: nodePositions[target].y + kEdgeMargin * (inputCountByNode[target] - 1)};
         let bendPoints = [
-            {x: startPoint.x, y: startPoint.y + kEdgePadding * outputCountByPort[source]},
-            {x: (endPoint.x + startPoint.x) / 2, y: startPoint.y + kEdgePadding * outputCountByPort[source]},
+            {x: startPoint.x, y: startPoint.y + kEdgeMargin * outputCountByPort[source]},
+            {x: (endPoint.x + startPoint.x) / 2, y: startPoint.y + kEdgeMargin * outputCountByPort[source]},
             {x: (endPoint.x + startPoint.x) / 2, y: endPoint.y}
         ];
         return {id, sections: [{
@@ -719,7 +721,7 @@ export function layoutGraph(elk, rootNode, viewerId, setInPayload) {
     return Promise.all(rootNode.children.map(child => layoutGraph(elk, child, null, null)))
         .then(
         () => {
-            elk.layout(rootNode).then(
+            elk.layout(rootNode, {properties: {'elk.spacing.edgeEdge': kEdgeMargin}}).then(
                 (laidOutGraph) => {
                     Object.assign(rootNode, laidOutGraph);
                     rootNode.properties['elk.algorithm'] = 'fixed';

@@ -32,7 +32,7 @@ class GraphContainerNode extends Component {
 const styles = theme => ({
     node: {
         fill: ColorLightBlue[300],
-        opacity: 0.2,
+        opacity: 0.3,
         '&:hover': {
             fill: ColorLightBlue[400]
         }

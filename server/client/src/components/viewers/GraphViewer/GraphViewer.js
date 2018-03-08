@@ -91,7 +91,7 @@ class GraphViewer extends Component {
      */
     buildEdgeComponents(edges) {
         return edges.map(edge => {
-            return (<GraphDataEdge {...edge} />);
+            return ({component: <GraphDataEdge {...edge}/>, zOrder: edge.zOrder});
         });
     }
 
@@ -109,7 +109,7 @@ class GraphViewer extends Component {
      *     node's global position should be equal to its parent's global position, plus the node's `x` and `y` values.
      */
     buildNodeComponents(nodes) {
-        return nodes.map(({type, key, viewerObj, x, y, width, height}) => {
+        return nodes.map(({type, key, viewerObj, x, y, width, height, zOrder}) => {
             const layoutObj = {
                 width,
                 height,
@@ -118,14 +118,14 @@ class GraphViewer extends Component {
             };
             switch(type) {
                 case 'graphdata':
-                    return (<GraphDataNode key={key} {...viewerObj} {...layoutObj} />);
+                    return ({component: <GraphDataNode key={key} {...viewerObj} {...layoutObj} />, zOrder});
 
                 case 'graphop':
-                    return (<GraphOpNode key={key} {...viewerObj} {...layoutObj} />);
+                    return ({component: <GraphOpNode key={key} {...viewerObj} {...layoutObj} />, zOrder});
 
                 case 'graphcontainer':
-                    return (<GraphContainerNode key={key} {...viewerObj} {...layoutObj}
-                                                toggleExpanded={() => this.toggleExpanded(viewerObj.symbolId)} />);
+                    return ({component: <GraphContainerNode key={key} {...viewerObj} {...layoutObj}
+                                                toggleExpanded={() => this.toggleExpanded(viewerObj.symbolId)} />, zOrder});
             }
         });
     }
@@ -145,13 +145,12 @@ class GraphViewer extends Component {
         if (!graph) {
             return <CircularProgress />;
         }
-        const nodeComponents = this.buildNodeComponents(graph.nodes);
-        const edgeComponents = this.buildEdgeComponents(graph.edges);
+        const componentObjects = this.buildNodeComponents(graph.nodes).concat(this.buildEdgeComponents(graph.edges));
+        const components = componentObjects.asMutable().sort(({zOrder: zOrder1}, {zOrder: zOrder2}) => zOrder1 - zOrder2).map(({component}) => component);
 
         return (
             <svg width={graph.width} height={graph.height}>
-                {nodeComponents}
-                {edgeComponents}
+                {components}
             </svg>
         );
     }
