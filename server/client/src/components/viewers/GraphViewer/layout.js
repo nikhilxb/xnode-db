@@ -122,7 +122,8 @@ function getNodesAndUnslicedEdges(headSymbolId, symbolTable) {
     // Add info for the head data node, since we iterate over ops
     edges.push([symbolIdToNodeId(getCreatorOp(headSymbolId, symbolTable)),
                 getCreatorPos(headSymbolId, symbolTable),
-                symbolIdToNodeId(headSymbolId)]);
+                symbolIdToNodeId(headSymbolId),
+                headSymbolId]);
     opsToCheck.push(getCreatorOp(headSymbolId, symbolTable));
     dataLeafContainers[headSymbolId] = [getFirstTemporalContainerSymbolId(getCreatorOp(headSymbolId, symbolTable), symbolTable)];
     opOutputs[symbolIdToNodeId(getCreatorOp(headSymbolId, symbolTable))] = new Set([headSymbolId]);
@@ -158,7 +159,7 @@ function getNodesAndUnslicedEdges(headSymbolId, symbolTable) {
                         opOutputs[creatorOpNodeId] = new Set();
                     }
                     opOutputs[creatorOpNodeId].add(dataSymbolId);
-                    edges.push([creatorOpNodeId, getCreatorPos(dataSymbolId, symbolTable), symbolIdToNodeId(opSymbolId)]);
+                    edges.push([creatorOpNodeId, getCreatorPos(dataSymbolId, symbolTable), symbolIdToNodeId(opSymbolId), dataSymbolId]);
                 }
                 else {
                     if (!(dataSymbolId in dataLeafContainers)) {
@@ -169,7 +170,7 @@ function getNodesAndUnslicedEdges(headSymbolId, symbolTable) {
                         dataLeafContainers[dataSymbolId].push(firstTemporalSymbolId);
                     }
                     // Data nodes only have one output port, so use 0 every time
-                    edges.push([symbolIdToNodeId(dataSymbolId, dataLeafContainers[dataSymbolId].indexOf(firstTemporalSymbolId)), 0, symbolIdToNodeId(opSymbolId)]);
+                    edges.push([symbolIdToNodeId(dataSymbolId, dataLeafContainers[dataSymbolId].indexOf(firstTemporalSymbolId)), 0, symbolIdToNodeId(opSymbolId), dataSymbolId]);
                 }
             });
     }
@@ -412,7 +413,7 @@ function linkOutputs(fromNode, fromPortNum, fromContainer, metadata) {
 function sliceEdges(nodes, unslicedEdges) {
     let slicedEdges = [];
     unslicedEdges.forEach((edge, joinedEdgeId) => {
-        let [fromNodeId, fromPortNum, toNodeId] = edge;
+        let [fromNodeId, fromPortNum, toNodeId, edgeDataSymbolId] = edge;
         let fromContainerNodeId = nodes[fromNodeId].container;
         let toContainerNodeId = nodes[toNodeId].container;
         // In the case of edges which cross temporal containers, we make our own edges after laying out instead of using
@@ -421,14 +422,16 @@ function sliceEdges(nodes, unslicedEdges) {
         let toEdgeSlices = [];
         let joinedEdgeOrder = 0;
         while (true) {
+            const metadata = {
+                joinedEdgeId,
+                joinedEdgeOrder,
+                edgeDataSymbolId,
+            };
             if (toContainerNodeId === fromContainerNodeId) {
                 let finalEdge = [
                     nodeIdToPortId(fromNodeId, fromPortNum),
                     nodeIdToPortId(toNodeId, nodes[toNodeId].inPorts, true),
-                    {
-                        joinedEdgeId,
-                        joinedEdgeOrder,
-                    }
+                    Object.assign({}, metadata),
                 ];
                 joinedEdgeOrder += 1;
                 // If the edge bridges two temporal containers, then we don't actually return `toEdgeSlices`. Instead,
@@ -450,23 +453,23 @@ function sliceEdges(nodes, unslicedEdges) {
             }
             if (fromContainerNodeId === 'root' || nodes[fromContainerNodeId].height > nodes[toContainerNodeId].height) {
                 let newEdge = null;
-                ({ newEdge, toNodeId, toContainerNodeId } = linkInputs(nodes[toNodeId], nodes[toContainerNodeId], {joinedEdgeId, joinedEdgeOrder}));
+                ({ newEdge, toNodeId, toContainerNodeId } = linkInputs(nodes[toNodeId], nodes[toContainerNodeId], Object.assign({}, metadata)));
                 toEdgeSlices.push(newEdge);
                 continue;
             }
             if (toContainerNodeId === 'root' || nodes[toContainerNodeId].height > nodes[fromContainerNodeId].height) {
                 let newEdge = null;
-                ({ newEdge, fromNodeId, fromPortNum, fromContainerNodeId} = linkOutputs(nodes[fromNodeId], fromPortNum, nodes[fromContainerNodeId], {joinedEdgeId, joinedEdgeOrder}));
+                ({ newEdge, fromNodeId, fromPortNum, fromContainerNodeId} = linkOutputs(nodes[fromNodeId], fromPortNum, nodes[fromContainerNodeId], Object.assign({}, metadata)));
                 joinedEdgeOrder += 1;
                 slicedEdges.push(newEdge);
                 continue;
             }
             let newToEdge = null;
-            ({ newEdge: newToEdge, toNodeId, toContainerNodeId } = linkInputs(nodes[toNodeId], nodes[toContainerNodeId], {joinedEdgeId, joinedEdgeOrder}));
+            ({ newEdge: newToEdge, toNodeId, toContainerNodeId } = linkInputs(nodes[toNodeId], nodes[toContainerNodeId], Object.assign({}, metadata)));
             toEdgeSlices.push(newToEdge);
 
             let newFromEdge = null;
-            ({ newEdge: newFromEdge, fromNodeId, fromPortNum, fromContainerNodeId} = linkOutputs(nodes[fromNodeId], fromPortNum, nodes[fromContainerNodeId], {joinedEdgeId, joinedEdgeOrder}));
+            ({ newEdge: newFromEdge, fromNodeId, fromPortNum, fromContainerNodeId} = linkOutputs(nodes[fromNodeId], fromPortNum, nodes[fromContainerNodeId], Object.assign({}, metadata)));
             joinedEdgeOrder += 1;
             slicedEdges.push(newFromEdge);
         }
@@ -638,10 +641,10 @@ function getOffsetFromHierarchy(root, hierarchy) {
  */
 function getTemporalConnectorEdges(root, edges) {
     let retEdges = [];
-    edges.forEach(({hierarchyToSource, hierarchyToTerminal, joinedEdgeId, joinedEdgeOrder}, i) => {
+    edges.forEach(({hierarchyToSource, hierarchyToTerminal, joinedEdgeId, joinedEdgeOrder, edgeDataSymbolId}, i) => {
         let sourcePos = getOffsetFromHierarchy(root, hierarchyToSource);
         let terminalPos = getOffsetFromHierarchy(root, hierarchyToTerminal);
-        retEdges.push({id: `temporal${i}`, sections: [{startPoint: sourcePos, endPoint: {x: terminalPos.x, y: sourcePos.y}}], metadata: {joinedEdgeId, joinedEdgeOrder}});
+        retEdges.push({id: `temporal${i}`, sections: [{startPoint: sourcePos, endPoint: {x: terminalPos.x, y: sourcePos.y}}], metadata: {joinedEdgeId, joinedEdgeOrder, edgeDataSymbolId}});
     });
     return retEdges;
 }
@@ -676,7 +679,7 @@ function elkGraphToEdgeGroups(elkNode, edgeGroups={}, offset={x: 0, y: 0}) {
         if (!(edge.metadata.joinedEdgeId in edgeGroups)) {
             edgeGroups[edge.metadata.joinedEdgeId] = [];
         }
-        edgeGroups[edge.metadata.joinedEdgeId].push({points, order: edge.metadata.joinedEdgeOrder});
+        edgeGroups[edge.metadata.joinedEdgeId].push({points, order: edge.metadata.joinedEdgeOrder, symbolId: edge.metadata.edgeDataSymbolId});
     }
     for (let i = 0; i< elkNode.children.length; i ++) {
         let {x, y} = elkNode.children[i];
@@ -692,7 +695,7 @@ function elkGraphToEdgeList(root) {
         let edgeGroupSorted = edgeGroup.splice(0).sort(({order: order1}, {order: order2}) => order1 - order2);
         let newEdge = [edgeGroupSorted[0].points[0]];
         edgeGroupSorted.forEach(({points}) => points.forEach((point, i) => {if (i > 0) {newEdge.push(point)}}));
-        edges.push({key: groupId, points: newEdge});
+        edges.push({key: groupId, points: newEdge, symbolId: edgeGroupSorted[0].symbolId});
     });
     console.log(edges);
     return edges;
