@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import { withStyles } from 'material-ui/styles';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { withStyles } from 'material-ui/styles';
 import { createSelector } from "reselect";
 
 
@@ -25,7 +25,7 @@ class Example extends Component {
      * Renders ___.
      */
     render() {
-        const {classes} = this.props;
+        const { classes } = this.props;
 
         return (
             null
@@ -41,7 +41,7 @@ const styles = theme => ({
     // css-key: value,
 });
 
-// TODO: For dumb components, just use following and delete `connect`/`bindActionCreators` imports.
+// TODO: For dumb components, just use following and delete `connect`/`bindActionCreators`/`createSelector` imports.
 // export default withStyles(styles)(Example);
 
 // To inject application state into component
