@@ -79,7 +79,7 @@ const styles = theme => ({
     },
     temporal: {
         opacity: 0.5,
-        strokeWidth: 2,
+        strokeWidth: 2.5,
     },
     hover: {
         stroke: ColorGrey[600],

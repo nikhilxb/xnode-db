@@ -31,11 +31,11 @@ class GraphOpNode extends Component {
     };
 
     render() {
-        const { classes, width, height, x, y } = this.props;
+        const { classes, width, height, x, y, str } = this.props;
         const { symbolId, selectedId, hoverId, setSelectedId, setHoverId } = this.props;
         return (
             <g>
-                <rect width={width} height={height} x={x} y={y}
+                <rect x={x} y={y} width={width} height={height}
                       className={classNames({
                           [classes.normal]:   true,
                           [classes.hover]:    hoverId === symbolId,
@@ -44,6 +44,12 @@ class GraphOpNode extends Component {
                       onClick={() => setSelectedId(symbolId)}
                       onMouseEnter={() => setHoverId(symbolId)}
                       onMouseLeave={() => setHoverId(null)} />
+
+                <foreignObject x={x} y={y} width={width} height={height} pointerEvents="none">
+                    <div className={classes.labelbox}>
+                        {str.replace(/graphop <(.*)>/, '$1')}
+                    </div>
+                </foreignObject>
             </g>
         );
     }
@@ -64,6 +70,17 @@ const styles = theme => ({
         fill: ColorPink[600],
         stroke: ColorBlue[600],
         strokeWidth: 4,
+    },
+    labelbox: {
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        textAlign: 'center',
+        fontSize: 14,
+    },
+    label: {
+
     }
 });
 
