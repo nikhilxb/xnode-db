@@ -48,18 +48,20 @@ class Tooltip extends Component {
         const { isFixed } = this.props;
 
         clearTimeout(this.enterTimer);
-        if(!isVisible) {
-            this.setState({
-                isVisible: isVisible,
-            });
-        } else {
-            this.enterTimer = setTimeout(() => {
-                this.setState({
-                    isVisible: isVisible,
-                });
-            }, 250);
-        }
-
+        // if(!isVisible) {
+        //     this.setState({
+        //         isVisible: isVisible,
+        //     });
+        // } else {
+        //     this.enterTimer = setTimeout(() => {
+        //         this.setState({
+        //             isVisible: isVisible,
+        //         });
+        //     }, 250);
+        // }
+        this.setState({
+            isVisible: isVisible,
+        });
     }
 
     /**

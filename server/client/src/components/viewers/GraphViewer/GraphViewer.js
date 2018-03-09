@@ -205,6 +205,12 @@ class GraphViewer extends Component {
 
         return (
             <svg width={graph.width} height={graph.height}>
+                <defs>
+                    <marker id="arrowhead" markerWidth="20" markerHeight="10"
+                            refX="0" refY="5" orient="auto">
+                        <polygon points="0 0, 20 5, 0 10" />
+                    </marker>
+                </defs>
                 <rect x={0} y={0} width={graph.width} height={graph.height} fill="transparent"
                       onClick={() => this.setSelectedId(null)}/>
                 {components}

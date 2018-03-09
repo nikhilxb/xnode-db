@@ -49,6 +49,7 @@ class GraphDataEdge extends Component {
                 </Tooltip>
                 <path d={pathString}
                       pointerEvents="none"
+                      
                       className={classNames({
                           [classes.normal]:   true,
                           [classes.temporal]: isTemporal,
