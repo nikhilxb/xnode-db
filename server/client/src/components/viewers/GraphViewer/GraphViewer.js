@@ -144,6 +144,7 @@ class GraphViewer extends Component {
      *     node's global position should be equal to its parent's global position, plus the node's `x` and `y` values.
      */
     buildNodeComponents(nodes) {
+        const { payload } = this.props;
         return nodes.map(node => {
             const { type, key, viewerObj, x, y, width, height, zOrder } = node;
             const layoutObj = {
@@ -155,6 +156,7 @@ class GraphViewer extends Component {
                 setHoverId: this.setHoverId,
                 selectedId: this.state.selectedId,
                 hoverId: this.state.hoverId,
+                isExpanded: payload.graphState[symbolId].expanded,
             };
             switch(type) {
                 case 'graphdata':
