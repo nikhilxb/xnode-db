@@ -67,7 +67,18 @@ class GraphOp(Nestable):
         # Only k-v pairs where the value is "tracked" are saved in `self.kwargs`.
         self.kwargs = {
             kw: get_graphdata(arg) for kw, arg in kwargs.items() if has_graphdata(arg)
-            }
+        }
+
+        # TODO put graphdata from iterables in the same port
+        for arg in args:
+            if hasattr(arg, '__iter__'):
+                self.args.extend([get_graphdata(obj) for obj in arg if has_graphdata(obj)])
+
+        for kw, arg in kwargs.items():
+            if hasattr(arg, '__iter__'):
+                self.kwargs.update({
+                    '{}:{}'.format(kw, i): get_graphdata(obj) for i, obj in enumerate(arg) if has_graphdata(obj)
+                })
 
         # A `GraphOp` object always has temporal level 0, so any new temporal container will be able to encapsulate
         # it (unless it is already in a temporal container of the same level). The concept is explained more in the

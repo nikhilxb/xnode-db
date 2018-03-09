@@ -27,6 +27,7 @@ class GraphContainerNode extends Component {
 
         toggleExpanded: PropTypes.func.isRequired,
         isExpanded:     PropTypes.bool.isRequired,
+        isTemporal:     PropTypes.bool.isRequired,
 
         selectedId:     PropTypes.string,
         hoverId:        PropTypes.string,
@@ -36,7 +37,7 @@ class GraphContainerNode extends Component {
 
     render() {
         const { classes, width, height, x, y } = this.props;
-        const { toggleExpanded, isExpanded } = this.props;
+        const { toggleExpanded, isExpanded, isTemporal } = this.props;
         const { symbolId, selectedId, hoverId, setSelectedId, setHoverId } = this.props;
         return (
             <rect width={width} height={height} x={x} y={y}

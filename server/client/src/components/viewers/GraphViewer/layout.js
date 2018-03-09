@@ -11,9 +11,10 @@ const kOpNodeHeight = 40;
 const kOpNodeWidth = 80;
 const kCollapsedAbstractiveHeight = 40;
 const kCollapsedAbstractiveWidth = 80;
-const kEdgeMargin = 12;
-const kContainerPadding = 12;
-const kTemporalContainerMargin = 20;
+const kEdgeMargin = 10;
+const kContainerPadding = 30;
+const kNodeMargin = 50;
+const kTemporalContainerMargin = 40;
 const kEdgeThickness = 2.5;
 
 /**
@@ -43,6 +44,9 @@ const kEdgeThickness = 2.5;
  *     Whether the node is a temporal container.
  */
 function createNodeObj(nodeId, symbolId, symbolInfo, container, outPorts=[], height=0, contents=[], temporalStep=-1, containsTemporal=false) {
+    if (container === null) {
+        container = 'root';
+    }
     return {
         viewerObj: {
             symbolId: symbolId,
@@ -199,8 +203,10 @@ function getNodesAndUnslicedEdges(headSymbolId, symbolTable) {
                 symbolTable[dataSymbolId],
                 containerNodeId,
                 dataSymbolId === headSymbolId ? [] : [dataSymbolId]);
-            // `contents` is immutable since it is derived from the symbol table, so we have to operate on it like this
-            nodes[containerNodeId].contents = nodes[containerNodeId].contents.concat([dataNodeId]);
+            if (containerNodeId !== 'root') {
+                // `contents` is immutable since it is derived from the symbol table, so we have to operate on it like this
+                nodes[containerNodeId].contents = nodes[containerNodeId].contents.concat([dataNodeId]);
+            }
         });
     });
     return { nodes, edges }
@@ -239,10 +245,10 @@ function getContainerNodes(symbolId, symbolTable) {
  */
 function getCommonNodeParent(nodeId1, nodeId2, nodes) {
     while (nodeId1 !== nodeId2) {
-        if (nodeId1 === null || nodes[nodeId1].height > nodes[nodeId2].height) {
+        if (nodeId1 === 'root' || nodeId2 !== 'root' && nodes[nodeId1].height > nodes[nodeId2].height) {
             nodeId2 = nodes[nodeId2].container;
         }
-        else if (nodeId2 === null || nodes[nodeId1].height < nodes[nodeId2].height) {
+        else if (nodeId2 === 'root' || nodes[nodeId1].height < nodes[nodeId2].height) {
             nodeId1 = nodes[nodeId1].container;
         }
         else{
@@ -250,7 +256,7 @@ function getCommonNodeParent(nodeId1, nodeId2, nodes) {
             nodeId2 = nodes[nodeId2].container;
         }
     }
-    return nodeId1 === null ? 'root' : nodeId1;
+    return nodeId1;
 }
 
 const symbolIdFromPortId = (portId, nodes) => nodes[portIdToNodeId(portId)].outPorts[portIdToPortNum(portId)];
@@ -289,12 +295,13 @@ function getTargetHierarchy(portId, nodes) {
  *               `toPortId` may be either a port or a node
  */
 function assignEdgeParents(nodes, edges) {
-    let edgeParents = {'root': []};
+    let edgeParents = {'root': [], 'temporal': []};
     // to could be a port or a node id, depending on whether or not its a temporal slice
     edges.forEach(([fromPortId, toPortId, metadata]) => {
         if (metadata.isTemporalEdge) {
-           edgeParents['root'].push({id: fromPortId + toPortId, sourceHierarchy: getSourceHierarchy(fromPortId, nodes), targetHierarchy: getTargetHierarchy(toPortId, nodes), metadata});
-           return;
+            console.log('added to temporal');
+            edgeParents['temporal'].push({id: fromPortId + toPortId, sourceHierarchy: getSourceHierarchy(fromPortId, nodes), targetHierarchy: getTargetHierarchy(toPortId, nodes), metadata});
+            return;
         }
         let commonParent = getCommonNodeParent(portIdToNodeId(fromPortId), portIdToNodeId(toPortId), nodes);
         if (!(commonParent in edgeParents)) {
@@ -324,11 +331,13 @@ function createElkNode(nodeId, nodes, edges, graphState) {
         properties: {
             'elk.direction': nodeObj.orientation,
             // We fix the positions of ports on temporal nodes so that we can ensure they go in the right direction
-            'portConstraints': getNodeIsTemporal(nodeObj) ? 'FIXED_POS' : 'FIXED_SIDE'
+            'portConstraints': getNodeIsTemporal(nodeObj) ? 'FIXED_POS' : 'FIXED_SIDE',
+            'elk.spacing.nodeNode': kNodeMargin, 'elk.layered.spacing.nodeNodeBetweenLayers': kNodeMargin
         },
+        containerHeight: nodeObj.height,
         viewerObj: nodeObj.viewerObj,
         temporalStep: nodeObj.temporalStep,
-        zOrder: nodeObj.height === 0 ? 1 : -nodeObj.height,
+        zOrder: nodeObj.height === 0 || !graphState[nodeObj.symbolId].expanded ? 1 : -nodeObj.height,
         edges: [],
         children: [],
         ports: [],
@@ -389,6 +398,11 @@ function createElkNode(nodeId, nodes, edges, graphState) {
     return elkNode;
 }
 
+const getRootContainsTemporal = (nodes) => {
+    let outermost = Object.entries(nodes).filter(([nodeId, nodeObj]) => nodeObj.outermost);
+    return outermost.length > 0 && outermost[0][1].temporalStep >= 0;
+};
+
 /**
  * Builds the ELK graph to be laid out.
  * @param nodes: mapping of node ids to node objects
@@ -396,15 +410,14 @@ function createElkNode(nodeId, nodes, edges, graphState) {
  * @param graphState: mapping of symbol ids to properties about the graph
  */
 function getElkGraph(nodes, edges, graphState) {
-    let rootChildren =  Object.entries(nodes).filter(([nodeId, nodeObj]) => nodeObj.outermost).map(([nodeId]) => createElkNode(nodeId, nodes, edges, graphState));
+    let rootChildren = Object.entries(nodes).filter(([nodeId, nodeObj]) => nodeObj.outermost).map(([nodeId]) => createElkNode(nodeId, nodes, edges, graphState));
     let orientation = rootChildren.length > 0 && rootChildren[0].temporalStep >= 0 ? 'RIGHT' : 'UP';
     return {
         id: 'root',
         properties: {'elk.algorithm': 'layered', 'elk.direction': orientation},
         children: rootChildren,
-        edges: [],
-        temporalEdges: edges['root'],
-        //edges: edges['root'],
+        edges: edges['root'],
+        temporalEdges: edges['temporal'],
     }
 }
 
@@ -475,7 +488,7 @@ function sliceEdges(nodes, unslicedEdges) {
         let fromEdgeSlices = [];
         let joinedEdgeOrder = 0;
         let sharedParent = getCommonNodeParent(fromNodeId, toNodeId, nodes);
-        let isTemporalEdge = sharedParent  === 'root' || nodes[sharedParent].containsTemporal;
+        let isTemporalEdge = (sharedParent  === 'root' && getRootContainsTemporal(nodes)) || (sharedParent !== 'root' && nodes[sharedParent].containsTemporal);
         // if (isTemporalEdge) {
         //     while (fromContainerNodeId !== 'root') {
         //         ({fromPortNum, fromNodeId, fromContainerNodeId} = linkOutputs(nodes[fromNodeId], fromPortNum, nodes[fromContainerNodeId], {edgeDataSymbolId}));
@@ -517,7 +530,7 @@ function sliceEdges(nodes, unslicedEdges) {
                     break;
                 }
             }
-            if (fromContainerNodeId === 'root' || nodes[fromContainerNodeId].height > nodes[toContainerNodeId].height) {
+            if (fromContainerNodeId === 'root' || toContainerNodeId !== 'root' && nodes[fromContainerNodeId].height > nodes[toContainerNodeId].height) {
                 let newEdge = null;
                 ({ newEdge, toNodeId, toContainerNodeId } = linkInputs(nodes[toNodeId], nodes[toContainerNodeId], Object.assign({}, metadata)));
                 toEdgeSlices.push(newEdge);
@@ -571,9 +584,14 @@ function makeGetFullGraphFromHead() {
 
 function elkGraphToNodeList(elkNode, nodes=[], offset={x: 0, y: 0}) {
     for (let i = 0; i < elkNode.children.length; i++) {
-        let {viewerObj, width, height, x, y, id, zOrder} = elkNode.children[i];
+        let {viewerObj, width, height, x, y, id, zOrder, temporalStep} = elkNode.children[i];
         let { type, symbolId } = viewerObj;
-        nodes.push({key: id, type, symbolId, viewerObj, x: x + offset.x, y: y + offset.y, width, height, zOrder});
+        let newNode = {key: id, type, symbolId, viewerObj, x: x + offset.x, y: y + offset.y, width, height, zOrder, isExpanded: elkNode.children[i].length > 0};
+        if (newNode.type === 'graphcontainer') {
+            newNode.isTemporal = temporalStep >= 0;
+        }
+        nodes.push(newNode);
+
         elkGraphToNodeList(elkNode.children[i], nodes, {x: x + offset.x, y: y + offset.y});
     }
     return nodes;
@@ -599,7 +617,7 @@ function elkGraphToEdgeGroups(elkNode, edgeGroups={}, offset={x: 0, y: 0}) {
         if (!(edge.metadata.joinedEdgeId in edgeGroups)) {
             edgeGroups[edge.metadata.joinedEdgeId] = [];
         }
-        edgeGroups[edge.metadata.joinedEdgeId].push({points, order: edge.metadata.joinedEdgeOrder, symbolId: edge.metadata.edgeDataSymbolId, zOrder: edge.metadata.zOrder});
+        edgeGroups[edge.metadata.joinedEdgeId].push({points, order: edge.metadata.joinedEdgeOrder, symbolId: edge.metadata.edgeDataSymbolId, zOrder: edge.metadata.zOrder, isTemporal: edge.metadata.isTemporalEdge});
     }
     for (let i = 0; i< elkNode.children.length; i ++) {
         let {x, y} = elkNode.children[i];
@@ -615,7 +633,7 @@ function elkGraphToEdgeList(root) {
         let edgeGroupSorted = edgeGroup.splice(0).sort(({order: order1}, {order: order2}) => order1 - order2);
         let newEdge = [edgeGroupSorted[0].points[0]];
         edgeGroupSorted.forEach(({points}) => points.forEach((point, i) => {if (i > 0) {newEdge.push(point)}}));
-        edges.push({key: groupId, points: newEdge, symbolId: edgeGroupSorted[0].symbolId, zOrder: edgeGroupSorted[0].zOrder});
+        edges.push({key: groupId, points: newEdge, symbolId: edgeGroupSorted[0].symbolId, zOrder: edgeGroupSorted[0].zOrder, isTemporal: edgeGroupSorted[0].isTemporal});
     });
     return edges;
 }
@@ -705,6 +723,70 @@ function buildTemporalEdges(root, nodePositions, edges) {
     });
 }
 
+function layoutGraphRecurse(elk, toLayout, viewerId, setInPayload) {
+    let rootNode = toLayout[0];
+    if (rootNode.id === 'root' || (rootNode.children.length > 0 && rootNode.children[0].temporalStep >= 0)) {
+        console.log(rootNode);
+        elk.layout(rootNode).then(
+            () => {
+                console.log('yippee');
+                rootNode.properties['elk.algorithm'] = 'elk.fixed';
+                if (rootNode.children && rootNode.children.length > 0 && rootNode.children[0].temporalStep >= 0) {
+                    let sortedContainers = new Array(rootNode.children.length).fill(0);
+                    rootNode.children.forEach(child => sortedContainers.splice(child.temporalStep, 1, child));
+                    rootNode.width = 0;
+                    rootNode.height = 0;
+                    let xPos = 0;
+                    let maxChildHeight = 0;
+                    sortedContainers.forEach(child => {
+                        child.x = xPos + kContainerPadding;
+                        rootNode.width = Math.max(rootNode.width, xPos + child.width);
+                        rootNode.height = Math.max(rootNode.height, child.height + kContainerPadding * 2);
+                        xPos += child.width + kTemporalContainerMargin;
+                        maxChildHeight = Math.max(maxChildHeight, child.height);
+                    });
+                    sortedContainers.forEach(child => {
+                        let heightDiff = maxChildHeight - child.height;
+                        child.children.forEach(grandchild => grandchild.y += heightDiff);
+                        child.ports.forEach(port => port.y += heightDiff);
+                        child.edges.forEach(edge =>
+                            [edge.sections[0].startPoint, edge.sections[0].endPoint].concat(edge.sections[0].bendPoints ? edge.sections[0].bendPoints : []).forEach(point => point.y += heightDiff));
+                        child.height = maxChildHeight;
+                        child.y = rootNode.height - kContainerPadding - child.height;
+                    });
+                }
+                if (toLayout.length > 1) {
+                    layoutGraphRecurse(elk, toLayout.splice(1), viewerId, setInPayload);
+                }
+                else {
+                    let positions = getNodeAndPortPositions(rootNode);
+                    rootNode.edges = rootNode.edges.concat(buildTemporalEdges(rootNode, positions, rootNode.temporalEdges));
+                    setInPayload(viewerId, ['graph'], {
+                        width: rootNode.width,
+                        height: rootNode.height,
+                        nodes: elkGraphToNodeList(rootNode),
+                        edges: elkGraphToEdgeList(rootNode)
+                    });
+                }
+            }
+        );
+    }
+    else {
+        layoutGraphRecurse(elk, toLayout.splice(1), viewerId, setInPayload);
+    }
+}
+
+function getToLayoutArray(rootNode) {
+    let toLayout = [rootNode];
+    for (let i = 0; i < toLayout.length; i++) {
+        toLayout[i].children.forEach(child => {
+            toLayout.push(child);
+        })
+    }
+    return toLayout.reverse();
+}
+
+
 /**
  *
  * @param elk
@@ -713,39 +795,6 @@ function buildTemporalEdges(root, nodePositions, edges) {
  * @param setInPayload
  */
 export function layoutGraph(elk, rootNode, viewerId, setInPayload) {
-    return Promise.all(rootNode.children.map(child => layoutGraph(elk, child, null, null)))
-        .then(
-        () => {
-            elk.layout(rootNode, {properties: {'elk.spacing.edgeEdge': kEdgeMargin}}).then(
-                (laidOutGraph) => {
-                    Object.assign(rootNode, laidOutGraph);
-                    rootNode.properties['elk.algorithm'] = 'fixed';
-                    if (rootNode.children && rootNode.children.length > 0 && rootNode.children[0].temporalStep >= 0) {
-                        let sortedContainers = new Array(rootNode.children.length).fill(0);
-                        rootNode.children.forEach(child => sortedContainers.splice(child.temporalStep, 1, child));
-                        rootNode.width = 0;
-                        rootNode.height = 0;
-                        let xPos = kContainerPadding;
-                        sortedContainers.forEach(child => {
-                            child.y = kContainerPadding;
-                            child.x = xPos;
-                            xPos += child.width + kTemporalContainerMargin;
-                            rootNode.width = Math.max(rootNode.width, xPos);
-                            rootNode.height = Math.max(rootNode.height, child.height);
-                        });
-                        rootNode.width += kContainerPadding * 2;
-                        rootNode.height += kContainerPadding * 2;
-                        sortedContainers.forEach(child => {
-                           child.y = rootNode.height - kContainerPadding - child.height;
-                        });
-                    }
-                    if (viewerId !== null && setInPayload !== null) {
-                        let positions = getNodeAndPortPositions(rootNode);
-                        rootNode.edges = buildTemporalEdges(rootNode, positions, rootNode.temporalEdges);
-                        setInPayload(viewerId, ['graph'], {width: rootNode.width, height: rootNode.height, nodes: elkGraphToNodeList(rootNode), edges: elkGraphToEdgeList(rootNode)});
-                    }
-                }
-            )
-        }
-    );
+    let toLayout = getToLayoutArray(rootNode);
+    layoutGraphRecurse(elk, toLayout, viewerId, setInPayload);
 }

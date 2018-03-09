@@ -1,7 +1,7 @@
 from viz.debug import set_trace
 import viz.graphtracker as gt
 from sandbox.vgg import vgg16
-from sandbox.stack_lstm import StackLSTM
+from sandbox.stack_lstm import StackLSTM, PseudoLogLSTM
 from torch.autograd import Variable
 import torch
 
@@ -26,8 +26,11 @@ myVGGOutput = myVGG(myVGGInput)
 myRNNBatchSize = 5
 myRNNDims = [10, 10, 10, 10]
 myRNNInput = [gt.track_data(Variable(torch.ones(5, myRNNDims[0])), {'obj': None}) for _ in range(4)]
-myRNN = StackLSTM(5, myRNNDims)
+myRNN = StackLSTM(myRNNBatchSize, myRNNDims)
 myRNNOutput = myRNN(myRNNInput)
+
+myPseudoLogLSTM = PseudoLogLSTM(myRNNBatchSize, myRNNDims)
+myPseudoLogLSTMOutput = myPseudoLogLSTM(myRNNInput)
 
 set_trace()
 print('Goodbye!')

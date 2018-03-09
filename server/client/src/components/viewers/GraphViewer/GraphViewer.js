@@ -48,7 +48,7 @@ class GraphViewer extends Component {
         this.state = {
             selectedId: null,
             hoverId: null,
-        }
+        };
         this.setSelectedId = this.setSelectedId.bind(this);
         this.setHoverId = this.setHoverId.bind(this);
     }
@@ -146,17 +146,18 @@ class GraphViewer extends Component {
     buildNodeComponents(nodes) {
         const { payload } = this.props;
         return nodes.map(node => {
-            const { type, key, viewerObj, x, y, width, height, zOrder, symbolId } = node;
+            const { type, key, viewerObj, x, y, width, height, zOrder, isTemporal, isExpanded } = node;
             const layoutObj = {
                 width,
                 height,
                 x,
                 y,
+                isTemporal,
+                isExpanded,
                 setSelectedId: this.setSelectedId,
                 setHoverId: this.setHoverId,
                 selectedId: this.state.selectedId,
                 hoverId: this.state.hoverId,
-                isExpanded: payload.graphState[symbolId].expanded,
             };
             switch(type) {
                 case 'graphdata':
