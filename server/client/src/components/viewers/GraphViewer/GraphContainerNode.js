@@ -16,7 +16,7 @@ class GraphContainerNode extends Component {
     };
 
     render() {
-        const { classes, toggleExpanded, width, height, x, y } = this.props;
+        const { classes, toggleExpanded, width, height, x, y, isExpanded } = this.props;
         return (
             <rect width={width} height={height} x={x} y={y}
                   onClick={toggleExpanded} className={classes.node} />
