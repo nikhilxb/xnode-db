@@ -146,7 +146,7 @@ class GraphViewer extends Component {
     buildNodeComponents(nodes) {
         const { payload } = this.props;
         return nodes.map(node => {
-            const { type, key, viewerObj, x, y, width, height, zOrder } = node;
+            const { type, key, viewerObj, x, y, width, height, zOrder, symbolId } = node;
             const layoutObj = {
                 width,
                 height,

@@ -36,7 +36,7 @@ class GraphDataEdge extends Component {
                       onClick={() => setSelectedId(symbolId)}
                       onMouseEnter={() => setHoverId(symbolId)}
                       onMouseLeave={() => setHoverId(null)}
-                      onMouseMove={(e) => console.log("Path Mouse: ", e.clientX, ",", e.clientY)} />
+                      onMouseMove={(e) => e/*console.log("Path Mouse: ", e.clientX, ",", e.clientY)*/} />
                 <path d={pathString} pointerEvents="none"
                       className={classNames({
                           [classes.normal]:   true,
