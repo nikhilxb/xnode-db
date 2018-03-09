@@ -21,8 +21,8 @@ class TensorPixels extends PureComponent {
 
     /** Prop expected types object. */
     static propTypes = {
-        pixels: PropTypes.array.isRequired,
-        handleHighlight: PropTypes.func.isRequired
+        pixels:             PropTypes.array.isRequired,
+        handleHighlight:    PropTypes.func.isRequired
     };
 
     render() {
@@ -35,7 +35,7 @@ class TensorPixels extends PureComponent {
                             <rect width={p.size} height={p.size} x={p.x} y={p.y} fill={p.color} />
                             <rect width={JUMP} height={JUMP} x={p.cx} y={p.cy} fill={'transparent'}
                                   onMouseEnter={() => handleHighlight(p)}
-                                  onMouseOut={() => handleHighlight(null)}/>
+                                  onMouseLeave={() => handleHighlight(null)}/>
                         </g>
                     );
                 })}

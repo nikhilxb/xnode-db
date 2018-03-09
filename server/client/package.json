@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "classnames": "^2.2.5",
     "d3": "^4.13.0",
     "dagre": "^0.8.2",
     "elkjs": "^0.3.0",

@@ -43,6 +43,16 @@ class GraphViewer extends Component {
         classes: PropTypes.object.isRequired,
     };
 
+    constructor(props) {
+        super(props);
+        this.state = {
+            selectedId: null,
+            hoverId: null,
+        }
+        this.setSelectedId = this.setSelectedId.bind(this);
+        this.setHoverId = this.setHoverId.bind(this);
+    }
+
     componentDidMount() {
         let { ensureGraphLoaded, symbolId, viewerId } = this.props;
         ensureGraphLoaded(symbolId, viewerId);
@@ -62,7 +72,23 @@ class GraphViewer extends Component {
             setInPayload(viewerId, ['stateChanged'], false);
             let elk = new ELK();
             layoutGraph(elk, nextGraphSkeleton, viewerId, setInPayload);
+            this.setState({
+                selectedId: null,
+                hoverId: null,
+            });
         }
+    }
+
+    setSelectedId(symbolId) {
+        this.setState({
+            selectedId: symbolId,
+        });
+    }
+
+    setHoverId(symbolId) {
+        this.setState({
+            hoverId: symbolId,
+        });
     }
 
     /**
@@ -91,7 +117,16 @@ class GraphViewer extends Component {
      */
     buildEdgeComponents(edges) {
         return edges.map(edge => {
-            return ({component: <GraphDataEdge {...edge}/>, zOrder: edge.zOrder});
+            const layoutObj = {
+                setSelectedId: this.setSelectedId,
+                setHoverId: this.setHoverId,
+                selectedId: this.state.selectedId,
+                hoverId: this.state.hoverId,
+            };
+            return ({
+                component: <GraphDataEdge {...edge} {...layoutObj} />,
+                zOrder: edge.zOrder,
+            });
         });
     }
 
@@ -109,30 +144,43 @@ class GraphViewer extends Component {
      *     node's global position should be equal to its parent's global position, plus the node's `x` and `y` values.
      */
     buildNodeComponents(nodes) {
-        return nodes.map(({type, key, viewerObj, x, y, width, height, zOrder}) => {
+        return nodes.map(node => {
+            const { type, key, viewerObj, x, y, width, height, zOrder } = node;
             const layoutObj = {
                 width,
                 height,
                 x,
                 y,
+                setSelectedId: this.setSelectedId,
+                setHoverId: this.setHoverId,
+                selectedId: this.state.selectedId,
+                hoverId: this.state.hoverId,
             };
             switch(type) {
                 case 'graphdata':
-                    return ({component: <GraphDataNode key={key} {...viewerObj} {...layoutObj} />, zOrder});
+                    return ({
+                        component: <GraphDataNode key={key} {...viewerObj} {...layoutObj} />,
+                        zOrder,
+                    });
 
                 case 'graphop':
-                    return ({component: <GraphOpNode key={key} {...viewerObj} {...layoutObj} />, zOrder});
+                    return ({
+                        component: <GraphOpNode key={key} {...viewerObj} {...layoutObj} />,
+                        zOrder,
+                    });
 
                 case 'graphcontainer':
-                    return ({component: <GraphContainerNode key={key} {...viewerObj} {...layoutObj}
-                                                toggleExpanded={() => this.toggleExpanded(viewerObj.symbolId)} />, zOrder});
+                    return ({
+                        component: <GraphContainerNode key={key} {...viewerObj} {...layoutObj}
+                                                       toggleExpanded={() => this.toggleExpanded(viewerObj.symbolId)} />,
+                        zOrder,
+                    });
             }
         });
     }
 
     toggleExpanded(symbolId) {
         let { setInPayload, viewerId, expansibleSymbols } = this.props;
-        console.log(expansibleSymbols);
         if (!expansibleSymbols.has(symbolId)) {
             return;
         }
@@ -154,6 +202,8 @@ class GraphViewer extends Component {
 
         return (
             <svg width={graph.width} height={graph.height}>
+                <rect x={0} y={0} width={graph.width} height={graph.height} fill="transparent"
+                      onClick={() => this.setSelectedId(null)}/>
                 {components}
             </svg>
         );
