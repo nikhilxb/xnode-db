@@ -11,14 +11,18 @@ class GraphDataViewer extends Component {
 
     /** Prop expected types object. */
     static propTypes = {
-        classes: PropTypes.object.isRequired,
+        classes:        PropTypes.object.isRequired,
+        width:          PropTypes.number.isRequired,
+        height:         PropTypes.number.isRequired,
+        x:              PropTypes.number.isRequired,
+        y:              PropTypes.number.isRequired,
     };
 
     /** Renders the data node block, and on hover */
     render() {
         const { width, height, x, y } = this.props;
         return (
-            <g>
+            <g zIndex="99">
                 <rect width={width} height={height} x={x} y={y} fill='#75CE8A'/>
                 <text x={x} y={y}>"GraphDataViewer"</text>
             </g>

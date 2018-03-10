@@ -66,6 +66,7 @@ const styles = theme => ({
         justifyContent: 'center',
         padding: 4,
         minHeight: 15,
+        borderRadius: '2px 2px 0px 0px'
     },
     content: {
         overflow: 'auto',

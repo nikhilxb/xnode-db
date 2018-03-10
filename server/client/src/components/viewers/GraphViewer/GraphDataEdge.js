@@ -8,13 +8,8 @@ import ColorGrey from 'material-ui/colors/grey';
 import ColorBlue from 'material-ui/colors/blue';
 
 import Tooltip from '../../Tooltip';
+import GraphDataViewer from './GraphDataViewer';
 
-
-class TestDisplay extends Component {
-    render() {
-        return <rect x={this.props.x} y={this.props.y} width={50} height={50} fill="blue" />
-    }
-}
 
 /**
  * This dumb component renders an edge between two nodes in a computation graph, corresponding to the flow of a graph
@@ -25,13 +20,11 @@ class GraphDataEdge extends Component {
     /** Prop expected types object. */
     static propTypes = {
         classes:        PropTypes.object.isRequired,
-
         symbolId:       PropTypes.string.isRequired,
         selectedId:     PropTypes.string,
         hoverId:        PropTypes.string,
         setSelectedId:  PropTypes.func.isRequired,
         setHoverId:     PropTypes.func.isRequired,
-
         isTemporal:     PropTypes.bool.isRequired,
     };
 
@@ -42,7 +35,7 @@ class GraphDataEdge extends Component {
         let pathString = curveGenerator(points.map(elem => [elem.x, elem.y]));  // [{x:3, y:4},...] => [[3, 4],...]
         return (
             <g>
-                <Tooltip display={<TestDisplay/>} width={50} height={50}>
+                <Tooltip display={<GraphDataViewer/>} width={50} height={50}>
                     <path d={pathString}
                           className={classes.hotspot}
                           onClick={() => setSelectedId(symbolId)}
