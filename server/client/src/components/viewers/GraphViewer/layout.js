@@ -329,7 +329,6 @@ function createElkNode(nodeId, nodes, edges, graphState) {
             'elk.direction': nodeObj.orientation,
             // We fix the positions of ports on temporal nodes so that we can ensure they go in the right direction
             'portConstraints': getNodeIsTemporal(nodeObj) ? 'FIXED_POS' : 'FIXED_SIDE',
-            'elk.spacing.nodeNode': kNodeMargin, 'elk.layered.spacing.nodeNodeBetweenLayers': kNodeMargin
         },
         containerHeight: nodeObj.height,
         viewerObj: nodeObj.viewerObj,
@@ -724,6 +723,7 @@ function buildTemporalEdges(root, nodePositions, edges) {
         let bendPoints = [
             {x: startPoint.x, y: startPoint.y - kEdgeMargin * outputCountByPort[sourceNode]},
             curvePoint,
+            {x: endPoint.x - kEdgeMargin, y: endPoint.y},
             //{x: (endPoint.x + startPoint.x) / 2, y: startPoint.y - kEdgeMargin * outputCountByPort[source]},
            // {x: (endPoint.x + startPoint.x) / 2, y: endPoint.y}
         ];
@@ -747,11 +747,11 @@ function layoutGraphRecurse(elk, toLayout, viewerId, setInPayload) {
                     rootNode.children.forEach(child => sortedContainers.splice(child.temporalStep, 1, child));
                     rootNode.width = 0;
                     rootNode.height = 0;
-                    let xPos = 0;
+                    let xPos = kContainerPadding;
                     let maxChildHeight = 0;
                     sortedContainers.forEach(child => {
-                        child.x = xPos + kContainerPadding;
-                        rootNode.width = Math.max(rootNode.width, xPos + child.width);
+                        child.x = xPos;
+                        rootNode.width = Math.max(rootNode.width, xPos + child.width + kContainerPadding);
                         rootNode.height = Math.max(rootNode.height, child.height + kContainerPadding * 2);
                         xPos += child.width + kTemporalContainerMargin;
                         maxChildHeight = Math.max(maxChildHeight, child.height);
