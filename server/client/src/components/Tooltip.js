@@ -7,6 +7,8 @@ import { withStyles } from 'material-ui/styles';
  * This dumb component renders an SVG tooltip component for its SVG `children`. The tooltip positions its `display` to
  * be on screen no matter where the mouse is. It shows the `display` on hover after a short timeout period, and
  * indefinitely if `isFixed`. It passes props `x` and `y` in absolute coordinates to `display` for it to render itself.
+ *
+ * NOTE: This component must be a child of a `MousePosition` component that wraps the entire SVG.
  */
 class Tooltip extends Component {
 
@@ -32,9 +34,12 @@ class Tooltip extends Component {
 
     updateDisplayCoords(e) {
         const { width, height } = this.props;
-        // TODO: Better positioning calculations
-        let displayX = e.nativeEvent.layerX - width / 2;
-        let displayY = e.nativeEvent.layerY - height - 8;
+
+        // Using offsetX/Y works in Chrome. From W3C: "W3C Working Draft. Mouse position relative to the target
+        // element. This is implemented very inconsistently between browsers."
+        let displayX = e.nativeEvent.offsetX - width / 2;
+        let displayY = e.nativeEvent.offsetY - height - 8;
+
         this.setState({
             displayX,
             displayY,

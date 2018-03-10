@@ -46,7 +46,7 @@ class GraphOpNode extends Component {
                       onMouseLeave={() => setHoverId(null)} />
 
                 <foreignObject x={x} y={y} width={width} height={height} pointerEvents="none">
-                    <div className={classes.labelbox}>
+                    <div className={classes.label}>
                         {str.replace(/graphop <(.*)>/, '$1')}
                     </div>
                 </foreignObject>
@@ -71,17 +71,15 @@ const styles = theme => ({
         stroke: ColorBlue[600],
         strokeWidth: 4,
     },
-    labelbox: {
+    label: {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
         textAlign: 'center',
         fontSize: 14,
+        fontFamily: "Roboto",
     },
-    label: {
-
-    }
 });
 
 export default withStyles(styles)(GraphOpNode);

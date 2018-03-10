@@ -16,6 +16,8 @@ import GraphDataNode from './GraphDataNode';
 import GraphContainerNode from './GraphContainerNode';
 
 import { CircularProgress } from 'material-ui/Progress';
+import MousePosition from '../../MousePosition';
+import ReactCursorPosition from 'react-cursor-position';
 
 
 /**
@@ -204,17 +206,26 @@ class GraphViewer extends Component {
         const components = componentObjects.asMutable().sort(({zOrder: zOrder1}, {zOrder: zOrder2}) => zOrder1 - zOrder2).map(({component}) => component);
 
         return (
-            <svg width={graph.width} height={graph.height}>
-                <defs>
-                    <marker id="arrowhead" markerWidth="20" markerHeight="10"
-                            refX="0" refY="5" orient="auto">
-                        <polygon points="0 0, 20 5, 0 10" />
-                    </marker>
-                </defs>
-                <rect x={0} y={0} width={graph.width} height={graph.height} fill="transparent"
-                      onClick={() => this.setSelectedId(null)}/>
-                {components}
-            </svg>
+            <div>
+                <ReactCursorPosition>
+                    <div>
+                        {"HI THERE"}
+                    </div>
+                </ReactCursorPosition>
+            <ReactCursorPosition>
+                <svg width={graph.width} height={graph.height}>
+                    <defs>
+                        <marker id="arrowhead" markerWidth="20" markerHeight="10"
+                                refX="0" refY="5" orient="auto">
+                            <polygon points="0 0, 20 5, 0 10" />
+                        </marker>
+                    </defs>
+                    <rect x={0} y={0} width={graph.width} height={graph.height} fill="transparent"
+                          onClick={() => this.setSelectedId(null)}/>
+                    {components}
+                </svg>
+            </ReactCursorPosition>
+            </div>
         );
     }
 }
@@ -231,9 +242,7 @@ const styles = theme => ({
 // ------------------------------------------
 
 const getExpansibleSymbols = createSelector(
-    [
-        (state) => state.symboltable
-    ],
+    [ (state) => state.symboltable ],
     (symbolTable) => {
         let expansibleSymbols = new Set();
         Object.entries(symbolTable).forEach(([symbolId, symbolInfo]) => {

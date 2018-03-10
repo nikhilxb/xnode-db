@@ -4,7 +4,7 @@ import registerServiceWorker from './registerServiceWorker';
 
 import { createStore, applyMiddleware } from 'redux';
 import thunk from 'redux-thunk';
-import { Provider } from 'react-redux';
+import { Provider as ReduxProvider } from 'react-redux';
 import { composeWithDevTools } from 'redux-devtools-extension';
 
 import Debugger from './views/Debugger';
@@ -17,9 +17,9 @@ let store = createStore(mainReducer, composeWithDevTools(
 
 // Link app to HTML
 ReactDOM.render(
-    <Provider store={store}>
+    <ReduxProvider store={store}>
         <Debugger />
-    </Provider>,
+    </ReduxProvider>,
     document.getElementById('root')
 );
 registerServiceWorker();
