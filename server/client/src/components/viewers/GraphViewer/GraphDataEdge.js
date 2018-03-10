@@ -3,7 +3,7 @@ import { withStyles } from 'material-ui/styles';
 import PropTypes from 'prop-types';
 import classNames from "classnames";
 
-import { line, curveBundle, curveLinear } from 'd3';
+import { line, curveBasis, curveLinear } from 'd3';
 import ColorGrey from 'material-ui/colors/grey';
 import ColorBlue from 'material-ui/colors/blue';
 
@@ -36,8 +36,17 @@ class GraphDataEdge extends Component {
     render() {
         const { classes, points } = this.props;
         const { symbolId, selectedId, hoverId, setSelectedId, setHoverId, isTemporal } = this.props;
-        let curveGenerator = line().curve(curveLinear);
-        let pathString = curveGenerator(points.map(elem => [elem.x, elem.y]));  // [{x:3, y:4},...] => [[3, 4],...]
+        let pathString = null;
+        if (isTemporal) {
+            let curveGenerator = line().curve(curveBasis);
+            // TODO decide whether to use the linear generator for the first bend
+            // let linearGenerator = line().curve(curveLinear);
+            pathString = curveGenerator(points.map(({x, y}) => [x, y]));//linearGenerator(points.filter((p, i) => i <= 1).map(({x, y}) => [x, y])) + curveGenerator(points.filter((p, i) => i > 0).map(({x, y}) => [x, y]));  // [{x:3, y:4},...] => [[3, 4],...]
+        }
+        else {
+            let linearGenerator = line().curve(curveLinear);
+            pathString = linearGenerator(points.map(({x, y}) => [x, y]));  // [{x:3, y:4},...] => [[3, 4],...]
+        }
         return (
             <g>
                 <Tooltip display={<TestDisplay/>} width={50} height={50}>
