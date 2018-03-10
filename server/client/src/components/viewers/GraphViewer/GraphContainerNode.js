@@ -42,9 +42,10 @@ class GraphContainerNode extends Component {
         return (
             <rect width={width} height={height} x={x} y={y}
                   className={classNames({
-                      [classes.normal]:   true,
-                      [classes.hover]:    hoverId === symbolId,
-                      [classes.selected]: selectedId === symbolId,
+                      [classes.normal]:    true,
+                      [classes.collapsed]: !isExpanded,
+                      [classes.hover]:     hoverId === symbolId,
+                      [classes.selected]:  selectedId === symbolId,
                   })}
                   onClick={() => {
                       toggleExpanded();
@@ -65,6 +66,9 @@ const styles = theme => ({
     normal: {
         fill: ColorLightBlue[200],
         fillOpacity: 0.2,
+    },
+    collapsed: {
+      fillOpacity: 1.0,
     },
     hover: {
         fill: ColorLightBlue[400],

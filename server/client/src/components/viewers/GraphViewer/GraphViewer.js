@@ -183,10 +183,7 @@ class GraphViewer extends Component {
     }
 
     toggleExpanded(symbolId) {
-        let { setInPayload, viewerId, expansibleSymbols } = this.props;
-        if (!expansibleSymbols.has(symbolId)) {
-            return;
-        }
+        let { setInPayload, viewerId } = this.props;
         let { expanded } = this.props.payload.graphState[symbolId];
         setInPayload(viewerId, ['graphState', symbolId, 'expanded'], !expanded);
         setInPayload(viewerId, ['stateChanged'], true);
@@ -230,26 +227,12 @@ const styles = theme => ({
 // To inject application state into component
 // ------------------------------------------
 
-const getExpansibleSymbols = createSelector(
-    [ (state) => state.symboltable ],
-    (symbolTable) => {
-        let expansibleSymbols = new Set();
-        Object.entries(symbolTable).forEach(([symbolId, symbolInfo]) => {
-            if (symbolInfo.type === 'graphcontainer' && symbolInfo.data && symbolInfo.data.viewer.temporalstep === -1) {
-                expansibleSymbols.add(symbolId);
-            }
-        });
-        return expansibleSymbols;
-    }
-);
-
 /** Connects application state objects to component props. */
 function makeMapStateToProps() {
     const getGraphFromHead = makeGetElkGraphFromHead();
     return (state, props) => {
         return {
             graphSkeleton: getGraphFromHead(state, props),
-            expansibleSymbols: getExpansibleSymbols(state),
         }
     }
 }

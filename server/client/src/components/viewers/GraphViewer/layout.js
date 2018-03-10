@@ -16,6 +16,7 @@ const kContainerPadding = 30;
 const kNodeMargin = 50;
 const kTemporalContainerMargin = 40;
 const kEdgeThickness = 2.5;
+const kCurvePointFactor = 0.1;
 
 /**
  * Creates a "node object" which can be translated into a node in the ELK graph; data, ops, and container nodes are
@@ -133,7 +134,7 @@ function getNodesAndUnslicedEdges(headSymbolId, symbolTable) {
                 symbolIdToNodeId(headSymbolId),
                 headSymbolId]);
     opsToCheck.push(getCreatorOp(headSymbolId, symbolTable));
-    dataLeafContainers[headSymbolId] = [getFirstTemporalContainerSymbolId(getCreatorOp(headSymbolId, symbolTable), symbolTable)];
+    dataLeafContainers[headSymbolId] = getFirstTemporalContainerSymbolId(getCreatorOp(headSymbolId, symbolTable), symbolTable);
     opOutputs[symbolIdToNodeId(getCreatorOp(headSymbolId, symbolTable))] = new Set([headSymbolId]);
 
     while (opsToCheck.length > 0) {
@@ -172,15 +173,13 @@ function getNodesAndUnslicedEdges(headSymbolId, symbolTable) {
                     edges.push([creatorOpNodeId, getCreatorPos(dataSymbolId, symbolTable), symbolIdToNodeId(opSymbolId), dataSymbolId]);
                 }
                 else {
-                    if (!(dataSymbolId in dataLeafContainers)) {
-                        dataLeafContainers[dataSymbolId] = [];
-                    }
                     let firstTemporalSymbolId = getFirstTemporalContainerSymbolId(opSymbolId, symbolTable);
-                    if (dataLeafContainers[dataSymbolId].indexOf(firstTemporalSymbolId) === -1) {
-                        dataLeafContainers[dataSymbolId].push(firstTemporalSymbolId);
+                    if (!(dataSymbolId in dataLeafContainers) ||
+                        getSymbolTemporalStep(dataLeafContainers[dataSymbolId], symbolTable) > getSymbolTemporalStep(firstTemporalSymbolId, symbolTable)) {
+                        dataLeafContainers[dataSymbolId] = firstTemporalSymbolId;
                     }
                     // Data nodes only have one output port, so use 0 every time
-                    edges.push([symbolIdToNodeId(dataSymbolId, dataLeafContainers[dataSymbolId].indexOf(firstTemporalSymbolId)), 0, symbolIdToNodeId(opSymbolId), dataSymbolId]);
+                    edges.push([symbolIdToNodeId(dataSymbolId), 0, symbolIdToNodeId(opSymbolId), dataSymbolId]);
                 }
             });
     }
@@ -193,21 +192,19 @@ function getNodesAndUnslicedEdges(headSymbolId, symbolTable) {
     });
 
     // Add data nodes, placed in the proper containers.
-    Object.entries(dataLeafContainers).forEach(([dataSymbolId, dataNodeContainers]) => {
-        dataNodeContainers.forEach((containerSymbolId, i) => {
-            let containerNodeId = symbolIdToNodeId(containerSymbolId);
-            let dataNodeId = symbolIdToNodeId(dataSymbolId, i);
-            nodes[dataNodeId] = createNodeObj(
-                dataNodeId,
-                dataSymbolId,
-                symbolTable[dataSymbolId],
-                containerNodeId,
-                dataSymbolId === headSymbolId ? [] : [dataSymbolId]);
-            if (containerNodeId !== 'root') {
-                // `contents` is immutable since it is derived from the symbol table, so we have to operate on it like this
-                nodes[containerNodeId].contents = nodes[containerNodeId].contents.concat([dataNodeId]);
-            }
-        });
+    Object.entries(dataLeafContainers).forEach(([dataSymbolId, containerSymbolId]) => {
+        let containerNodeId = symbolIdToNodeId(containerSymbolId);
+        let dataNodeId = symbolIdToNodeId(dataSymbolId);
+        nodes[dataNodeId] = createNodeObj(
+            dataNodeId,
+            dataSymbolId,
+            symbolTable[dataSymbolId],
+            containerNodeId,
+            dataSymbolId === headSymbolId ? [] : [dataSymbolId]);
+        if (containerNodeId !== 'root') {
+            // `contents` is immutable since it is derived from the symbol table, so we have to operate on it like this
+            nodes[containerNodeId].contents = nodes[containerNodeId].contents.concat([dataNodeId]);
+        }
     });
     return { nodes, edges }
 }
@@ -299,7 +296,6 @@ function assignEdgeParents(nodes, edges) {
     // to could be a port or a node id, depending on whether or not its a temporal slice
     edges.forEach(([fromPortId, toPortId, metadata]) => {
         if (metadata.isTemporalEdge) {
-            console.log('added to temporal');
             edgeParents['temporal'].push({id: fromPortId + toPortId, sourceHierarchy: getSourceHierarchy(fromPortId, nodes), targetHierarchy: getTargetHierarchy(toPortId, nodes), metadata});
             return;
         }
@@ -326,6 +322,7 @@ function assignEdgeParents(nodes, edges) {
  */
 function createElkNode(nodeId, nodes, edges, graphState) {
     let nodeObj = nodes[nodeId];
+    let expanded = graphState[nodeObj.symbolId].expanded || nodeObj.type !== 'graphcontainer' || getNodeIsTemporal(nodeObj);
     let elkNode = {
         id: nodeObj.nodeId,
         properties: {
@@ -337,12 +334,12 @@ function createElkNode(nodeId, nodes, edges, graphState) {
         containerHeight: nodeObj.height,
         viewerObj: nodeObj.viewerObj,
         temporalStep: nodeObj.temporalStep,
-        zOrder: nodeObj.height === 0 || !graphState[nodeObj.symbolId].expanded ? 1 : -nodeObj.height,
+        zOrder: nodeObj.height === 0 || !expanded ? 1 : -nodeObj.height,
         edges: [],
         children: [],
         ports: [],
     };
-    if (graphState[nodeObj.symbolId].expanded) {
+    if (expanded) {
         // Trying to map over nodeObj.contents leads to unexpected behavior; TODO look into this
         for (let i=0; i < nodeObj.contents.length; i++) {
             let childNodeId = nodeObj.contents[i];
@@ -377,7 +374,7 @@ function createElkNode(nodeId, nodes, edges, graphState) {
         elkNode.ports.push(newPort);
     });
     if (nodeObj.type === 'graphcontainer') {
-        if (graphState[nodeObj.symbolId].expanded) {
+        if (expanded) {
             if (nodeObj.nodeId in edges) {
                 elkNode.edges = edges[nodeObj.nodeId];
             }
@@ -586,7 +583,7 @@ function elkGraphToNodeList(elkNode, nodes=[], offset={x: 0, y: 0}) {
     for (let i = 0; i < elkNode.children.length; i++) {
         let {viewerObj, width, height, x, y, id, zOrder, temporalStep} = elkNode.children[i];
         let { type, symbolId } = viewerObj;
-        let newNode = {key: id, type, symbolId, viewerObj, x: x + offset.x, y: y + offset.y, width, height, zOrder, isExpanded: elkNode.children[i].length > 0};
+        let newNode = {key: id, type, symbolId, viewerObj, x: x + offset.x, y: y + offset.y, width, height, zOrder, isExpanded: elkNode.children[i].children.length > 0};
         if (newNode.type === 'graphcontainer') {
             newNode.isTemporal = temporalStep >= 0;
         }
@@ -693,14 +690,16 @@ function getLastExistingInHierarchy(hierarchy, root) {
 function buildTemporalEdges(root, nodePositions, edges) {
     let outputCountByPort = {};
     let inputCountByNode = {};
+    // TODO put edges that travel farther above others from the same port
     return edges.filter(({sourceHierarchy}) => portIdToPortNum(getLastExistingInHierarchy(sourceHierarchy, root)) >= 0)
         .map(({id, sourceHierarchy, targetHierarchy, metadata}) => {
         let source = getLastExistingInHierarchy(sourceHierarchy, root);
+        let sourceNode = source;
         let target = getLastExistingInHierarchy(targetHierarchy, root);
-        if (!(source in outputCountByPort)) {
-            outputCountByPort[source] = 0;
+        if (!(sourceNode in outputCountByPort)) {
+            outputCountByPort[sourceNode] = 0;
         }
-        outputCountByPort[source] += 1;
+        outputCountByPort[sourceNode] += 1;
 
         if (!(target in inputCountByNode)) {
             inputCountByNode[target] = 0;
@@ -709,10 +708,24 @@ function buildTemporalEdges(root, nodePositions, edges) {
 
         let startPoint = {x: nodePositions[source].x, y: nodePositions[source].y};
         let endPoint = {x: nodePositions[target].x, y: nodePositions[target].y + kEdgeMargin * (inputCountByNode[target] - 1) + kEdgeThickness};
+        let slope = (endPoint.y - startPoint.y) / (endPoint.x - startPoint.x);
+        let length = Math.sqrt((endPoint.y - startPoint.y)**2 + (endPoint.x - startPoint.x)**2);
+        let orthogonal = -1 / slope;
+        let curveLen = length * kCurvePointFactor;
+        let curveX = Math.sqrt(curveLen**2 / (1 + orthogonal**2));
+        let curveY = orthogonal * curveX;
+        if (curveY > 0) {
+            curveY *= -1;
+            curveX *= -1;
+        }
+        let halfway = {x: (startPoint.x + endPoint.x) / 2, y: (startPoint.y + endPoint.y) / 2};
+
+        let curvePoint = {x: halfway.x + curveX, y: halfway.y + curveY};
         let bendPoints = [
-            {x: startPoint.x, y: startPoint.y - kEdgeMargin * outputCountByPort[source]},
-            {x: (endPoint.x + startPoint.x) / 2, y: startPoint.y - kEdgeMargin * outputCountByPort[source]},
-            {x: (endPoint.x + startPoint.x) / 2, y: endPoint.y}
+            {x: startPoint.x, y: startPoint.y - kEdgeMargin * outputCountByPort[sourceNode]},
+            curvePoint,
+            //{x: (endPoint.x + startPoint.x) / 2, y: startPoint.y - kEdgeMargin * outputCountByPort[source]},
+           // {x: (endPoint.x + startPoint.x) / 2, y: endPoint.y}
         ];
         return {id, sections: [{
             startPoint,
@@ -726,10 +739,8 @@ function buildTemporalEdges(root, nodePositions, edges) {
 function layoutGraphRecurse(elk, toLayout, viewerId, setInPayload) {
     let rootNode = toLayout[0];
     if (rootNode.id === 'root' || (rootNode.children.length > 0 && rootNode.children[0].temporalStep >= 0)) {
-        console.log(rootNode);
         elk.layout(rootNode).then(
             () => {
-                console.log('yippee');
                 rootNode.properties['elk.algorithm'] = 'elk.fixed';
                 if (rootNode.children && rootNode.children.length > 0 && rootNode.children[0].temporalStep >= 0) {
                     let sortedContainers = new Array(rootNode.children.length).fill(0);
