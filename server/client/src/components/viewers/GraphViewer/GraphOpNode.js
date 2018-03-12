@@ -20,20 +20,22 @@ class GraphOpNode extends Component {
         height:         PropTypes.number.isRequired,
         x:              PropTypes.number.isRequired,
         y:              PropTypes.number.isRequired,
+
         symbolId:       PropTypes.string.isRequired,
         type:           PropTypes.string.isRequired,
         str:            PropTypes.string.isRequired,
         name:           PropTypes.string,
         payload:        PropTypes.object.isRequired,
+
         selectedId:     PropTypes.string,
         hoverId:        PropTypes.string,
-        setSelectedId:  PropTypes.func.isRequired,
-        setHoverId:     PropTypes.func.isRequired,
+        setSelected:    PropTypes.func.isRequired,
+        setHover:       PropTypes.func.isRequired,
     };
 
     render() {
         const { classes, width, height, x, y, str } = this.props;
-        const { symbolId, selectedId, hoverId, setSelectedId, setHoverId } = this.props;
+        const { symbolId, payload, selectedId, hoverId, setSelected, setHover } = this.props;
         return (
             <g>
                 <rect x={x} y={y} width={width} height={height}
@@ -42,9 +44,9 @@ class GraphOpNode extends Component {
                           [classes.hover]:    hoverId === symbolId,
                           [classes.selected]: selectedId === symbolId,
                       })}
-                      onClick={() => setSelectedId(symbolId)}
-                      onMouseEnter={() => setHoverId(symbolId)}
-                      onMouseLeave={() => setHoverId(null)} />
+                      onClick={() => setSelected({symbolId, payload})}
+                      onMouseEnter={() => setHover({symbolId, payload})}
+                      onMouseLeave={() => setHover(null)} />
 
                 <foreignObject x={x} y={y} width={width} height={height} pointerEvents="none">
                     <div className={classes.label}>

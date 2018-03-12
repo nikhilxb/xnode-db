@@ -14,7 +14,9 @@ import GraphOpNode from './GraphOpNode';
 import GraphDataEdge from './GraphDataEdge';
 import GraphDataNode from './GraphDataNode';
 import GraphContainerNode from './GraphContainerNode';
+import GraphDataViewer from './GraphDataViewer';
 
+import Tooltip from '../../Tooltip';
 import { CircularProgress } from 'material-ui/Progress';
 
 
@@ -47,11 +49,11 @@ class GraphViewer extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            selectedId: null,
-            hoverId: null,
+            selectedTooltip: null,  // {symbolId, payload} or null
+            hoverTooltip: null,     // {symbolId, payload} or null
         };
-        this.setSelectedId = this.setSelectedId.bind(this);
-        this.setHoverId = this.setHoverId.bind(this);
+        this.setSelectedTooltip = this.setSelectedTooltip.bind(this);
+        this.setHoverTooltip = this.setHoverTooltip.bind(this);
     }
 
     componentDidMount() {
@@ -74,21 +76,21 @@ class GraphViewer extends Component {
             let elk = new ELK();
             layoutGraph(elk, nextGraphSkeleton, viewerId, setInPayload);
             this.setState({
-                selectedId: null,
-                hoverId: null,
+                selectedTooltip: null,
+                hoverTooltip: null,
             });
         }
     }
 
-    setSelectedId(symbolId) {
+    setSelectedTooltip(tooltip) {
         this.setState({
-            selectedId: symbolId,
+            selectedTooltip: tooltip,
         });
     }
 
-    setHoverId(symbolId) {
+    setHoverTooltip(tooltip) {
         this.setState({
-            hoverId: symbolId,
+            hoverTooltip: tooltip,
         });
     }
 
@@ -118,11 +120,12 @@ class GraphViewer extends Component {
      */
     buildEdgeComponents(edges) {
         return edges.map(edge => {
+            const { key, isTemporal } = edge;
             const layoutObj = {
-                setSelectedId: this.setSelectedId,
-                setHoverId: this.setHoverId,
-                selectedId: this.state.selectedId,
-                hoverId: this.state.hoverId,
+                setSelected:    this.setSelectedTooltip,
+                setHover:       this.setHoverTooltip,
+                selectedId:     this.state.selectedTooltip && this.state.selectedTooltip.symbolId,
+                hoverId:        this.state.hoverTooltip && this.state.hoverTooltip.symbolId,
             };
             const edgeData = {
                 key: edge.key,
@@ -151,7 +154,6 @@ class GraphViewer extends Component {
      *     node's global position should be equal to its parent's global position, plus the node's `x` and `y` values.
      */
     buildNodeComponents(nodes) {
-        const { payload } = this.props;
         return nodes.map(node => {
             const { type, key, viewerObj, x, y, width, height, zOrder, isTemporal, isExpanded } = node;
             const layoutObj = {
@@ -161,10 +163,10 @@ class GraphViewer extends Component {
                 y,
                 isTemporal,
                 isExpanded,
-                setSelectedId: this.setSelectedId,
-                setHoverId: this.setHoverId,
-                selectedId: this.state.selectedId,
-                hoverId: this.state.hoverId,
+                setSelected:    this.setSelectedTooltip,
+                setHover:       this.setHoverTooltip,
+                selectedId:     this.state.selectedTooltip && this.state.selectedTooltip.symbolId,
+                hoverId:        this.state.hoverTooltip && this.state.hoverTooltip.symbolId,
             };
             switch(type) {
                 case 'graphdata':
@@ -216,8 +218,10 @@ class GraphViewer extends Component {
                     </marker>
                 </defs>
                 <rect x={0} y={0} width={graph.width} height={graph.height} fill="transparent"
-                      onClick={() => this.setSelectedId(null)}/>
-                {components}
+                      onClick={() => this.setSelected(null)}/>
+                <Tooltip display={<GraphDataViewer val={this.state.hoverTooltip}/>} width={150} height={200}>
+                    {components}
+                </Tooltip>
             </svg>
         );
     }

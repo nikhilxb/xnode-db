@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
 import { withStyles } from 'material-ui/styles';
 import PropTypes from 'prop-types';
+import classNames from "classnames";
 
 import ColorLightBlue from 'material-ui/colors/lightBlue'
-import classNames from "classnames";
 import ColorBlue from "material-ui/colors/blue";
 
 
@@ -19,6 +19,7 @@ class GraphContainerNode extends Component {
         height:         PropTypes.number.isRequired,
         x:              PropTypes.number.isRequired,
         y:              PropTypes.number.isRequired,
+
         symbolId:       PropTypes.string.isRequired,
         type:           PropTypes.string.isRequired,
         name:           PropTypes.string,
@@ -31,14 +32,14 @@ class GraphContainerNode extends Component {
 
         selectedId:     PropTypes.string,
         hoverId:        PropTypes.string,
-        setSelectedId:  PropTypes.func.isRequired,
-        setHoverId:     PropTypes.func.isRequired,
+        setSelected:    PropTypes.func.isRequired,
+        setHover:       PropTypes.func.isRequired,
     };
 
     render() {
         const { classes, width, height, x, y } = this.props;
         const { toggleExpanded, isExpanded, isTemporal } = this.props;
-        const { symbolId, selectedId, hoverId, setSelectedId, setHoverId } = this.props;
+        const { symbolId, payload, selectedId, hoverId, setSelected, setHover } = this.props;
         return (
             <rect width={width} height={height} x={x} y={y}
                   className={classNames({
@@ -49,10 +50,10 @@ class GraphContainerNode extends Component {
                   })}
                   onClick={() => {
                       toggleExpanded();
-                      setSelectedId(symbolId);
+                      setSelected({symbolId, payload});
                   }}
-                  onMouseEnter={() => setHoverId(symbolId)}
-                  onMouseLeave={() => setHoverId(null)} />
+                  onMouseEnter={() => setHover({symbolId, payload})}
+                  onMouseLeave={() => setHover(null)} />
         );
     }
 }

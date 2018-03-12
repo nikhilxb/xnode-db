@@ -7,9 +7,6 @@ import { line, curveBasis, curveLinear } from 'd3';
 import ColorGrey from 'material-ui/colors/grey';
 import ColorBlue from 'material-ui/colors/blue';
 
-import Tooltip from '../../Tooltip';
-import GraphDataViewer from './GraphDataViewer';
-
 
 /**
  * This dumb component renders an edge between two nodes in a computation graph, corresponding to the flow of a graph
@@ -20,20 +17,22 @@ class GraphDataEdge extends Component {
     /** Prop expected types object. */
     static propTypes = {
         classes:        PropTypes.object.isRequired,
+        points:         PropTypes.array.isRequired,
+        isTemporal:     PropTypes.bool.isRequired,
+
         symbolId:       PropTypes.string.isRequired,
         name:           PropTypes.string,
         str:            PropTypes.string.isRequired,
         payload:        PropTypes.object.isRequired,
         selectedId:     PropTypes.string,
         hoverId:        PropTypes.string,
-        setSelectedId:  PropTypes.func.isRequired,
-        setHoverId:     PropTypes.func.isRequired,
-        isTemporal:     PropTypes.bool.isRequired,
+        setSelected:    PropTypes.func.isRequired,
+        setHover:       PropTypes.func.isRequired,
     };
 
     render() {
-        const { classes, points } = this.props;
-        const { symbolId, selectedId, hoverId, setSelectedId, setHoverId, isTemporal } = this.props;
+        const { classes, points, isTemporal } = this.props;
+        const { symbolId, payload, selectedId, hoverId, setSelected, setHover } = this.props;
         let pathString = null;
         if (isTemporal) {
             let curveGenerator = line().curve(curveBasis);
@@ -47,16 +46,13 @@ class GraphDataEdge extends Component {
         }
         return (
             <g>
-                <Tooltip display={<GraphDataViewer width={50} height={50}/>} width={50} height={50}>
-                    <path d={pathString}
-                          className={classes.hotspot}
-                          onClick={() => setSelectedId(symbolId)}
-                          onMouseEnter={() => setHoverId(symbolId)}
-                          onMouseLeave={() => setHoverId(null)} />
-                </Tooltip>
+                <path d={pathString}
+                      className={classes.hotspot}
+                      onClick={() => setSelected({symbolId, payload})}
+                      onMouseEnter={() => setHover({symbolId, payload})}
+                      onMouseLeave={() => setHover(null)} />
                 <path d={pathString}
                       pointerEvents="none"
-                      
                       className={classNames({
                           [classes.normal]:   true,
                           [classes.temporal]: isTemporal,

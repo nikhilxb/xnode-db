@@ -13,11 +13,11 @@ class Tooltip extends Component {
     /** Prop expected types object. */
     static propTypes = {
         classes:    PropTypes.object.isRequired,
-        children:   PropTypes.object,
-        isFixed:    PropTypes.bool,
+        children:   PropTypes.node,
         display:    PropTypes.element.isRequired,
         width:      PropTypes.number.isRequired,
         height:     PropTypes.number.isRequired,
+        isFixed:    PropTypes.bool,
     };
 
     /** Constructor. */
@@ -36,7 +36,9 @@ class Tooltip extends Component {
         // Using offsetX/Y works in Chrome. From W3C: "W3C Working Draft. Mouse position relative to the target
         // element. This is implemented very inconsistently between browsers."
         let displayX = e.nativeEvent.offsetX - width / 2;
-        let displayY = e.nativeEvent.offsetY - height - 8;
+        displayX = displayX >= 0 ? displayX : 0;
+        let displayY = e.nativeEvent.offsetY - height - 12;
+        displayY = displayY >= 0 ? displayY : e.nativeEvent.offsetY + 12 + 12;
 
         this.setState({
             displayX,
@@ -71,7 +73,7 @@ class Tooltip extends Component {
      * Renders the SVG children nodes inside a new group, on which mouse handler a.
      */
     render() {
-        const { classes, children, display } = this.props;
+        const { classes, children, display, width, height } = this.props;
 
         return (
             <g>
@@ -80,7 +82,12 @@ class Tooltip extends Component {
                    onMouseLeave={() => this.updateDisplayVisibility(false)}>
                     {children}
                 </g>
-                {this.state.isVisible && React.cloneElement(display, {x: this.state.displayX, y: this.state.displayY})}
+                {this.state.isVisible && React.cloneElement(display, {
+                    x: this.state.displayX,
+                    y: this.state.displayY,
+                    width,
+                    height,
+                })}
             </g>
         );
     }
