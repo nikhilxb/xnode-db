@@ -219,7 +219,7 @@ class GraphViewer extends Component {
                 </defs>
                 <rect x={0} y={0} width={graph.width} height={graph.height} fill="transparent"
                       onClick={() => this.setSelected(null)}/>
-                <Tooltip display={<GraphDataViewer val={this.state.hoverTooltip}/>} width={150} height={200}>
+                <Tooltip display={<GraphDataViewer contents={this.state.hoverTooltip}/>} width={150} height={200}>
                     {components}
                 </Tooltip>
             </svg>

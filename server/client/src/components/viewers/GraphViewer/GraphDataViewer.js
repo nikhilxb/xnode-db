@@ -18,15 +18,27 @@ class GraphDataViewer extends Component {
         height:         PropTypes.number.isRequired,
         x:              PropTypes.number.isRequired,
         y:              PropTypes.number.isRequired,
+
+        contents:       PropTypes.object,
     };
 
     /** Renders the data node block, and on hover */
     render() {
-        const { classes, width, height, x, y, val } = this.props;
+        const { classes, width, height, x, y, contents} = this.props;
+
+        let component;
+        if(!contents) {
+            component = null;
+        } else {
+            const { symbolId, payload } = contents;
+            console.log(contents);
+            component = JSON.stringify(payload);
+        }
+
         return (
             <foreignObject x={x} y={y} width={width} height={height} pointerEvents="none">
                 <div className={classes.container}>
-                    {val && val.symbolId}
+                    {component}
                 </div>
             </foreignObject>
         );
@@ -40,14 +52,17 @@ class GraphDataViewer extends Component {
 const styles = theme => ({
     container: {
         height: '100%',
-        overflow:'hidden',
-        whiteSpace:'nowrap',
+        overflow:'auto',
+        wordWrap: 'break-word',
+        // whiteSpace:'nowrap',
+
         backgroundColor: 'white',
         opacity: 0.9,
         borderStyle: 'solid',
         borderColor: ColorBlue[600],
         borderWidth: 1,
         borderRadius: 2,
+        
     }
 });
 
