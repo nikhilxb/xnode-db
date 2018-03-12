@@ -22,7 +22,7 @@ class GraphDataViewer extends Component {
     render() {
         const { width, height, x, y } = this.props;
         return (
-            <g zIndex="99">
+            <g>
                 <rect width={width} height={height} x={x} y={y} fill='#75CE8A'/>
                 <text x={x} y={y}>"GraphDataViewer"</text>
             </g>

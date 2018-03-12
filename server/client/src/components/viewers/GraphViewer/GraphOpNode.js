@@ -5,6 +5,7 @@ import classNames from 'classnames';
 
 import ColorPink from 'material-ui/colors/pink';
 import ColorBlue from "material-ui/colors/blue";
+import ColorGrey from 'material-ui/colors/grey';
 
 
 /**
@@ -61,15 +62,15 @@ class GraphOpNode extends Component {
 /** CSS-in-JS styling object. */
 const styles = theme => ({
     normal: {
-        fill: ColorPink[400],
+        fill: ColorPink[500],
+        stroke: 'transparent',
+        strokeWidth: 4,
     },
     hover: {
-        fill: ColorPink[600],
+        stroke: ColorPink[700],
     },
     selected: {
-        fill: ColorPink[600],
         stroke: ColorBlue[600],
-        strokeWidth: 4,
     },
     label: {
         height: '100%',
@@ -77,8 +78,10 @@ const styles = theme => ({
         flexDirection: 'column',
         justifyContent: 'center',
         textAlign: 'center',
-        fontSize: 14,
+        fontSize: 13,
         fontFamily: "Roboto",
+        fontWeight: 'bold',
+        color: 'white',
     },
 });
 

@@ -54,15 +54,15 @@ class GraphDataNode extends Component {
 /** CSS-in-JS styling object. */
 const styles = theme => ({
     normal: {
-        fill: ColorOrange[400],
+        fill: ColorOrange[600],
+        stroke: 'transparent',
+        strokeWidth: 4,
     },
     hover: {
-        fill: ColorOrange[600],
+        stroke: ColorOrange[700],
     },
     selected: {
-        fill: ColorOrange[600],
         stroke: ColorBlue[600],
-        strokeWidth: 4,
     }
 });
 

@@ -47,7 +47,7 @@ class GraphDataEdge extends Component {
         }
         return (
             <g>
-                <Tooltip display={<GraphDataViewer/>} width={50} height={50}>
+                <Tooltip display={<GraphDataViewer width={50} height={50}/>} width={50} height={50}>
                     <path d={pathString}
                           className={classes.hotspot}
                           onClick={() => setSelectedId(symbolId)}

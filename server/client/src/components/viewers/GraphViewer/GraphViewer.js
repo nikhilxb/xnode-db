@@ -25,7 +25,8 @@ import { CircularProgress } from 'material-ui/Progress';
  *      graphState: {
  *          symbolId: {
  *              expanded: false,
- *          }
+ *          },
+ *          ...
  *      },
  *      graph: {
  *          id: 'root',
