@@ -123,8 +123,14 @@ class GraphViewer extends Component {
                 selectedId: this.state.selectedId,
                 hoverId: this.state.hoverId,
             };
+            const edgeData = {
+                key: edge.key,
+                points: edge.points,
+                zOrder: edge.zOrder,
+                isTemporal: edge.isTemporal,
+            };
             return ({
-                component: <GraphDataEdge {...edge} {...layoutObj} />,
+                component: <GraphDataEdge {...edgeData} {...edge.viewerObj} {...layoutObj} />,
                 zOrder: edge.zOrder,
             });
         });

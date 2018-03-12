@@ -21,6 +21,9 @@ class GraphDataEdge extends Component {
     static propTypes = {
         classes:        PropTypes.object.isRequired,
         symbolId:       PropTypes.string.isRequired,
+        name:           PropTypes.string,
+        str:            PropTypes.string.isRequired,
+        payload:        PropTypes.object.isRequired,
         selectedId:     PropTypes.string,
         hoverId:        PropTypes.string,
         setSelectedId:  PropTypes.func.isRequired,
