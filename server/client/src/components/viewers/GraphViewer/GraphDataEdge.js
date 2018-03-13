@@ -24,6 +24,7 @@ class GraphDataEdge extends Component {
         name:           PropTypes.string,
         str:            PropTypes.string.isRequired,
         payload:        PropTypes.object.isRequired,
+
         selectedId:     PropTypes.string,
         hoverId:        PropTypes.string,
         setSelected:    PropTypes.func.isRequired,
@@ -32,7 +33,7 @@ class GraphDataEdge extends Component {
 
     render() {
         const { classes, points, isTemporal } = this.props;
-        const { symbolId, payload, selectedId, hoverId, setSelected, setHover } = this.props;
+        const { symbolId, selectedId, hoverId, setSelected, setHover } = this.props;
         let pathString = null;
         if (isTemporal) {
             let curveGenerator = line().curve(curveBasis);
@@ -48,9 +49,9 @@ class GraphDataEdge extends Component {
             <g>
                 <path d={pathString}
                       className={classes.hotspot}
-                      onClick={() => setSelected({symbolId, payload})}
-                      onMouseEnter={() => setHover({symbolId, payload})}
-                      onMouseLeave={() => setHover(null)} />
+                      onClick={() => setSelected()}
+                      onMouseEnter={() => setHover(true)}
+                      onMouseLeave={() => setHover(false)} />
                 <path d={pathString}
                       pointerEvents="none"
                       className={classNames({

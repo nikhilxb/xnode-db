@@ -39,7 +39,7 @@ class GraphContainerNode extends Component {
     render() {
         const { classes, width, height, x, y } = this.props;
         const { toggleExpanded, isExpanded, isTemporal } = this.props;
-        const { symbolId, payload, selectedId, hoverId, setSelected, setHover } = this.props;
+        const { symbolId, selectedId, hoverId, setSelected, setHover } = this.props;
         return (
             <rect width={width} height={height} x={x} y={y}
                   className={classNames({
@@ -50,10 +50,10 @@ class GraphContainerNode extends Component {
                   })}
                   onClick={() => {
                       toggleExpanded();
-                      setSelected({symbolId, payload});
+                      setSelected();
                   }}
-                  onMouseEnter={() => setHover({symbolId, payload})}
-                  onMouseLeave={() => setHover(null)} />
+                  onMouseEnter={() => setHover(true)}
+                  onMouseLeave={() => setHover(false)} />
         );
     }
 }

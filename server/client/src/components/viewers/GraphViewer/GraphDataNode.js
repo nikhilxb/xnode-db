@@ -35,7 +35,7 @@ class GraphDataNode extends Component {
     /** Renders the data node rectangle, for terminals of data edges. */
     render() {
         const { classes, width, height, x, y } = this.props;
-        const { symbolId, payload, selectedId, hoverId, setSelected, setHover } = this.props;
+        const { symbolId, selectedId, hoverId, setSelected, setHover } = this.props;
         return (
             <rect width={width} height={height} x={x} y={y}
                   className={classNames({
@@ -43,9 +43,9 @@ class GraphDataNode extends Component {
                       [classes.hover]:    hoverId === symbolId,
                       [classes.selected]: selectedId === symbolId,
                   })}
-                  onClick={() => setSelected({symbolId, payload})}
-                  onMouseEnter={() => setHover({symbolId, payload})}
-                  onMouseLeave={() => setHover(null)} />
+                  onClick={() => setSelected()}
+                  onMouseEnter={() => setHover(true)}
+                  onMouseLeave={() => setHover(false)} />
         );
     }
 }

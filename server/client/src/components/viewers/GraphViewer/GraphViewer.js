@@ -52,8 +52,6 @@ class GraphViewer extends Component {
             selectedTooltip: null,  // {symbolId, payload} or null
             hoverTooltip: null,     // {symbolId, payload} or null
         };
-        this.setSelectedTooltip = this.setSelectedTooltip.bind(this);
-        this.setHoverTooltip = this.setHoverTooltip.bind(this);
     }
 
     componentDidMount() {
@@ -88,9 +86,9 @@ class GraphViewer extends Component {
         });
     }
 
-    setHoverTooltip(tooltip) {
+    setHoverTooltip(tooltip, isHovered) {
         this.setState({
-            hoverTooltip: tooltip,
+            hoverTooltip: isHovered ? tooltip : null,
         });
     }
 
@@ -120,22 +118,22 @@ class GraphViewer extends Component {
      */
     buildEdgeComponents(edges) {
         return edges.map(edge => {
-            const { key, isTemporal } = edge;
+            const { key, points, zOrder, isTemporal, viewerObj } = edge;
+            const tooltipObj = {
+                ...viewerObj,
+            };
             const layoutObj = {
-                setSelected:    this.setSelectedTooltip,
-                setHover:       this.setHoverTooltip,
+                points,
+                zOrder,
+                isTemporal,
+                setSelected:    this.setSelectedTooltip.bind(this, tooltipObj),
+                setHover:       this.setHoverTooltip.bind(this, tooltipObj),
                 selectedId:     this.state.selectedTooltip && this.state.selectedTooltip.symbolId,
                 hoverId:        this.state.hoverTooltip && this.state.hoverTooltip.symbolId,
             };
-            const edgeData = {
-                key: edge.key,
-                points: edge.points,
-                zOrder: edge.zOrder,
-                isTemporal: edge.isTemporal,
-            };
             return ({
-                component: <GraphDataEdge {...edgeData} {...edge.viewerObj} {...layoutObj} />,
-                zOrder: edge.zOrder,
+                component: <GraphDataEdge key={key} {...viewerObj} {...layoutObj} />,
+                zOrder,
             });
         });
     }
@@ -156,6 +154,9 @@ class GraphViewer extends Component {
     buildNodeComponents(nodes) {
         return nodes.map(node => {
             const { type, key, viewerObj, x, y, width, height, zOrder, isTemporal, isExpanded } = node;
+            const tooltipObj = {
+                ...viewerObj,
+            };
             const layoutObj = {
                 width,
                 height,
@@ -163,8 +164,8 @@ class GraphViewer extends Component {
                 y,
                 isTemporal,
                 isExpanded,
-                setSelected:    this.setSelectedTooltip,
-                setHover:       this.setHoverTooltip,
+                setSelected:    this.setSelectedTooltip.bind(this, tooltipObj),
+                setHover:       this.setHoverTooltip.bind(this, tooltipObj),
                 selectedId:     this.state.selectedTooltip && this.state.selectedTooltip.symbolId,
                 hoverId:        this.state.hoverTooltip && this.state.hoverTooltip.symbolId,
             };
@@ -218,8 +219,8 @@ class GraphViewer extends Component {
                     </marker>
                 </defs>
                 <rect x={0} y={0} width={graph.width} height={graph.height} fill="transparent"
-                      onClick={() => this.setSelected(null)}/>
-                <Tooltip display={<GraphDataViewer contents={this.state.hoverTooltip}/>} width={150} height={200}>
+                      onClick={() => this.setSelectedTooltip(null)}/>
+                <Tooltip display={<GraphDataViewer contents={this.state.hoverTooltip}/>} width={200} height={100}>
                     {components}
                 </Tooltip>
             </svg>

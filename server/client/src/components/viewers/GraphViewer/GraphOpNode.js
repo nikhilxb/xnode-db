@@ -35,7 +35,7 @@ class GraphOpNode extends Component {
 
     render() {
         const { classes, width, height, x, y, str } = this.props;
-        const { symbolId, payload, selectedId, hoverId, setSelected, setHover } = this.props;
+        const { symbolId, selectedId, hoverId, setSelected, setHover } = this.props;
         return (
             <g>
                 <rect x={x} y={y} width={width} height={height}
@@ -44,9 +44,9 @@ class GraphOpNode extends Component {
                           [classes.hover]:    hoverId === symbolId,
                           [classes.selected]: selectedId === symbolId,
                       })}
-                      onClick={() => setSelected({symbolId, payload})}
-                      onMouseEnter={() => setHover({symbolId, payload})}
-                      onMouseLeave={() => setHover(null)} />
+                      onClick={() => setSelected()}
+                      onMouseEnter={() => setHover(true)}
+                      onMouseLeave={() => setHover(false)} />
 
                 <foreignObject x={x} y={y} width={width} height={height} pointerEvents="none">
                     <div className={classes.label}>

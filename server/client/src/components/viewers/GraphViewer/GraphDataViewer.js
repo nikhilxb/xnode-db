@@ -31,7 +31,6 @@ class GraphDataViewer extends Component {
             component = null;
         } else {
             const { symbolId, payload } = contents;
-            console.log(contents);
             component = JSON.stringify(payload);
         }
 
@@ -62,7 +61,7 @@ const styles = theme => ({
         borderColor: ColorBlue[600],
         borderWidth: 1,
         borderRadius: 2,
-        
+
     }
 });
 
