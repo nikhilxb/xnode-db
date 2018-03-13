@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { withStyles } from 'material-ui/styles';
 import PropTypes from 'prop-types';
-import classNames from "classnames";
+import classNames from 'classnames';
 
 import { line, curveBasis, curveLinear } from 'd3';
 import ColorGrey from 'material-ui/colors/grey';
@@ -57,6 +57,7 @@ class GraphDataEdge extends Component {
                       className={classNames({
                           [classes.normal]:   true,
                           [classes.temporal]: isTemporal,
+                          [classes.dimmed]:   hoverId && hoverId !== symbolId,
                           [classes.hover]:    hoverId === symbolId,
                           [classes.selected]: selectedId === symbolId,
                       })} />
@@ -85,8 +86,10 @@ const styles = theme => ({
         opacity: 0.5,
         strokeWidth: 2.5,
     },
+    dimmed: {
+        opacity: 0.1,
+    },
     hover: {
-        stroke: ColorGrey[600],
         opacity: 1,
         strokeWidth: 5,
     },

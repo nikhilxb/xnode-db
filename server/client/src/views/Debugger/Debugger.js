@@ -28,7 +28,7 @@ class Debugger extends Component {
      * displays the control buttons (step, continue, etc.) and canvas where viewers are displayed.
      */
     render() {
-        const {classes} = this.props;
+        const { classes } = this.props;
 
         return (
             <MuiThemeProvider theme={theme}>
@@ -56,6 +56,9 @@ const theme = createMuiTheme({
     spacing: {
         unit: 5,
     },
+    typography: {
+        htmlFontSize: 10,
+    }
 });
 
 /** CSS-in-JS styling object. */
@@ -63,6 +66,9 @@ const styles = theme => ({
     mainContainer: {
         display: 'flex',
         height: '100vh',
+        fontFamily: theme.typography.fontFamily,
+        fontSize: theme.typography.fontSize,
+        fontWeight: theme.typography.fontWeightRegular,
     },
     leftContainer: {
         maxWidth: '350px',

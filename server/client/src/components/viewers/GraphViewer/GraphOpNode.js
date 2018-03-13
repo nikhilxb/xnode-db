@@ -68,6 +68,8 @@ const styles = theme => ({
         fill: ColorPink[500],
         stroke: 'transparent',
         strokeWidth: 4,
+        rx: 4,
+        ry: 4,
     },
     hover: {
         stroke: ColorPink[700],
@@ -81,8 +83,7 @@ const styles = theme => ({
         flexDirection: 'column',
         justifyContent: 'center',
         textAlign: 'center',
-        fontSize: 13,
-        fontFamily: "Roboto",
+        fontSize: '1.3rem',
         fontWeight: 'bold',
         color: 'white',
     },

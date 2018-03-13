@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { withStyles } from 'material-ui/styles';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
 
 import ColorBlue from "material-ui/colors/blue";
 
@@ -18,7 +19,6 @@ class GraphDataViewer extends Component {
         height:         PropTypes.number.isRequired,
         x:              PropTypes.number.isRequired,
         y:              PropTypes.number.isRequired,
-
         contents:       PropTypes.object,
     };
 
@@ -53,7 +53,6 @@ const styles = theme => ({
         height: '100%',
         overflow:'auto',
         wordWrap: 'break-word',
-        // whiteSpace:'nowrap',
 
         backgroundColor: 'white',
         opacity: 0.9,
@@ -61,7 +60,6 @@ const styles = theme => ({
         borderColor: ColorBlue[600],
         borderWidth: 1,
         borderRadius: 2,
-
     }
 });
 

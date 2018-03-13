@@ -18,6 +18,7 @@ import GraphDataViewer from './GraphDataViewer';
 
 import Tooltip from '../../Tooltip';
 import { CircularProgress } from 'material-ui/Progress';
+import ColorGrey from 'material-ui/colors/grey';
 
 
 /**
@@ -43,14 +44,18 @@ class GraphViewer extends Component {
 
     /** Prop expected types object. */
     static propTypes = {
-        classes: PropTypes.object.isRequired,
+        classes:            PropTypes.object.isRequired,
+        graphSkeleton:      PropTypes.object.isRequired,
+        ensureGraphLoaded:  PropTypes.func.isRequired,
+        setInPayload:       PropTypes.func.isRequired,
     };
 
     constructor(props) {
         super(props);
         this.state = {
-            selectedTooltip: null,  // {symbolId, payload} or null
-            hoverTooltip: null,     // {symbolId, payload} or null
+            selectedObj: null,  // {symbolId, ...} or null
+            hoverObj: null,     // {symbolId, ...} or null
+            isInspectorExpanded: true,
         };
     }
 
@@ -74,22 +79,28 @@ class GraphViewer extends Component {
             let elk = new ELK();
             layoutGraph(elk, nextGraphSkeleton, viewerId, setInPayload);
             this.setState({
-                selectedTooltip: null,
-                hoverTooltip: null,
+                selectedObj: null,
+                hoverObj: null,
             });
         }
     }
 
-    setSelectedTooltip(tooltip) {
+    setSelectedObj(obj) {
         this.setState({
-            selectedTooltip: tooltip,
+            selectedObj: obj,
         });
     }
 
-    setHoverTooltip(tooltip, isHovered) {
+    setHoverObj(obj, isHovered) {
         this.setState({
-            hoverTooltip: isHovered ? tooltip : null,
+            hoverObj: isHovered ? obj : null,
         });
+    }
+
+    toggleInspectorExpanded() {
+        this.setState(prev => ({
+            isInspectorExpanded: !prev.isInspectorExpanded,
+        }));
     }
 
     /**
@@ -126,10 +137,10 @@ class GraphViewer extends Component {
                 points,
                 zOrder,
                 isTemporal,
-                setSelected:    this.setSelectedTooltip.bind(this, tooltipObj),
-                setHover:       this.setHoverTooltip.bind(this, tooltipObj),
-                selectedId:     this.state.selectedTooltip && this.state.selectedTooltip.symbolId,
-                hoverId:        this.state.hoverTooltip && this.state.hoverTooltip.symbolId,
+                setSelected:    this.setSelectedObj.bind(this, tooltipObj),
+                setHover:       this.setHoverObj.bind(this, tooltipObj),
+                selectedId:     this.state.selectedObj && this.state.selectedObj.symbolId,
+                hoverId:        this.state.hoverObj && this.state.hoverObj.symbolId,
             };
             return ({
                 component: <GraphDataEdge key={key} {...viewerObj} {...layoutObj} />,
@@ -164,10 +175,10 @@ class GraphViewer extends Component {
                 y,
                 isTemporal,
                 isExpanded,
-                setSelected:    this.setSelectedTooltip.bind(this, tooltipObj),
-                setHover:       this.setHoverTooltip.bind(this, tooltipObj),
-                selectedId:     this.state.selectedTooltip && this.state.selectedTooltip.symbolId,
-                hoverId:        this.state.hoverTooltip && this.state.hoverTooltip.symbolId,
+                setSelected:    this.setSelectedObj.bind(this, tooltipObj),
+                setHover:       this.setHoverObj.bind(this, tooltipObj),
+                selectedId:     this.state.selectedObj && this.state.selectedObj.symbolId,
+                hoverId:        this.state.hoverObj && this.state.hoverObj.symbolId,
             };
             switch(type) {
                 case 'graphdata':
@@ -200,30 +211,41 @@ class GraphViewer extends Component {
     }
 
     /**
-     * Renders all of the graph's op and data components, laid out by ELK.
+     * Renders all of the graph's op and data components, laid out by ELK. Additionally, displays an inspector fixed to
+     * the bottom of the frame that displays the hover/selected item's info.
      */
     render() {
-        let { graph } = this.props.payload;
+        const { classes, payload } = this.props;
+        const { graph } = payload;
         if (!graph) {
-            return <CircularProgress />;
+            return (
+                <div className={classes.container}>
+                    <CircularProgress />
+                </div>
+            );
         }
         const componentObjects = this.buildNodeComponents(graph.nodes).concat(this.buildEdgeComponents(graph.edges));
         const components = componentObjects.asMutable().sort(({zOrder: zOrder1}, {zOrder: zOrder2}) => zOrder1 - zOrder2).map(({component}) => component);
 
         return (
-            <svg width={graph.width} height={graph.height}>
-                <defs>
-                    <marker id="arrowhead" markerWidth="20" markerHeight="10"
-                            refX="0" refY="5" orient="auto">
-                        <polygon points="0 0, 20 5, 0 10" />
-                    </marker>
-                </defs>
-                <rect x={0} y={0} width={graph.width} height={graph.height} fill="transparent"
-                      onClick={() => this.setSelectedTooltip(null)}/>
-                <Tooltip display={<GraphDataViewer contents={this.state.hoverTooltip}/>} width={200} height={100}>
-                    {components}
-                </Tooltip>
-            </svg>
+            <div className={classes.container}>
+                <div className={classes.graph}>
+                    <svg width={graph.width} height={graph.height}>
+                        <defs>
+                            <marker id="arrowhead" markerWidth="20" markerHeight="10"
+                                    refX="0" refY="5" orient="auto">
+                                <polygon points="0 0, 20 5, 0 10" />
+                            </marker>
+                        </defs>
+                        <rect x={0} y={0} width={graph.width} height={graph.height} fill="transparent"
+                              onClick={() => this.setSelectedObj(null)}/>
+                        {components}
+                    </svg>
+                </div>
+                <div className={classes.inspector}>
+                    {`HoverId: ${this.state.hoverObj && this.state.hoverObj.symbolId}, SelectedId: ${this.state.selectedObj && this.state.selectedObj.symbolId}`}
+                </div>
+            </div>
         );
     }
 }
@@ -233,7 +255,31 @@ class GraphViewer extends Component {
 
 /** CSS-in-JS styling object. */
 const styles = theme => ({
-    // css-key: value,
+    container: {
+        flex: 1,  // expand to fill frame vertical
+        justifyContent: 'center',  // along main axis (vertical)
+        alignItems: 'stretch',  // along cross axis (horizontal)
+        overflow: 'hidden',
+
+        display: 'flex',
+        flexDirection: 'column',
+    },
+    graph: {
+        flex: 'auto',
+        overflow: 'auto',
+    },
+    inspector: {
+        flex: 'none',
+        overflow: 'auto',
+
+        boxSizing: 'border-box',
+        padding: 4,
+
+        backgroundColor: ColorGrey[50],
+        borderTopWidth: 1,
+        borderTopStyle: 'solid',
+        borderTopColor: ColorGrey[200],
+    }
 });
 
 // To inject application state into component

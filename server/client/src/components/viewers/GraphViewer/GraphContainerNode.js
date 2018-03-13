@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { withStyles } from 'material-ui/styles';
 import PropTypes from 'prop-types';
-import classNames from "classnames";
+import classNames from 'classnames';
 
 import ColorLightBlue from 'material-ui/colors/lightBlue'
 import ColorBlue from "material-ui/colors/blue";
@@ -51,11 +51,13 @@ class GraphContainerNode extends Component {
                           [classes.selected]:  selectedId === symbolId,
                       })}
                       onClick={() => {
-                          toggleExpanded();
-                          setSelected({symbolId, payload});
+                          if(selectedId == symbolId)
+                              toggleExpanded();
+                          else
+                              setSelected();
                       }}
-                      onMouseEnter={() => setHover({symbolId, payload})}
-                      onMouseLeave={() => setHover(null)} />
+                      onMouseEnter={() => setHover(true)}
+                      onMouseLeave={() => setHover(false)} />
 
                 <foreignObject x={x} y={y} width={width} height={height} pointerEvents="none">
                     <div className={classes.label}>
@@ -63,7 +65,6 @@ class GraphContainerNode extends Component {
                     </div>
                 </foreignObject>
             </g>
->>>>>>> origin/react-mvp-db
         );
     }
 }
@@ -77,17 +78,19 @@ const styles = theme => ({
     normal: {
         fill: ColorLightBlue[200],
         fillOpacity: 0.2,
+        stroke: 'transparent',
+        strokeWidth: 4,
+        rx: 4,
+        ry: 4,
     },
     collapsed: {
-      fillOpacity: 1.0,
+        fillOpacity: 1.0,
     },
     hover: {
-        fill: ColorLightBlue[400],
+        stroke: ColorLightBlue[400],
     },
     selected: {
-        fill: ColorLightBlue[400],
         stroke: ColorBlue[600],
-        strokeWidth: 4,
     },
     label: {
         height: '100%',
@@ -95,8 +98,7 @@ const styles = theme => ({
         flexDirection: 'column',
         justifyContent: 'center',
         textAlign: 'center',
-        fontSize: 13,
-        fontFamily: "Roboto",
+        fontSize: '1.3rem',
         fontWeight: 'bold',
         color: 'white',
     },

@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { withStyles } from 'material-ui/styles';
 import PropTypes from 'prop-types';
-import classNames from "classnames";
+import classNames from 'classnames';
 
 import ColorOrange from 'material-ui/colors/orange';
 import ColorBlue from "material-ui/colors/blue";
@@ -59,6 +59,8 @@ const styles = theme => ({
         fill: ColorOrange[600],
         stroke: 'transparent',
         strokeWidth: 4,
+        rx: 4,
+        ry: 4,
     },
     hover: {
         stroke: ColorOrange[700],

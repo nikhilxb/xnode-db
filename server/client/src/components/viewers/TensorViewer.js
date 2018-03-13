@@ -143,15 +143,18 @@ class TensorViewer extends Component {
 
     /** Renders the pixels and highlight elements in an svg. */
     render() {
+        const { classes } = this.props;
         const { elements, highlight } = this.state;
         const { pixels, width, height } = elements;
 
         return (
-            <svg width={width + 2*PADDING} height={height + 2*PADDING}
-                 viewBox={`${-PADDING} ${-PADDING} ${width + 2*PADDING} ${height + 2*PADDING}`}>
-                <TensorPixels pixels={pixels} handleHighlight={this.handleHighlight.bind(this)} />
-                <TensorHighlight highlight={highlight} />
-            </svg>
+            <div className={classes.container}>
+                <svg width={width + 2*PADDING} height={height + 2*PADDING}
+                     viewBox={`${-PADDING} ${-PADDING} ${width + 2*PADDING} ${height + 2*PADDING}`}>
+                    <TensorPixels pixels={pixels} handleHighlight={this.handleHighlight.bind(this)} />
+                    <TensorHighlight highlight={highlight} />
+                </svg>
+            </div>
         );
     }
 }
@@ -161,8 +164,8 @@ class TensorViewer extends Component {
 
 /** CSS-in-JS styling object. */
 const styles = theme => ({
-    label: {
-        textAlign: 'center',
+    container: {
+        overflow: 'auto',
     }
 });
 

@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
 import { withStyles } from 'material-ui/styles';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -26,9 +27,11 @@ class Example extends Component {
      */
     render() {
         const { classes } = this.props;
-
         return (
-            null
+            <div className={classNames({
+                [classes.container]: true,
+            })}>
+            </div>
         );
     }
 }

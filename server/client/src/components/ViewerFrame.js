@@ -39,9 +39,7 @@ class ViewerFrame extends Component {
                     </IconButton>
                 </div>
                 <div className={classes.content}>
-                    <div className={classes.children}>
-                        {children}
-                    </div>
+                    {children}
                 </div>
             </Paper>
         );
@@ -54,10 +52,11 @@ class ViewerFrame extends Component {
 /** CSS-in-JS styling object. */
 const styles = theme => ({
     container: {
-        textAlign: 'center',
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
+        borderRadius: 2,
+        overflow: 'hidden',
     },
     header: {
         background: '#232323',
@@ -66,23 +65,23 @@ const styles = theme => ({
         justifyContent: 'center',
         padding: 4,
         minHeight: 15,
-        borderRadius: '2px 2px 0px 0px'
     },
-    content: {
-        overflow: 'auto',
+    title: {
+        flex: 1,
+        color: '#FFFFFF',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
     },
     button: {
         height: 15,
         width: 15,
     },
-    title: {
-        flex: 1,
-        fontFamily: '"Roboto Mono", monospace',
-        color: '#FFFFFF',
-        fontSize: '9pt',
+    content: {
         overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
+        flexGrow: 1,  // fill rest of frame vertical
+        display: 'flex',
+        flexDirection: 'column',
     },
 });
 
