@@ -34,8 +34,9 @@ class GraphOpNode extends Component {
     };
 
     render() {
-        const { classes, width, height, x, y, str } = this.props;
-        const { symbolId, selectedId, hoverId, setSelected, setHover } = this.props;
+        const { classes, width, height, x, y } = this.props;
+        const { symbolId, payload, selectedId, hoverId, setSelected, setHover } = this.props;
+        const { functionname } = payload;
         return (
             <g>
                 <rect x={x} y={y} width={width} height={height}
@@ -50,7 +51,7 @@ class GraphOpNode extends Component {
 
                 <foreignObject x={x} y={y} width={width} height={height} pointerEvents="none">
                     <div className={classes.label}>
-                        {str.replace(/graphop <(.*)>/, '$1')}
+                        {functionname}
                     </div>
                 </foreignObject>
             </g>

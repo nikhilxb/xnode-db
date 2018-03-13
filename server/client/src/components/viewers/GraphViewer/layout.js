@@ -676,27 +676,38 @@ function getNodeAndPortPositions(elkNode, positions={}, offset={x: 0, y: 0}) {
 
 function getLastExistingInHierarchy(hierarchy, root) {
     let lastFoundPortId = null;
+    let nodeHeight = 0;
     for (let i = 0; i < hierarchy.length; i++) {
         // hierarchy[i] is either a port or a node
         let nextNodeId = portIdToNodeId(hierarchy[i]);
         root = root.children.find(child => child.id === nextNodeId);
         if (!root) {
-            return lastFoundPortId
+            return { lastFoundPortId, nodeHeight }
         }
+        nodeHeight = root.height;
         lastFoundPortId = hierarchy[i];
     }
-    return lastFoundPortId
+    return { lastFoundPortId, nodeHeight }
 }
 
 function buildTemporalEdges(root, nodePositions, edges) {
+    // TODO put edges that travel farther above others from the same port
+    let totalInputsToNode = {};
+    edges.filter(({sourceHierarchy}) => portIdToPortNum(getLastExistingInHierarchy(sourceHierarchy, root).lastFoundPortId) >= 0)
+        .forEach(({targetHierarchy}) => {
+            let { lastFoundPortId: target } = getLastExistingInHierarchy(targetHierarchy, root);
+            if (!(target in totalInputsToNode)) {
+                totalInputsToNode[target] = 0;
+            }
+            totalInputsToNode[target] += 1;
+        });
     let outputCountByPort = {};
     let inputCountByNode = {};
-    // TODO put edges that travel farther above others from the same port
-    return edges.filter(({sourceHierarchy}) => portIdToPortNum(getLastExistingInHierarchy(sourceHierarchy, root)) >= 0)
+    return edges.filter(({sourceHierarchy}) => portIdToPortNum(getLastExistingInHierarchy(sourceHierarchy, root).lastFoundPortId) >= 0)
         .map(({id, sourceHierarchy, targetHierarchy, metadata}) => {
-        let source = getLastExistingInHierarchy(sourceHierarchy, root);
+        let { lastFoundPortId: source } = getLastExistingInHierarchy(sourceHierarchy, root);
         let sourceNode = source;
-        let target = getLastExistingInHierarchy(targetHierarchy, root);
+        let { lastFoundPortId: target, nodeHeight: targetHeight } = getLastExistingInHierarchy(targetHierarchy, root);
         if (!(sourceNode in outputCountByPort)) {
             outputCountByPort[sourceNode] = 0;
         }
@@ -708,7 +719,8 @@ function buildTemporalEdges(root, nodePositions, edges) {
         inputCountByNode[target] += 1;
 
         let startPoint = {x: nodePositions[source].x, y: nodePositions[source].y};
-        let endPoint = {x: nodePositions[target].x, y: nodePositions[target].y + kEdgeMargin * (inputCountByNode[target] - 1) + kEdgeThickness};
+        let portSep = (targetHeight / (totalInputsToNode[target] + 1));
+        let endPoint = {x: nodePositions[target].x, y: nodePositions[target].y + portSep * (inputCountByNode[target])};
         let slope = (endPoint.y - startPoint.y) / (endPoint.x - startPoint.x);
         let length = Math.sqrt((endPoint.y - startPoint.y)**2 + (endPoint.x - startPoint.x)**2);
         let orthogonal = -1 / slope;
