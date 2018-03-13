@@ -40,20 +40,29 @@ class GraphContainerNode extends Component {
         const { classes, width, height, x, y } = this.props;
         const { toggleExpanded, isExpanded, isTemporal } = this.props;
         const { symbolId, payload, selectedId, hoverId, setSelected, setHover } = this.props;
+        const { functionname: functionName } = payload;
         return (
-            <rect width={width} height={height} x={x} y={y}
-                  className={classNames({
-                      [classes.normal]:    true,
-                      [classes.collapsed]: !isExpanded,
-                      [classes.hover]:     hoverId === symbolId,
-                      [classes.selected]:  selectedId === symbolId,
-                  })}
-                  onClick={() => {
-                      toggleExpanded();
-                      setSelected({symbolId, payload});
-                  }}
-                  onMouseEnter={() => setHover({symbolId, payload})}
-                  onMouseLeave={() => setHover(null)} />
+            <g>
+                <rect width={width} height={height} x={x} y={y}
+                      className={classNames({
+                          [classes.normal]:    true,
+                          [classes.collapsed]: !isExpanded,
+                          [classes.hover]:     hoverId === symbolId,
+                          [classes.selected]:  selectedId === symbolId,
+                      })}
+                      onClick={() => {
+                          toggleExpanded();
+                          setSelected({symbolId, payload});
+                      }}
+                      onMouseEnter={() => setHover({symbolId, payload})}
+                      onMouseLeave={() => setHover(null)} />
+
+                <foreignObject x={x} y={y} width={width} height={height} pointerEvents="none">
+                    <div className={classes.label}>
+                        {isExpanded ? '' : functionName}
+                    </div>
+                </foreignObject>
+            </g>
         );
     }
 }
@@ -78,7 +87,18 @@ const styles = theme => ({
         fill: ColorLightBlue[400],
         stroke: ColorBlue[600],
         strokeWidth: 4,
-    }
+    },
+    label: {
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        textAlign: 'center',
+        fontSize: 13,
+        fontFamily: "Roboto",
+        fontWeight: 'bold',
+        color: 'white',
+    },
 });
 
 export default withStyles(styles)(GraphContainerNode);

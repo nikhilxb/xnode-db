@@ -192,7 +192,7 @@
 				"dim": "xnode$3032099235" // keyword : graphdata ref pairs for each keyword argument input; assumed None for any keys not present
 			},
 			"container":"xnode$98750897202",
-			"numoutputs": 5,
+			"functionname": "funky_the_function",
 		},
 		"attributes": {
 			// every non function attribute
@@ -208,6 +208,7 @@
             "container": "xnode$3032099235",
             "temporalstep": 1,  // -1 for abstractive containers, >=0 for temporal
             "height": 5,
+			"functionname": "funky_the_function",
 		},
 		"attributes": {
 			// every non function attribute

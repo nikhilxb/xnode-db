@@ -85,6 +85,11 @@ class GraphOp(Nestable):
         # Containers section.
         self.temporal_level = 0
 
+        try:
+            self.fn_name = fn.__name__
+        except AttributeError:
+            self.fn_name = fn.__class__.__name__
+
     def get_tracked_args(self):
         """Return a list of all recorded positional and keyword arguments that are wrapped in `GraphData`.
 
@@ -176,7 +181,7 @@ class GraphData:
 # TODO handle paralellism
 class GraphContainer(Nestable):
     """Represents a collection of grouped `GraphOp` and `GraphContainer` objects."""
-    def __init__(self, contents, temporal_level=0, temporal_step=-1):
+    def __init__(self, contents, name='null', temporal_level=0, temporal_step=-1):
         """Constructor.
         Args:
             contents (set): A list of `GraphOp` and `GraphContainer` objects grouped by the instance,
@@ -190,9 +195,10 @@ class GraphContainer(Nestable):
         self.temporal_level = temporal_level
         self.height = max([getattr(c, 'height', 0) + 1 for c in self.contents])
         self.temporal_step = temporal_step
+        self.fn_name = name
 
 
-def _build_abstractive_container(outputs, inputs):
+def _build_abstractive_container(outputs, inputs, container_name):
     """Creates an abstractive container enveloping all ops between the container's proposed outputs and inputs.
 
     Builds the DAG backwards from the outputs in a breadth-first search, stopping beams at any encountered
@@ -204,6 +210,7 @@ def _build_abstractive_container(outputs, inputs):
     Args:
         outputs (list): `GraphData` objects which serve as the outputs of the new abstractive container.
         inputs (set): `GraphData` objects which serve as the inputs of the new abstractive container.
+        container_name (str): The name that should be shown when the container is collapsed in the client.
     """
     contents = set()
     ops_checked = set()
@@ -218,7 +225,7 @@ def _build_abstractive_container(outputs, inputs):
             contents.add(outermost_parent)
             data_to_check.extend(creator_op.get_tracked_args())
             ops_checked.add(creator_op)
-    container = GraphContainer(contents)
+    container = GraphContainer(contents, name=container_name)
     # Update newly contained objects after iterating through the graph to prevent the new container from containing
     # itself (consider ops op1, op2, which share container c1. We are adding a new container c2. If we update the
     # container of op1 during iteration, then c1's container becomes c2. When we check op2, its outermost container
@@ -392,9 +399,14 @@ class AbstractContainerGenerator(wrapt.ObjectProxy):
         ret = self.__wrapped__(*args, **kwargs)
         output_graphdata = [get_graphdata(obj) for obj in ret if has_graphdata(obj)] \
             if isinstance(ret, tuple) and len(ret) > 1 else [get_graphdata(ret)]
-        _build_abstractive_container(output_graphdata, inputs)
+        _build_abstractive_container(output_graphdata, inputs, self.get_fn_name())
         return ret
 
+    def get_fn_name(self):
+        try:
+            return self.__wrapped__.__name__
+        except AttributeError:
+            return self.__wrapped__.__class__.__name__
 
 def tick(output, temporal_level):
     """Create a temporal container extending backwards from output and encapsulating any outer-level op or container
