@@ -6,7 +6,7 @@ import { bindActionCreators } from 'redux';
 import { withStyles }   from 'material-ui/styles';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import createMuiTheme   from 'material-ui/styles/createMuiTheme';
-import grey             from 'material-ui/colors/grey';
+import ColorGrey        from 'material-ui/colors/grey';
 
 import VarList          from './VarList';
 import Canvas           from './Canvas';
@@ -58,6 +58,9 @@ const theme = createMuiTheme({
     },
     typography: {
         htmlFontSize: 10,
+        monospace: {
+            fontFamily: '"Roboto Mono", "Courier", monospace',
+        }
     }
 });
 
@@ -75,7 +78,7 @@ const styles = theme => ({
         width: '100%',
     },
     rightContainer: {
-        backgroundColor: grey[200],
+        backgroundColor: ColorGrey[100],
         textAlign: 'center',
         flexGrow: 1,
         display: 'flex',

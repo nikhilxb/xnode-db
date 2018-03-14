@@ -45,6 +45,7 @@ class GraphDataEdge extends Component {
             let linearGenerator = line().curve(curveLinear);
             pathString = linearGenerator(points.map(({x, y}) => [x, y]));  // [{x:3, y:4},...] => [[3, 4],...]
         }
+
         return (
             <g>
                 <path d={pathString}
@@ -54,6 +55,7 @@ class GraphDataEdge extends Component {
                       onMouseLeave={() => setHover(false)} />
                 <path d={pathString}
                       pointerEvents="none"
+                      markerEnd={hoverId !== symbolId && selectedId !== symbolId ? "url(#arrowhead)" : ""}
                       className={classNames({
                           [classes.normal]:   true,
                           [classes.temporal]: isTemporal,

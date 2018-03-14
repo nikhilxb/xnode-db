@@ -75,7 +75,7 @@ class Canvas extends Component {
 
         return (
             <div className={classes.canvasContainer}>
-                <FlexibleGridLayout layout={layout} cols={6} rowHeight={50} autoSize={true}
+                <FlexibleGridLayout layout={layout} cols={12} rowHeight={50} autoSize={true}
                                     onLayoutChange={updateLayoutFn}>
                     {frames}
                 </FlexibleGridLayout>

@@ -112,7 +112,7 @@ const styles = theme => ({
         }
     },
     text: {
-        fontFamily: '"Roboto Mono", monospace',
+        fontFamily: theme.typography.monospace.fontFamily,
         overflow:'hidden',
         textOverflow:'ellipsis',
         whiteSpace:'nowrap',
