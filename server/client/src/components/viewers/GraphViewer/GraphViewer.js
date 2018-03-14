@@ -53,8 +53,8 @@ class GraphViewer extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            selectedObj: null,  // {symbolId, ...} or null
-            hoverObj: null,     // {symbolId, ...} or null
+            selectedObj: null,  // {type, symbolId, ...} or null
+            hoverObj: null,     // {type, , ...} or null
             isInspectorExpanded: true,
         };
     }
@@ -220,7 +220,9 @@ class GraphViewer extends Component {
         if (!graph) {
             return (
                 <div className={classes.container}>
-                    <CircularProgress />
+                    <div className={classes.progress}>
+                        <CircularProgress />
+                    </div>
                 </div>
             );
         }
@@ -232,9 +234,17 @@ class GraphViewer extends Component {
                 <div className={classes.graph}>
                     <svg width={graph.width} height={graph.height}>
                         <defs>
-                            <marker id="arrowhead" markerWidth="20" markerHeight="10"
-                                    refX="0" refY="5" orient="auto">
-                                <polygon points="0 0, 20 5, 0 10" />
+                            <marker id="arrowhead" viewBox="-5 -3 5 6" refX="0" refY="0"
+                                    markerUnits="strokeWidth" markerWidth="4" markerHeight="3" orient="auto">
+                                <path d="M 0 0
+                                         l 0 1
+                                         a 32 32 0 0 0 -5 2
+                                         l 1.5 -3
+                                         l -1.5 -3
+                                         a 32 32 0 0 0 5 2
+                                         l 0 1
+                                         z"
+                                      fill={ColorGrey[600]}/>
                             </marker>
                         </defs>
                         <rect x={0} y={0} width={graph.width} height={graph.height} fill="transparent"
@@ -267,6 +277,7 @@ const styles = theme => ({
     graph: {
         flex: 'auto',
         overflow: 'auto',
+        textAlign: 'center', // so SVG is centered
     },
     inspector: {
         flex: 'none',
@@ -279,6 +290,12 @@ const styles = theme => ({
         borderTopWidth: 1,
         borderTopStyle: 'solid',
         borderTopColor: ColorGrey[200],
+
+        fontSize: '9pt',
+    },
+    progress: {
+        display: 'flex',
+        justifyContent: 'center',
     }
 });
 
