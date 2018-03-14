@@ -8,6 +8,7 @@ contents.
 See viz.md for underlying principles and concepts.
 """
 import wrapt
+import inspect
 from collections import deque
 
 
@@ -41,7 +42,7 @@ class Nestable:
 
 class GraphOp(Nestable):
     """A record of a single function execution."""
-    def __init__(self, fn, num_outputs, args, kwargs):
+    def __init__(self, fn, args, kwargs):
         """Constructor.
 
         Args:
@@ -51,18 +52,41 @@ class GraphOp(Nestable):
         """
         super(GraphOp, self).__init__()
         self.fn = fn
+
+        # built-in functions don't have signatures, so we make them up
+        try:
+            if hasattr(fn, 'forward'):
+                # `getfullargspec` will work on PyTorch modules, but won't get arg names. Need to get from `forward`
+                # directly.
+                fn_spec = inspect.getfullargspec(fn.forward)
+            else:
+                fn_spec = inspect.getfullargspec(fn)
+            arg_names = fn_spec.args
+            varargs = fn_spec.varargs
+        except TypeError:
+            arg_names = [str(i) for i in range(len(args))]
+            varargs = 'args'
+
+        if arg_names[0] == 'self':
+            arg_names = arg_names[1:]
+
         # Pytorch modules don't have a `__name__` field
         try:
             self.name = self.fn.__name__
         except AttributeError:
             self.name = self.fn.__class__.__name__
-        self.num_outputs = num_outputs
+
+        self.outputs = []
 
         # Arguments which were tracked via a call to `track_data()` (that is, should be shown in the graph) have a
         # `GraphData` object associated with them. We only record these objects (if they exist) in `self.args`,
         # as these contain all of the information needed to visualize the data in the client. Untracked objects are
         # represented by `None` to maintain position.
         self.args = [get_graphdata(obj) if has_graphdata(obj) else None for obj in args]
+        self.arg_names = arg_names
+        assert len(self.arg_names) <= len(self.args)
+        if len(self.arg_names) < len(self.args):
+            self.arg_names.extend([varargs for _ in range(len(self.args) - len(self.arg_names))])
 
         # Only k-v pairs where the value is "tracked" are saved in `self.kwargs`.
         self.kwargs = {
@@ -70,14 +94,18 @@ class GraphOp(Nestable):
         }
 
         # TODO put graphdata from iterables in the same port
-        for arg in args:
+        for i, arg in enumerate(args):
             if hasattr(arg, '__iter__'):
                 self.args.extend([get_graphdata(obj) for obj in arg if has_graphdata(obj)])
+                self.arg_names.extend(['{}[{}]'.format(arg_names[i], t) for t, obj in enumerate(arg) if
+                                       has_graphdata(obj)])
+
+        assert len(self.arg_names) == len(self.args)
 
         for kw, arg in kwargs.items():
             if hasattr(arg, '__iter__'):
                 self.kwargs.update({
-                    '{}:{}'.format(kw, i): get_graphdata(obj) for i, obj in enumerate(arg) if has_graphdata(obj)
+                    '{}[{}]'.format(kw, i): get_graphdata(obj) for i, obj in enumerate(arg) if has_graphdata(obj)
                 })
 
         # A `GraphOp` object always has temporal level 0, so any new temporal container will be able to encapsulate
@@ -360,19 +388,21 @@ class OpGenerator(wrapt.ObjectProxy):
         # and what do we do about output_props?
         ret = self.__wrapped__(*args, **kwargs)
         multiple_returns = isinstance(ret, tuple) and len(ret) > 1
-        op = GraphOp(self.__wrapped__, len(ret) if multiple_returns else 1, args, kwargs)
+        op = GraphOp(self.__wrapped__, args, kwargs)
         # TODO handle passthrough returns
         if multiple_returns:
-            return tuple([track_data(r,
+            ret_graphdata = tuple([track_data(r,
                                      self._self_output_props[i] if self._self_output_props is not None else None,
                                      creator_op=op,
                                      creator_pos=i)
                           for i, r in enumerate(ret)])
         else:
-            return track_data(ret,
+            ret_graphdata = track_data(ret,
                               self._self_output_props[0] if self._self_output_props is not None else None,
                               creator_op=op,
                               creator_pos=0)
+        op.outputs = ret_graphdata
+        return ret_graphdata
 
 
 class AbstractContainerGenerator(wrapt.ObjectProxy):
@@ -407,6 +437,7 @@ class AbstractContainerGenerator(wrapt.ObjectProxy):
             return self.__wrapped__.__name__
         except AttributeError:
             return self.__wrapped__.__class__.__name__
+
 
 def tick(output, temporal_level):
     """Create a temporal container extending backwards from output and encapsulating any outer-level op or container

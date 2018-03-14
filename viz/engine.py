@@ -174,6 +174,8 @@ class VisualizationEngine:
                 },
                 'container': self._sanitize_for_data_object(obj.container, refs),
                 'functionname': self._sanitize_for_data_object(obj.fn_name, refs),
+                'outputs': self._sanitize_for_data_object(obj.outputs, refs),
+                'argnames': [self._sanitize_for_data_object(argname, refs) for argname in obj.arg_names],
             },
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)
         }, refs
