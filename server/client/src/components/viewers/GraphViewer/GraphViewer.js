@@ -19,6 +19,7 @@ import GraphDataViewer from './GraphDataViewer';
 import Tooltip from '../../Tooltip';
 import { CircularProgress } from 'material-ui/Progress';
 import ColorGrey from 'material-ui/colors/grey';
+import ColorBlue from "material-ui/colors/blue";
 
 
 /**
@@ -234,7 +235,7 @@ class GraphViewer extends Component {
                 <div className={classes.graph}>
                     <svg width={graph.width} height={graph.height}>
                         <defs>
-                            <marker id="arrowhead" viewBox="-5 -3 5 6" refX="0" refY="0"
+                            <marker id="arrowheadGrey" viewBox="-5 -3 5 6" refX="0" refY="0"
                                     markerUnits="strokeWidth" markerWidth="4" markerHeight="3" orient="auto">
                                 <path d="M 0 0
                                          l 0 1
@@ -244,7 +245,19 @@ class GraphViewer extends Component {
                                          a 32 32 0 0 0 5 2
                                          l 0 1
                                          z"
-                                      fill={ColorGrey[600]}/>
+                                     fill={ColorGrey[600]}/>
+                            </marker>
+                            <marker id="arrowheadBlue" viewBox="-5 -3 5 6" refX="0" refY="0"
+                                    markerUnits="strokeWidth" markerWidth="4" markerHeight="3" orient="auto">
+                                <path d="M 0 0
+                                         l 0 1
+                                         a 32 32 0 0 0 -5 2
+                                         l 1.5 -3
+                                         l -1.5 -3
+                                         a 32 32 0 0 0 5 2
+                                         l 0 1
+                                         z"
+                                      fill={ColorBlue[600]}/>
                             </marker>
                         </defs>
                         <rect x={0} y={0} width={graph.width} height={graph.height} fill="transparent"
