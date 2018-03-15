@@ -55,7 +55,7 @@ class GraphDataEdge extends Component {
                       onMouseLeave={() => setHover(false)} />
                 <path d={pathString}
                       pointerEvents="none"
-                      markerEnd={hoverId !== symbolId && selectedId !== symbolId ? "url(#arrowhead)" : ""}
+                      markerEnd={"url(#arrowhead)"}
                       className={classNames({
                           [classes.normal]:   true,
                           [classes.temporal]: isTemporal,
@@ -93,7 +93,7 @@ const styles = theme => ({
     },
     hover: {
         opacity: 1,
-        strokeWidth: 5,
+        strokeWidth: 3.5,
     },
     selected: {
         stroke: ColorBlue[600],
