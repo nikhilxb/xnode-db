@@ -165,37 +165,37 @@ class GraphViewer extends Component {
     buildNodeComponents(nodes) {
         return nodes.map(node => {
             const { type, key, viewerObj, x, y, width, height, zOrder, isTemporal, isExpanded } = node;
-            const tooltipObj = {
-                ...viewerObj,
-            };
-            const layoutObj = {
+            const layoutProps = {
                 width,
                 height,
                 x,
                 y,
                 isTemporal,
                 isExpanded,
-                setSelected:    this.setSelectedObj.bind(this, tooltipObj),
-                setHover:       this.setHoverObj.bind(this, tooltipObj),
+            };
+            const interactionProps = {
+                setSelected:    this.setSelectedObj.bind(this, viewerObj),
+                setHover:       this.setHoverObj.bind(this, viewerObj),
                 selectedId:     this.state.selectedObj && this.state.selectedObj.symbolId,
                 hoverId:        this.state.hoverObj && this.state.hoverObj.symbolId,
             };
+
             switch(type) {
                 case 'graphdata':
                     return ({
-                        component: <GraphDataNode key={key} {...viewerObj} {...layoutObj} />,
+                        component: <GraphDataNode key={key} {...viewerObj} {...layoutProps} {...interactionProps} />,
                         zOrder,
                     });
 
                 case 'graphop':
                     return ({
-                        component: <GraphOpNode key={key} {...viewerObj} {...layoutObj} />,
+                        component: <GraphOpNode key={key} {...viewerObj} {...layoutProps} {...interactionProps}/>,
                         zOrder,
                     });
 
                 case 'graphcontainer':
                     return ({
-                        component: <GraphContainerNode key={key} {...viewerObj} {...layoutObj}
+                        component: <GraphContainerNode key={key} {...viewerObj} {...layoutProps} {...interactionProps}
                                                        toggleExpanded={() => this.toggleExpanded(viewerObj.symbolId)} />,
                         zOrder,
                     });
@@ -226,8 +226,8 @@ class GraphViewer extends Component {
                 </div>
             );
         }
-        const componentObjects = this.buildNodeComponents(graph.nodes).concat(this.buildEdgeComponents(graph.edges));
-        const components = componentObjects.asMutable().sort(({zOrder: zOrder1}, {zOrder: zOrder2}) => zOrder1 - zOrder2).map(({component}) => component);
+        let components = this.buildNodeComponents(graph.nodes).concat(this.buildEdgeComponents(graph.edges));
+        components = components.asMutable().sort(({zOrder: zOrder1}, {zOrder: zOrder2}) => zOrder1 - zOrder2).map(({component}) => component);
 
         return (
             <div className={classes.container}>
