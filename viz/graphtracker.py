@@ -53,6 +53,11 @@ class GraphOp(Nestable):
         super(GraphOp, self).__init__()
         self.fn = fn
 
+        try:
+            self.fn_name = fn.__name__
+        except AttributeError:
+            self.fn_name = fn.__class__.__name__
+
         # built-in functions don't have signatures, so we make them up
         try:
             if hasattr(fn, 'forward'):
@@ -64,7 +69,7 @@ class GraphOp(Nestable):
             arg_names = fn_spec.args
             varargs = fn_spec.varargs
         except TypeError:
-            arg_names = [str(i) for i in range(len(args))]
+            arg_names = ['{}[{}]'.format(self.fn_name, i) for i in range(len(args))]
             varargs = 'args'
 
         if arg_names[0] == 'self':
@@ -112,11 +117,6 @@ class GraphOp(Nestable):
         # it (unless it is already in a temporal container of the same level). The concept is explained more in the
         # Containers section.
         self.temporal_level = 0
-
-        try:
-            self.fn_name = fn.__name__
-        except AttributeError:
-            self.fn_name = fn.__class__.__name__
 
     def get_tracked_args(self):
         """Return a list of all recorded positional and keyword arguments that are wrapped in `GraphData`.

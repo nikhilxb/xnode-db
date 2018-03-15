@@ -46,7 +46,7 @@ class GraphViewer extends Component {
     /** Prop expected types object. */
     static propTypes = {
         classes:            PropTypes.object.isRequired,
-        graphSkeleton:      PropTypes.object.isRequired,
+        graphSkeleton:      PropTypes.object,
         ensureGraphLoaded:  PropTypes.func.isRequired,
         setInPayload:       PropTypes.func.isRequired,
     };
@@ -130,7 +130,7 @@ class GraphViewer extends Component {
      */
     buildEdgeComponents(edges) {
         return edges.map(edge => {
-            const { key, points, zOrder, isTemporal, viewerObj } = edge;
+            const { key, points, zOrder, isTemporal, viewerObj, sourceSymbolId, targetSymbolId, argName } = edge;
             const tooltipObj = {
                 ...viewerObj,
             };
@@ -138,6 +138,9 @@ class GraphViewer extends Component {
                 points,
                 zOrder,
                 isTemporal,
+                sourceSymbolId,
+                targetSymbolId,
+                argName,
                 setSelected:    this.setSelectedObj.bind(this, tooltipObj),
                 setHover:       this.setHoverObj.bind(this, tooltipObj),
                 selectedId:     this.state.selectedObj && this.state.selectedObj.symbolId,

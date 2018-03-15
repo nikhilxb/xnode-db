@@ -19,6 +19,9 @@ class GraphDataEdge extends Component {
         classes:        PropTypes.object.isRequired,
         points:         PropTypes.array.isRequired,
         isTemporal:     PropTypes.bool.isRequired,
+        sourceSymbolId: PropTypes.string.isRequired,
+        targetSymbolId: PropTypes.string.isRequired,
+        argName:        PropTypes.string.isRequired,
 
         symbolId:       PropTypes.string.isRequired,
         name:           PropTypes.string,
@@ -32,7 +35,7 @@ class GraphDataEdge extends Component {
     };
 
     render() {
-        const { classes, points, isTemporal } = this.props;
+        const { classes, points, isTemporal, sourceSymbolId, targetSymbolId, argName } = this.props;
         const { symbolId, selectedId, hoverId, setSelected, setHover } = this.props;
         let pathString = null;
         if (isTemporal) {
@@ -45,6 +48,7 @@ class GraphDataEdge extends Component {
             let linearGenerator = line().curve(curveLinear);
             pathString = linearGenerator(points.map(({x, y}) => [x, y]));  // [{x:3, y:4},...] => [[3, 4],...]
         }
+        const hovered = hoverId === symbolId || hoverId === sourceSymbolId || hoverId === targetSymbolId || selectedId === sourceSymbolId || selectedId === targetSymbolId;
 
         return (
             <g>
@@ -58,8 +62,8 @@ class GraphDataEdge extends Component {
                       className={classNames({
                           [classes.normal]:   true,
                           [classes.temporal]: isTemporal,
-                          [classes.dimmed]:   hoverId && hoverId !== symbolId,
-                          [classes.hover]:    hoverId === symbolId,
+                          [classes.dimmed]:   (hoverId || selectedId) && !hovered,
+                          [classes.hover]:    hovered,
                           [classes.selected]: selectedId === symbolId,
                       })} />
             </g>

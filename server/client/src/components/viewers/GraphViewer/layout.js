@@ -79,7 +79,8 @@ const getViewerObj = (symbolId, symbolTable) => ({
 const getCreatorOp = (dataSymbolId, symbolTable) => symbolTable[dataSymbolId].data.viewer.creatorop;
 const getCreatorPos = (dataSymbolId, symbolTable) => symbolTable[dataSymbolId].data.viewer.creatorpos;
 const getArgs = (opSymbolId, symbolTable) => symbolTable[opSymbolId].data.viewer.args;
-const getKwargValues = (opSymbolId, symbolTable) => Object.values(symbolTable[opSymbolId].data.viewer.kwargs);
+const getArgNames = (opSymbolId, symbolTable) => symbolTable[opSymbolId].data.viewer.argnames;
+const getKwargs = (opSymbolId, symbolTable) => Object.entries(symbolTable[opSymbolId].data.viewer.kwargs);
 const getContainerSymbolId = (symbolId, symbolTable) => symbolTable[symbolId].data.viewer.container;
 const getContents = (containerSymbolId, symbolTable) => symbolTable[containerSymbolId].data.viewer.contents;
 const getContainerHeight = (containerSymbolId, symbolTable) => symbolTable[containerSymbolId].data.viewer.height;
@@ -108,6 +109,7 @@ const getFirstTemporalContainerSymbolId = (symbolId, symbolTable) => {
  * if the port is an input port and "o" if it is an output port. Note that ELK ids must be globally unique, so ports
  * even on different nodes cannot share ids.
  */
+const portIdToSymbolId = (nodeId) => ('\@id:' + nodeId.split('\@id:')[1]).split('_')[0];
 const symbolIdToNodeId = (symbolId, nodeNum=0) => symbolId === null ? 'root' : `${nodeNum}${symbolId}`;
 const portIdToNodeId = (portId) => portId.indexOf('_') >= 0 ? portId.split('_')[0] : portId;
 const nodeIdToPortId = (nodeId, portNum, isInput=false) => `${nodeId}_${portNum}` + (isInput ? 'i' : 'o');
@@ -133,7 +135,8 @@ function getNodesAndUnslicedEdges(headSymbolId, symbolTable) {
     edges.push([symbolIdToNodeId(getCreatorOp(headSymbolId, symbolTable)),
                 getCreatorPos(headSymbolId, symbolTable),
                 symbolIdToNodeId(headSymbolId),
-                getViewerObj(headSymbolId, symbolTable)]);
+                getViewerObj(headSymbolId, symbolTable),
+                '']);
     opsToCheck.push(getCreatorOp(headSymbolId, symbolTable));
     dataLeafContainers[headSymbolId] = getFirstTemporalContainerSymbolId(getCreatorOp(headSymbolId, symbolTable), symbolTable);
     opOutputs[symbolIdToNodeId(getCreatorOp(headSymbolId, symbolTable))] = new Set([headSymbolId]);
@@ -155,12 +158,16 @@ function getNodesAndUnslicedEdges(headSymbolId, symbolTable) {
             ...nodes,
             ...getContainerNodes(opSymbolId, symbolTable),
         };
+        let kwargs = getKwargs(opSymbolId, symbolTable);
+        let argnames = getArgNames(opSymbolId, symbolTable).concat(kwargs.map(([key]) => key));
         // We don't assign input ports here, so args may be out of order. Since we moved temporal inputs to the side,
         // though, we can't possibly have order anyway.
         getArgs(opSymbolId, symbolTable)
-            .concat(getKwargValues(opSymbolId, symbolTable))
-            .filter(dataSymbolId => dataSymbolId !== null)
-            .forEach(dataSymbolId => {
+            .concat(kwargs.map(([key, value]) => value))
+            .forEach((dataSymbolId, i) => {
+                if (dataSymbolId === null) {
+                    return;
+                }
                 // we don't need an input port since two things won't go into the same input
                 if (getCreatorOp(dataSymbolId, symbolTable)) {
                     opsToCheck.push(getCreatorOp(dataSymbolId, symbolTable));
@@ -171,7 +178,7 @@ function getNodesAndUnslicedEdges(headSymbolId, symbolTable) {
                     if (opOutputs[creatorOpNodeId].indexOf(dataSymbolId) < 0){
                         opOutputs[creatorOpNodeId].push(dataSymbolId);
                     }
-                    edges.push([creatorOpNodeId, getCreatorPos(dataSymbolId, symbolTable), symbolIdToNodeId(opSymbolId), getViewerObj(dataSymbolId, symbolTable)]);
+                    edges.push([creatorOpNodeId, getCreatorPos(dataSymbolId, symbolTable), symbolIdToNodeId(opSymbolId), getViewerObj(dataSymbolId, symbolTable), argnames[i]]);
                 }
                 else {
                     let firstTemporalSymbolId = getFirstTemporalContainerSymbolId(opSymbolId, symbolTable);
@@ -180,7 +187,7 @@ function getNodesAndUnslicedEdges(headSymbolId, symbolTable) {
                         dataLeafContainers[dataSymbolId] = firstTemporalSymbolId;
                     }
                     // Data nodes only have one output port, so use 0 every time
-                    edges.push([symbolIdToNodeId(dataSymbolId), 0, symbolIdToNodeId(opSymbolId), getViewerObj(dataSymbolId, symbolTable)]);
+                    edges.push([symbolIdToNodeId(dataSymbolId), 0, symbolIdToNodeId(opSymbolId), getViewerObj(dataSymbolId, symbolTable), argnames[i]]);
                 }
             });
     }
@@ -476,7 +483,7 @@ function linkOutputs(fromNode, fromPortNum, fromContainer, metadata) {
 function sliceEdges(nodes, unslicedEdges) {
     let slicedEdges = [];
     unslicedEdges.forEach((edge, joinedEdgeId) => {
-        let [fromNodeId, fromPortNum, toNodeId, edgeDataViewerObj] = edge;
+        let [fromNodeId, fromPortNum, toNodeId, edgeDataViewerObj, edgeName] = edge;
         let fromContainerNodeId = nodes[fromNodeId].container;
         let toContainerNodeId = nodes[toNodeId].container;
         // In the case of edges which cross temporal containers, we make our own edges after laying out instead of using
@@ -498,6 +505,7 @@ function sliceEdges(nodes, unslicedEdges) {
                 joinedEdgeId,
                 joinedEdgeOrder,
                 edgeDataViewerObj,
+                edgeName,
                 isTemporalEdge,
                 zOrder: 0,
             };
@@ -513,7 +521,7 @@ function sliceEdges(nodes, unslicedEdges) {
                 // we will create a new, prettier edge after the graph has been laid out, since ELK doesn't handle
                 // the right-oriented cross-temporal edges well.
                 if (isTemporalEdge) {
-                    slicedEdges.push([nodeIdToPortId(edge[0], edge[1]), edge[2], {joinedEdgeOrder, joinedEdgeId, isTemporalEdge, edgeDataViewerObj, zOrder: 0}]);
+                    slicedEdges.push([nodeIdToPortId(edge[0], edge[1]), edge[2], {joinedEdgeOrder, joinedEdgeId, isTemporalEdge, edgeDataViewerObj, zOrder: 0, edgeName}]);
                     break;
                     // finalEdge[2].routeToTerminal = [toNodeId].concat(toEdgeSlices.reverse().map(([fromPortId, toPortId]) => toPortId));
                     // slicedEdges = slicedEdges.concat(fromEdgeSlices);
@@ -615,7 +623,7 @@ function elkGraphToEdgeGroups(elkNode, edgeGroups={}, offset={x: 0, y: 0}) {
         if (!(edge.metadata.joinedEdgeId in edgeGroups)) {
             edgeGroups[edge.metadata.joinedEdgeId] = [];
         }
-        edgeGroups[edge.metadata.joinedEdgeId].push({points, order: edge.metadata.joinedEdgeOrder, viewerObj: edge.metadata.edgeDataViewerObj, zOrder: edge.metadata.zOrder, isTemporal: edge.metadata.isTemporalEdge});
+        edgeGroups[edge.metadata.joinedEdgeId].push({points, argName: edge.metadata.edgeName, sourceSymbolId: portIdToSymbolId(edge.sources[0]), targetSymbolId: portIdToSymbolId(edge.targets[0]), order: edge.metadata.joinedEdgeOrder, viewerObj: edge.metadata.edgeDataViewerObj, zOrder: edge.metadata.zOrder, isTemporal: edge.metadata.isTemporalEdge});
     }
     for (let i = 0; i< elkNode.children.length; i ++) {
         let {x, y} = elkNode.children[i];
@@ -631,7 +639,7 @@ function elkGraphToEdgeList(root) {
         let edgeGroupSorted = edgeGroup.splice(0).sort(({order: order1}, {order: order2}) => order1 - order2);
         let newEdge = [edgeGroupSorted[0].points[0]];
         edgeGroupSorted.forEach(({points}) => points.forEach((point, i) => {if (i > 0) {newEdge.push(point)}}));
-        edges.push({key: groupId, points: newEdge, viewerObj: edgeGroupSorted[0].viewerObj, zOrder: edgeGroupSorted[0].zOrder, isTemporal: edgeGroupSorted[0].isTemporal});
+        edges.push({key: groupId, points: newEdge, viewerObj: edgeGroupSorted[0].viewerObj, argName: edgeGroupSorted[0].argName, zOrder: edgeGroupSorted[0].zOrder, isTemporal: edgeGroupSorted[0].isTemporal, sourceSymbolId: edgeGroupSorted[0].sourceSymbolId, targetSymbolId: edgeGroupSorted[edgeGroupSorted.length - 1].targetSymbolId});
     });
     return edges;
 }
@@ -745,6 +753,8 @@ function buildTemporalEdges(root, nodePositions, edges) {
             startPoint,
             endPoint,
             bendPoints}],
+            sources: [source],
+            targets: [target],
             metadata
         }
     });
