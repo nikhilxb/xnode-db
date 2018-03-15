@@ -19,6 +19,9 @@ class GraphDataEdge extends Component {
         classes:        PropTypes.object.isRequired,
         points:         PropTypes.array.isRequired,
         isTemporal:     PropTypes.bool.isRequired,
+        sourceSymbolId: PropTypes.string.isRequired,
+        targetSymbolId: PropTypes.string.isRequired,
+        argName:        PropTypes.string.isRequired,
 
         symbolId:       PropTypes.string.isRequired,
         name:           PropTypes.string,
