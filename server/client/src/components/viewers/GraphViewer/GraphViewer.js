@@ -17,6 +17,7 @@ import GraphContainerNode from './GraphContainerNode';
 import GraphDataViewer from './GraphDataViewer';
 
 import Tooltip from '../../Tooltip';
+import Typography from 'material-ui/Typography';
 import { CircularProgress } from 'material-ui/Progress';
 import ColorGrey from 'material-ui/colors/grey';
 import ColorBlue from "material-ui/colors/blue";
@@ -207,6 +208,30 @@ class GraphViewer extends Component {
         });
     }
 
+    buildInspectorComponents(classes, type, args, kwargs) {
+
+        let arr = [];
+        if(type !== undefined) {
+            arr.push(
+                <Typography className={classes.label} variant="caption">Type</Typography>,
+                <span>{type ? type : <br/>}</span>
+            );
+        }
+        if(args !== undefined) {
+            arr.push( <Typography className={classes.label} variant="caption">Args</Typography> );
+            if(!args) {
+                arr.push( <span className={classes.monospace}>{<br/>}</span> );
+            } else {
+                args.forEach((argArr) => {
+                    console.log(argArr);
+                    const [ argName, argVal ] = argArr;
+                    arr.push( <span className={classes.monospace}>{`${argName}: ${argVal}`}</span> );
+                });
+            }
+        }
+        return arr;
+    };
+
     toggleExpanded(symbolId) {
         let { setInPayload, viewerId } = this.props;
         let { expanded } = this.props.payload.graphState[symbolId];
@@ -231,54 +256,40 @@ class GraphViewer extends Component {
             );
         }
 
-        let components = this.buildNodeComponents(graph.nodes).concat(this.buildEdgeComponents(graph.edges));
-        components = components.asMutable().sort(({zOrder: zOrder1}, {zOrder: zOrder2}) => zOrder1 - zOrder2).map(({component}) => component);
+        let graphComponents = this.buildNodeComponents(graph.nodes).concat(this.buildEdgeComponents(graph.edges));
+        graphComponents = graphComponents.asMutable().sort(({zOrder: z1}, {zOrder: z2}) => z1 - z2).map(({component}) => component);
 
-        let inspector;
         const inspectorObj = this.state.hoverObj || this.state.selectedObj;
+        let inspectorComponents;
         if(!inspectorObj) {
-            inspector = "No elements hovered/selected.";
+            inspectorComponents = this.buildInspectorComponents(classes, null);
         } else {
-            inspector = [<span>a</span>, <span>b</span>, <span>a</span>, <span>b</span>, <span>a</span>, <span>b</span>, <span>a</span>, <span>b</span>,];
-        };
+            const { type, name } = inspectorObj;
+            inspectorComponents = this.buildInspectorComponents(classes, type, [["arg1", "herro"], ["arg2", "hihi"]]);
+        }
+
+        let buildArrowheadMarker = (id, color) => (
+            <marker id={id} viewBox="-5 -3 5 6" refX="0" refY="0"
+                    markerUnits="strokeWidth" markerWidth="4" markerHeight="3" orient="auto">
+                <path d="M 0 0 l 0 1 a 32 32 0 0 0 -5 2 l 1.5 -3 l -1.5 -3 a 32 32 0 0 0 5 2 l 0 1 z" fill={color} />
+            </marker>
+        );
 
         return (
             <div className={classes.container}>
                 <div className={classes.graph}>
                     <svg width={graph.width} height={graph.height}>
                         <defs>
-                            <marker id="arrowheadGrey" viewBox="-5 -3 5 6" refX="0" refY="0"
-                                    markerUnits="strokeWidth" markerWidth="4" markerHeight="3" orient="auto">
-                                <path d="M 0 0
-                                         l 0 1
-                                         a 32 32 0 0 0 -5 2
-                                         l 1.5 -3
-                                         l -1.5 -3
-                                         a 32 32 0 0 0 5 2
-                                         l 0 1
-                                         z"
-                                     fill={ColorGrey[600]}/>
-                            </marker>
-                            <marker id="arrowheadBlue" viewBox="-5 -3 5 6" refX="0" refY="0"
-                                    markerUnits="strokeWidth" markerWidth="4" markerHeight="3" orient="auto">
-                                <path d="M 0 0
-                                         l 0 1
-                                         a 32 32 0 0 0 -5 2
-                                         l 1.5 -3
-                                         l -1.5 -3
-                                         a 32 32 0 0 0 5 2
-                                         l 0 1
-                                         z"
-                                      fill={ColorBlue[600]}/>
-                            </marker>
+                            {buildArrowheadMarker("arrowheadGrey", ColorGrey[600])}
+                            {buildArrowheadMarker("arrowheadBlue", ColorBlue[600])}
                         </defs>
                         <rect x={0} y={0} width={graph.width} height={graph.height} fill="transparent"
                               onClick={() => this.setSelectedObj(null)}/>
-                        {components}
+                        {graphComponents}
                     </svg>
                 </div>
                 <div className={classes.inspector}>
-                    {inspector}
+                    {inspectorComponents}
                 </div>
             </div>
         );
@@ -292,29 +303,34 @@ class GraphViewer extends Component {
 const styles = theme => ({
     container: {
         flex: 1,  // expand to fill frame vertical
-        justifyContent: 'center',  // along main axis (vertical)
-        alignItems: 'stretch',  // along cross axis (horizontal)
-        overflow: 'hidden',
 
         display: 'flex',
+        flexDirection: 'row',
+        justifyContent: 'center',  // along main axis (horizontal)
+        alignItems: 'stretch',  // along cross axis (vertical)
+        overflow: 'hidden',
+    },
+    progress: {
+        display: 'flex',
         flexDirection: 'column',
+        justifyContent: 'center',
     },
     graph: {
         flex: 'auto',
         overflow: 'auto',
-        textAlign: 'center', // so SVG is centered
+        textAlign: 'left', // so SVG doesn't move
     },
     inspector: {
-        flex: 'none',
+        flex: 'initial',
+        minWidth: 150,
         overflow: 'auto',
-        maxHeight: 50,
 
         boxSizing: 'border-box',
         padding: '4px 12px',
         backgroundColor: ColorGrey[50],
-        borderTopWidth: 1,
-        borderTopStyle: 'solid',
-        borderTopColor: ColorGrey[200],
+        borderLeftWidth: 1,
+        borderLeftStyle: 'solid',
+        borderLeftColor: ColorGrey[200],
         fontSize: '9pt',
         textAlign: 'left',
 
@@ -323,10 +339,12 @@ const styles = theme => ({
         flexWrap: 'wrap',
         alignItems: 'flex-start',
     },
-    progress: {
-        display: 'flex',
-        justifyContent: 'center',
-    }
+    label: {
+        paddingTop: 8,
+    },
+    monospace: {
+        fontFamily: theme.typography.monospace.fontFamily,
+    },
 });
 
 // To inject application state into component
