@@ -149,7 +149,7 @@ class GraphViewer extends Component {
                 hoverId:        this.state.hoverObj && this.state.hoverObj.symbolId,
             };
             return ({
-                component: <GraphDataEdge key={key} {...viewerObj} {...layoutObj} />,
+                component: <GraphDataEdge key={key} edgeId={key} {...viewerObj} {...layoutObj} />,
                 zOrder,
             });
         });
