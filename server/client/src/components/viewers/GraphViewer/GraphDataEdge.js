@@ -29,15 +29,15 @@ class GraphDataEdge extends Component {
         str:            PropTypes.string.isRequired,
         payload:        PropTypes.object.isRequired,
 
-        selectedId:     PropTypes.string,
-        hoverId:        PropTypes.string,
+        selectedIds:    PropTypes.object,
+        hoverIds:       PropTypes.object,
         setSelected:    PropTypes.func.isRequired,
         setHover:       PropTypes.func.isRequired,
     };
 
     render() {
         const { classes, edgeId, points, isTemporal, sourceSymbolId, targetSymbolId, argName } = this.props;
-        const { symbolId, selectedId, hoverId, setSelected, setHover } = this.props;
+        const { symbolId, selectedIds, hoverIds, setSelected, setHover } = this.props;
         let pathString = null;
         if (isTemporal) {
             let curveGenerator = line().curve(curveBasis);
@@ -49,7 +49,9 @@ class GraphDataEdge extends Component {
             let linearGenerator = line().curve(curveLinear);
             pathString = linearGenerator(points.map(({x, y}) => [x, y]));  // [{x:3, y:4},...] => [[3, 4],...]
         }
-        const hovered = hoverId === symbolId || hoverId === sourceSymbolId || hoverId === targetSymbolId || selectedId === sourceSymbolId || selectedId === targetSymbolId;
+        const isHovered = hoverIds.has(symbolId) || hoverIds.has(sourceSymbolId) || hoverIds.has(targetSymbolId) || selectedIds.has(sourceSymbolId) || selectedIds.has(targetSymbolId);
+        const isSelected = selectedIds.has(symbolId);
+        const isOthersActive = hoverIds.size && selectedIds.size && !isHovered && !isSelected;
 
         return (
             <g>
@@ -64,18 +66,18 @@ class GraphDataEdge extends Component {
                       className={classNames({
                           [classes.edge]:           true,
                           [classes.temporal]:       isTemporal,
-                          [classes.dimmed]:         (hoverId || selectedId) && !hovered,
-                          [classes.edgeHovered]:    hovered,
-                          [classes.edgeSelected]:   selectedId === symbolId,
+                          [classes.dimmed]:         isOthersActive,
+                          [classes.edgeHovered]:    isHovered,
+                          [classes.edgeSelected]:   isSelected,
                       })} />
                 <text dy="-1.5"
                       textAnchor="end"
                       pointerEvents="none"
                       className={classNames({
                           [classes.label]:          true,
-                          [classes.dimmed]:         (hoverId || selectedId) && !hovered,
-                          [classes.labelHovered]:   hovered,
-                          [classes.labelSelected]:  selectedId === symbolId,
+                          [classes.dimmed]:         isOthersActive,
+                          [classes.edgeHovered]:    isHovered,
+                          [classes.edgeSelected]:   isSelected,
                       })} >
                     <textPath xlinkHref={`#${edgeId}`} startOffset="97%">
                         {argName}
