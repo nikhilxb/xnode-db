@@ -7,6 +7,7 @@ import { withStyles }   from 'material-ui/styles';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import createMuiTheme   from 'material-ui/styles/createMuiTheme';
 import ColorGrey        from 'material-ui/colors/grey';
+import '../../../node_modules/react-vis/dist/style.css';  // this is required for `react-vis` to function properly
 
 import VarList          from './VarList';
 import Canvas           from './Canvas';

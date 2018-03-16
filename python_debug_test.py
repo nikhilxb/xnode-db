@@ -15,6 +15,7 @@ myList = [1, 2.3, False, "hello", None, [10, 11, ["This", "is", "the", "end"]]]
 myDict = {"key1": "value1"}
 myTensor1 = (torch.rand(15,20) - 0.5) * 10
 myTensor2 = torch.rand(6,7) - 0.5
+myTensor3 = (torch.randn(100, 100))
 
 def myFn(arg1):
     return arg1 + 5

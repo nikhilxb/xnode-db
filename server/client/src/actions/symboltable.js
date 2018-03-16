@@ -55,13 +55,25 @@ function ensureGraphLoadedRecurseActionThunk(symbolId, confirmed) {
                     dispatches.push(ensureGraphLoadedRecurseActionThunk(viewerData.creatorop, confirmed));
                 }
                 else if (type === 'graphop') {
-                    viewerData.args.filter(arg => arg !== null && !confirmed.has(arg)).forEach(arg => {
-                        confirmed.add(arg);
-                        dispatches.push(ensureGraphLoadedRecurseActionThunk(arg, confirmed));
-                    });
-                    Object.values(viewerData.kwargs).filter(kwarg => !confirmed.has(kwarg)).forEach(kwarg => {
-                        confirmed.add(kwarg);
-                        dispatches.push(ensureGraphLoadedRecurseActionThunk(kwarg, confirmed));
+                    let arg_lists = viewerData.args.concat(viewerData.kwargs);
+                    arg_lists.forEach(arg_list => {
+                       if (arg_list.length === 1) {
+                           return;
+                       }
+                       if (Array.isArray(arg_list[1])) {
+                           arg_list[1].forEach(arg => {
+                               if(!confirmed.has(arg)) {
+                                   confirmed.add(arg);
+                                   dispatches.push(ensureGraphLoadedRecurseActionThunk(arg, confirmed));
+                               }
+                           });
+                       }
+                       else {
+                           if(!confirmed.has(arg_list[1])) {
+                               confirmed.add(arg_list[1]);
+                               dispatches.push(ensureGraphLoadedRecurseActionThunk(arg_list[1], confirmed));
+                           }
+                       }
                     });
                 }
                 if (viewerData.container && !confirmed.has(viewerData.container)) {

@@ -187,8 +187,7 @@
 	"data": {
 		"viewer": {
             "function": "xnode$98750897202" // reference to function which performed the operation represented by graphop
-			"args": [None, "xnode$02395897342"] // list of arguments to the op, containing only None or references to graphdata
-			"argnames": ["arg1", "arg2"]
+			"args": [["arg1"], ["arg2", "xnode$02395897342"]] // list of arguments to the op, containing only None or references to graphdata
 			"kwargs": {
 				"dim": "xnode$3032099235" // keyword : graphdata ref pairs for each keyword argument input; assumed None for any keys not present
 			},

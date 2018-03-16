@@ -164,21 +164,28 @@ class VisualizationEngine:
     def _generate_data_graphop(self, obj):
         """Data generation function for graph op nodes."""
         refs = set()
-        return {
+        print(obj.args)
+        d = {
             self.VIEWER_KEY: {
                 'function': self._sanitize_for_data_object(obj.fn, refs),
-                'args': [self._sanitize_for_data_object(arg, refs) for arg in obj.args],
-                'kwargs': {
-                    self._sanitize_for_data_object(kwarg, refs): self._sanitize_for_data_object(value, refs)
-                    for kwarg, value in obj.kwargs.items()
-                },
+                'args': [[self._sanitize_for_data_object(arg[0], refs),
+                          self._sanitize_for_data_object(arg[1], refs) if not isinstance(arg[1], list) else
+                          [self._sanitize_for_data_object(arg_item, refs) for arg_item in arg[1]]] if len(arg) > 1 else
+                         [self._sanitize_for_data_object(arg[0], refs)]
+                         for arg in obj.args],
+                'kwargs': [[self._sanitize_for_data_object(arg[0], refs),
+                          self._sanitize_for_data_object(arg[1], refs) if not isinstance(arg[1], list) else
+                          [self._sanitize_for_data_object(arg_item, refs) for arg_item in arg[1]]] if len(arg) > 1 else
+                         [self._sanitize_for_data_object(arg[0], refs)]
+                         for arg in obj.kwargs],
                 'container': self._sanitize_for_data_object(obj.container, refs),
                 'functionname': self._sanitize_for_data_object(obj.fn_name, refs),
                 'outputs': self._sanitize_for_data_object(obj.outputs, refs),
-                'argnames': [self._sanitize_for_data_object(argname, refs) for argname in obj.arg_names],
             },
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)
-        }, refs
+        }
+        print(d)
+        return d, refs
 
     def _generate_data_dict(self, obj):
         """Data generation function for dicts."""

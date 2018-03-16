@@ -13,7 +13,7 @@ const kCollapsedAbstractiveHeight = 40;
 const kCollapsedAbstractiveWidth = 80;
 const kEdgeMargin = 10;
 const kContainerPadding = 30;
-const kNodeMargin = 50;
+const kNodeMargin = 40;
 const kTemporalContainerMargin = 40;
 const kEdgeThickness = 2.5;
 const kCurvePointFactor = 0.1;
@@ -79,7 +79,6 @@ const getViewerObj = (symbolId, symbolTable) => ({
 const getCreatorOp = (dataSymbolId, symbolTable) => symbolTable[dataSymbolId].data.viewer.creatorop;
 const getCreatorPos = (dataSymbolId, symbolTable) => symbolTable[dataSymbolId].data.viewer.creatorpos;
 const getArgs = (opSymbolId, symbolTable) => symbolTable[opSymbolId].data.viewer.args;
-const getArgNames = (opSymbolId, symbolTable) => symbolTable[opSymbolId].data.viewer.argnames;
 const getKwargs = (opSymbolId, symbolTable) => Object.entries(symbolTable[opSymbolId].data.viewer.kwargs);
 const getContainerSymbolId = (symbolId, symbolTable) => symbolTable[symbolId].data.viewer.container;
 const getContents = (containerSymbolId, symbolTable) => symbolTable[containerSymbolId].data.viewer.contents;
@@ -140,7 +139,6 @@ function getNodesAndUnslicedEdges(headSymbolId, symbolTable) {
     opsToCheck.push(getCreatorOp(headSymbolId, symbolTable));
     dataLeafContainers[headSymbolId] = getFirstTemporalContainerSymbolId(getCreatorOp(headSymbolId, symbolTable), symbolTable);
     opOutputs[symbolIdToNodeId(getCreatorOp(headSymbolId, symbolTable))] = new Set([headSymbolId]);
-
     while (opsToCheck.length > 0) {
         let opSymbolId = opsToCheck.pop();
         if (checkedOps.has(opSymbolId) || opSymbolId === null) {
@@ -158,38 +156,25 @@ function getNodesAndUnslicedEdges(headSymbolId, symbolTable) {
             ...nodes,
             ...getContainerNodes(opSymbolId, symbolTable),
         };
-        let kwargs = getKwargs(opSymbolId, symbolTable);
-        let argnames = getArgNames(opSymbolId, symbolTable).concat(kwargs.map(([key]) => key));
+        let args = getArgs(opSymbolId, symbolTable).concat(getKwargs(opSymbolId, symbolTable));
+        console.log(args);
+        args.forEach(([argName, arg]) => {
+            if (Array.isArray(arg)) {
+                arg.forEach(dataSymbolId => {
+                    doStuff(dataSymbolId, argName, opsToCheck, symbolTable, opOutputs, edges, opSymbolId, dataLeafContainers);
+                })
+            }
+            else {
+                doStuff(arg, argName, opsToCheck, symbolTable, opOutputs, edges, opSymbolId, dataLeafContainers);
+            }
+        });
         // We don't assign input ports here, so args may be out of order. Since we moved temporal inputs to the side,
         // though, we can't possibly have order anyway.
-        getArgs(opSymbolId, symbolTable)
-            .concat(kwargs.map(([key, value]) => value))
-            .forEach((dataSymbolId, i) => {
-                if (dataSymbolId === null) {
-                    return;
-                }
-                // we don't need an input port since two things won't go into the same input
-                if (getCreatorOp(dataSymbolId, symbolTable)) {
-                    opsToCheck.push(getCreatorOp(dataSymbolId, symbolTable));
-                    let creatorOpNodeId = symbolIdToNodeId(getCreatorOp(dataSymbolId, symbolTable));
-                    if (!(creatorOpNodeId in opOutputs)) {
-                        opOutputs[creatorOpNodeId] = [];
-                    }
-                    if (opOutputs[creatorOpNodeId].indexOf(dataSymbolId) < 0){
-                        opOutputs[creatorOpNodeId].push(dataSymbolId);
-                    }
-                    edges.push([creatorOpNodeId, getCreatorPos(dataSymbolId, symbolTable), symbolIdToNodeId(opSymbolId), getViewerObj(dataSymbolId, symbolTable), argnames[i]]);
-                }
-                else {
-                    let firstTemporalSymbolId = getFirstTemporalContainerSymbolId(opSymbolId, symbolTable);
-                    if (!(dataSymbolId in dataLeafContainers) ||
-                        getSymbolTemporalStep(dataLeafContainers[dataSymbolId], symbolTable) > getSymbolTemporalStep(firstTemporalSymbolId, symbolTable)) {
-                        dataLeafContainers[dataSymbolId] = firstTemporalSymbolId;
-                    }
-                    // Data nodes only have one output port, so use 0 every time
-                    edges.push([symbolIdToNodeId(dataSymbolId), 0, symbolIdToNodeId(opSymbolId), getViewerObj(dataSymbolId, symbolTable), argnames[i]]);
-                }
-            });
+        // getArgs(opSymbolId, symbolTable)
+        //     .concat(kwargs.map(([key, value]) => value))
+        //     .forEach((dataSymbolId, i) => {
+        //
+        //     });
     }
 
     // Set the `outPorts` field of each op node object, now that we know how many outputs they will have.
@@ -215,6 +200,33 @@ function getNodesAndUnslicedEdges(headSymbolId, symbolTable) {
         }
     });
     return { nodes, edges }
+}
+
+function doStuff(dataSymbolId, argName, opsToCheck, symbolTable, opOutputs, edges, opSymbolId, dataLeafContainers) {
+    if (!dataSymbolId) {
+        return;
+    }
+    // we don't need an input port since two things won't go into the same input
+    if (getCreatorOp(dataSymbolId, symbolTable)) {
+        opsToCheck.push(getCreatorOp(dataSymbolId, symbolTable));
+        let creatorOpNodeId = symbolIdToNodeId(getCreatorOp(dataSymbolId, symbolTable));
+        if (!(creatorOpNodeId in opOutputs)) {
+            opOutputs[creatorOpNodeId] = [];
+        }
+        if (opOutputs[creatorOpNodeId].indexOf(dataSymbolId) < 0){
+            opOutputs[creatorOpNodeId].push(dataSymbolId);
+        }
+        edges.push([creatorOpNodeId, getCreatorPos(dataSymbolId, symbolTable), symbolIdToNodeId(opSymbolId), getViewerObj(dataSymbolId, symbolTable), argName]);
+    }
+    else {
+        let firstTemporalSymbolId = getFirstTemporalContainerSymbolId(opSymbolId, symbolTable);
+        if (!(dataSymbolId in dataLeafContainers) ||
+            getSymbolTemporalStep(dataLeafContainers[dataSymbolId], symbolTable) > getSymbolTemporalStep(firstTemporalSymbolId, symbolTable)) {
+            dataLeafContainers[dataSymbolId] = firstTemporalSymbolId;
+        }
+        // Data nodes only have one output port, so use 0 every time
+        edges.push([symbolIdToNodeId(dataSymbolId), 0, symbolIdToNodeId(opSymbolId), getViewerObj(dataSymbolId, symbolTable), argName]);
+    }
 }
 
 /**
@@ -337,6 +349,8 @@ function createElkNode(nodeId, nodes, edges, graphState) {
             'elk.direction': nodeObj.orientation,
             // We fix the positions of ports on temporal nodes so that we can ensure they go in the right direction
             'portConstraints': getNodeIsTemporal(nodeObj) ? 'FIXED_POS' : 'FIXED_SIDE',
+            'elk.layered.spacing.nodeNodeBetweenLayers': kNodeMargin,
+            'elk.spacing.nodeNode': kNodeMargin
         },
         containerHeight: nodeObj.height,
         viewerObj: nodeObj.viewerObj,
@@ -418,7 +432,11 @@ function getElkGraph(nodes, edges, graphState) {
     let orientation = rootChildren.length > 0 && rootChildren[0].temporalStep >= 0 ? 'RIGHT' : 'UP';
     return {
         id: 'root',
-        properties: {'elk.algorithm': 'layered', 'elk.direction': orientation},
+        properties: {'elk.algorithm': 'layered',
+            'elk.direction': orientation,
+            'elk.layered.spacing.nodeNodeBetweenLayers': kNodeMargin,
+            'elk.spacing.nodeNode': kNodeMargin
+        },
         children: rootChildren,
         edges: edges['root'],
         temporalEdges: edges['temporal'],

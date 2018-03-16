@@ -1,7 +1,11 @@
 import React, { Component, PureComponent } from 'react';
 import { withStyles } from 'material-ui/styles';
+import Icon from 'material-ui/Icon';
+import IconButton from 'material-ui/IconButton';
+import CompareArrowsIcon from 'material-ui-icons/CompareArrows';
 import PropTypes from 'prop-types';
 import { scaleLinear, color } from 'd3';
+import { XYPlot, XAxis, YAxis, HorizontalGridLines, VerticalGridLines, LineSeries } from 'react-vis';
 
 
 // Configurable units
@@ -91,7 +95,9 @@ class TensorViewer extends Component {
         super(props);
         this.state = {
             elements: this.generateElements(props.payload),
+            distribution: this.generateDistribution(props.payload),
             highlight: null,
+            mode: 'elements',
         };
     }
 
@@ -114,7 +120,7 @@ class TensorViewer extends Component {
      */
     generateElements(payload) {
         const { contents } = payload;
-        const [ROWS, COLS] = [contents.length, contents[0].length]
+        const [ROWS, COLS] = [contents.length, contents[0].length];
         let maxmag = payload.maxmag || 1;
 
         let pixels = [];
@@ -133,6 +139,7 @@ class TensorViewer extends Component {
                     y,
                     cx,
                     cy,
+                    value: contents[r][c],
                     color: COLOR(scale),
                 });
             }
@@ -141,20 +148,89 @@ class TensorViewer extends Component {
         return { pixels: pixels, width: JUMP * COLS, height: JUMP * ROWS };
     }
 
+    flattenArray(array, flattened=[]) {
+        for (let i = 0; i < array.length; i++) {
+            if (array[i].constructor === Array) {
+                flattened.concat(this.flattenArray(array[i], flattened));
+            }
+            else {
+                flattened.push(array[i]);
+            }
+        }
+        return flattened;
+    }
+
+    generateDistribution(payload) {
+        const { contents } = payload;
+        const flattened = this.flattenArray(contents);
+        const min = Math.min(...flattened);
+        const max = Math.max(...flattened);
+        const numBuckets = Math.ceil(Math.log(flattened.length));
+        const bucketCounts = Array.apply(null, Array(numBuckets + 1)).map(Number.prototype.valueOf, 0);
+        const iToBucket = (i) => min + (i) * (max - min) / numBuckets;
+        flattened.forEach(value => {
+            for (let i = 0; i < numBuckets; i++) {
+                if (value < iToBucket(i)) {
+                    bucketCounts[i] += 1;
+                    break;
+                }
+            }
+        });
+        return bucketCounts.map((count, i) => {return {x: iToBucket(i), y: count}});
+    }
+
+    switchViews() {
+        const { mode } = this.state;
+        mode === 'distribution' ? this.setState({mode: 'elements'}) : this.setState({mode: 'distribution'});
+    }
+
     /** Renders the pixels and highlight elements in an svg. */
     render() {
         const { classes } = this.props;
-        const { elements, highlight } = this.state;
+        const { elements, highlight, distribution, mode } = this.state;
         const { pixels, width, height } = elements;
 
+        let contents = null;
+        if (mode === 'elements') {
+            contents = (
+                <div>
+                    <svg width={width + 2*PADDING} height={height + 2*PADDING}
+                         viewBox={`${-PADDING} ${-PADDING} ${width + 2*PADDING} ${height + 2*PADDING}`}>
+                        <TensorPixels pixels={pixels} handleHighlight={this.handleHighlight.bind(this)} />
+                        <TensorHighlight highlight={highlight} />
+                    </svg>
+                    <div style={{color: highlight ? color(highlight.color).darker() : '#FFF'}}>
+                        {highlight ? highlight.value.toPrecision(4) : '-'}
+                    </div>
+                </div>
+            );
+        }
+        else if (mode === 'distribution') {
+            contents = (
+                <XYPlot
+                    width={300}
+                    height={300}
+                    style={{margin: 'auto'}}>
+                    <XAxis />
+                    <YAxis />
+                    <VerticalGridLines />
+                    <HorizontalGridLines />
+                    <LineSeries
+                        color={'blue'}
+                        fill={'blue'}
+                        stroke={'red'}
+                        curve={'curveMonotoneX'}
+                        data={distribution}/>
+                </XYPlot>
+            );
+        }
         return (
-            <div className={classes.container}>
-                <svg width={width + 2*PADDING} height={height + 2*PADDING}
-                     viewBox={`${-PADDING} ${-PADDING} ${width + 2*PADDING} ${height + 2*PADDING}`}>
-                    <TensorPixels pixels={pixels} handleHighlight={this.handleHighlight.bind(this)} />
-                    <TensorHighlight highlight={highlight} />
-                </svg>
-            </div>
+          <div className={classes.container}>
+              {contents}
+              <IconButton onClick={() => this.switchViews()} caria-label="Change View" color="black">
+                  <CompareArrowsIcon />
+              </IconButton>
+          </div>
         );
     }
 }

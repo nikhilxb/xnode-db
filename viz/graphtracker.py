@@ -72,8 +72,7 @@ class GraphOp(Nestable):
             arg_names = ['{}[{}]'.format(self.fn_name, i) for i in range(len(args))]
             varargs = 'args'
 
-        if arg_names[0] == 'self':
-            arg_names = arg_names[1:]
+        arg_names = arg_names[(len(arg_names) - len(args)):] + [varargs for _ in range(len(args) - len(arg_names))]
 
         # Pytorch modules don't have a `__name__` field
         try:
@@ -81,42 +80,34 @@ class GraphOp(Nestable):
         except AttributeError:
             self.name = self.fn.__class__.__name__
 
-        self.outputs = []
-
         # Arguments which were tracked via a call to `track_data()` (that is, should be shown in the graph) have a
         # `GraphData` object associated with them. We only record these objects (if they exist) in `self.args`,
         # as these contain all of the information needed to visualize the data in the client. Untracked objects are
         # represented by `None` to maintain position.
-        self.args = [get_graphdata(obj) if has_graphdata(obj) else None for obj in args]
-        self.arg_names = arg_names
-        assert len(self.arg_names) <= len(self.args)
-        if len(self.arg_names) < len(self.args):
-            self.arg_names.extend([varargs for _ in range(len(self.args) - len(self.arg_names))])
+        self.args = self._make_arg_list(args, arg_names)
 
         # Only k-v pairs where the value is "tracked" are saved in `self.kwargs`.
-        self.kwargs = {
-            kw: get_graphdata(arg) for kw, arg in kwargs.items() if has_graphdata(arg)
-        }
-
-        # TODO put graphdata from iterables in the same port
-        for i, arg in enumerate(args):
-            if hasattr(arg, '__iter__'):
-                self.args.extend([get_graphdata(obj) for obj in arg if has_graphdata(obj)])
-                self.arg_names.extend(['{}[{}]'.format(arg_names[i], t) for t, obj in enumerate(arg) if
-                                       has_graphdata(obj)])
-
-        assert len(self.arg_names) == len(self.args)
-
-        for kw, arg in kwargs.items():
-            if hasattr(arg, '__iter__'):
-                self.kwargs.update({
-                    '{}[{}]'.format(kw, i): get_graphdata(obj) for i, obj in enumerate(arg) if has_graphdata(obj)
-                })
+        kwarg_keys = list(kwargs.keys())
+        self.kwargs = self._make_arg_list([kwargs[k] for k in kwarg_keys], kwarg_keys)
 
         # A `GraphOp` object always has temporal level 0, so any new temporal container will be able to encapsulate
         # it (unless it is already in a temporal container of the same level). The concept is explained more in the
         # Containers section.
         self.temporal_level = 0
+
+        self.outputs = []
+
+    def _make_arg_list(self, args, arg_names):
+        # len(args) == len(arg_names)
+        arg_list = []
+        for i, arg in enumerate(args):
+            if has_graphdata(arg):
+                arg_list.append([arg_names[i], get_graphdata(arg)])
+            elif hasattr(arg, '__iter__'):
+                arg_list.append([arg_names[i], [get_graphdata(obj) for obj in arg if has_graphdata(obj)]])
+            else:
+                arg_list.append([arg_names[i]])
+        return arg_list
 
     def get_tracked_args(self):
         """Return a list of all recorded positional and keyword arguments that are wrapped in `GraphData`.
@@ -127,8 +118,12 @@ class GraphOp(Nestable):
         Returns:
             (list): All positional and keyword argument values that are tracked in `GraphData`.
         """
-        tracked_args = [arg for arg in self.args if arg is not None]
-        tracked_args.extend(self.kwargs.values())
+        tracked_args = []
+        for arg_list in [self.args, self.kwargs]:
+            tracked_args.extend([arg[1] for arg in arg_list if len(arg) > 1 and not isinstance(arg[1], list)])
+            for arg in arg_list:
+                if len(arg) > 1 and isinstance(arg[1], list):
+                    tracked_args.extend([arg_item for arg_item in arg[1] if arg_item is not None])
         return tracked_args
 
 
