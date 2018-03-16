@@ -19,6 +19,7 @@ import GraphDataViewer from './GraphDataViewer';
 import Tooltip from '../../Tooltip';
 import Typography from 'material-ui/Typography';
 import { CircularProgress } from 'material-ui/Progress';
+import List, { ListItem, ListItemText } from 'material-ui/List';
 import ColorGrey from 'material-ui/colors/grey';
 import ColorBlue from "material-ui/colors/blue";
 
@@ -208,25 +209,49 @@ class GraphViewer extends Component {
         });
     }
 
-    buildInspectorComponents(classes, type, args, kwargs) {
-
+    argArrToComponents(classes, argArr) {
         let arr = [];
-        if(type !== undefined) {
+        const [ argName, argVal ] = argArr;
+        if (Array.isArray(argVal)) {
+            argVal.forEach((arg, i) => {
+                arr.push(<ListItem button className={classes.argListItem}><span className={classes.monospace}>{`${argName}[${i}]`}</span></ListItem> );
+            });
+
+        }
+        else {
+            arr.push(<ListItem button className={classes.argListItem}><span className={classes.monospace}>{`${argName}`}</span></ListItem> );
+        }
+        return arr;
+    }
+
+    // TODO on button hover, set hovered symbol id to that argument
+    buildInspectorComponents(classes, inspectorObj) {
+        let arr = [];
+        if (inspectorObj) {
+            const { name, type, payload } = inspectorObj;
             arr.push(
                 <Typography className={classes.label} variant="caption">Type</Typography>,
                 <span>{type ? type : <br/>}</span>
             );
-        }
-        if(args !== undefined) {
-            arr.push( <Typography className={classes.label} variant="caption">Args</Typography> );
-            if(!args) {
-                arr.push( <span className={classes.monospace}>{<br/>}</span> );
-            } else {
-                args.forEach((argArr) => {
-                    console.log(argArr);
-                    const [ argName, argVal ] = argArr;
-                    arr.push( <span className={classes.monospace}>{`${argName}: ${argVal}`}</span> );
-                });
+            if (inspectorObj.type === 'graphop') {
+                const { args, kwargs } = payload;
+                if (args.length > 0) {
+                    arr.push( <Typography className={classes.label} variant="caption">Positional Args</Typography> );
+                    let argListItems = [];
+                    args.forEach(argArr => {
+                        argListItems = argListItems.concat(this.argArrToComponents(classes, argArr));
+                    });
+                    arr.push(<List className={classes.argList}>{argListItems}</List>);
+                }
+
+                if (kwargs.length > 0) {
+                    arr.push( <Typography className={classes.label} variant="caption">Keyword Args</Typography> );
+                    let kwargListItems = [];
+                    kwargs.forEach(argArr => {
+                        kwargListItems = kwargListItems.concat(this.argArrToComponents(classes, argArr));
+                    });
+                    arr.push(<List className={classes.argList}>{kwargListItems}</List>);
+                }
             }
         }
         return arr;
@@ -259,14 +284,7 @@ class GraphViewer extends Component {
         let graphComponents = this.buildNodeComponents(graph.nodes).concat(this.buildEdgeComponents(graph.edges));
         graphComponents = graphComponents.asMutable().sort(({zOrder: z1}, {zOrder: z2}) => z1 - z2).map(({component}) => component);
 
-        const inspectorObj = this.state.hoverObj || this.state.selectedObj;
-        let inspectorComponents;
-        if(!inspectorObj) {
-            inspectorComponents = this.buildInspectorComponents(classes, null);
-        } else {
-            const { type, name } = inspectorObj;
-            inspectorComponents = this.buildInspectorComponents(classes, type, [["arg1", "herro"], ["arg2", "hihi"]]);
-        }
+        let inspectorComponents = this.buildInspectorComponents(classes, this.state.hoverObj || this.state.selectedObj);
 
         let buildArrowheadMarker = (id, color) => (
             <marker id={id} viewBox="-5 -3 5 6" refX="0" refY="0"
@@ -344,6 +362,21 @@ const styles = theme => ({
     },
     monospace: {
         fontFamily: theme.typography.monospace.fontFamily,
+        textTransform: 'lowercase',
+    },
+    argList: {
+        width: '100%',
+        height: 'auto',
+        overflowY: 'auto',
+        overflowX: 'hidden',
+
+
+        paddingTop: 0,
+        paddingBottom: 0,
+    },
+    argListItem: {
+        paddingTop: 0,
+        paddingBottom: 0,
     },
 });
 
@@ -356,6 +389,7 @@ function makeMapStateToProps() {
     return (state, props) => {
         return {
             graphSkeleton: getGraphFromHead(state, props),
+            symbolTable: state.symboltable,  // TODO don't hold on to the whole symbol table -- we're only using it for arg strs!
         }
     }
 }

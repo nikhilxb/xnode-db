@@ -209,8 +209,7 @@ class TensorViewer extends Component {
             contents = (
                 <XYPlot
                     width={300}
-                    height={300}
-                    style={{margin: 'auto'}}>
+                    height={300}>
                     <XAxis />
                     <YAxis />
                     <VerticalGridLines />

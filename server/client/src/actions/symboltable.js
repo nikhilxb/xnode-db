@@ -55,13 +55,14 @@ function ensureGraphLoadedRecurseActionThunk(symbolId, confirmed) {
                     dispatches.push(ensureGraphLoadedRecurseActionThunk(viewerData.creatorop, confirmed));
                 }
                 else if (type === 'graphop') {
-                    let arg_lists = viewerData.args.concat(viewerData.kwargs);
-                    arg_lists.forEach(arg_list => {
-                       if (arg_list.length === 1) {
+                    // TODO clean this up
+                    let argArrs = viewerData.args.concat(viewerData.kwargs);
+                    argArrs.forEach(argArr => {
+                       if (argArr.length === 1) {
                            return;
                        }
-                       if (Array.isArray(arg_list[1])) {
-                           arg_list[1].forEach(arg => {
+                       if (Array.isArray(argArr[1])) {
+                           argArr[1].forEach(arg => {
                                if(!confirmed.has(arg)) {
                                    confirmed.add(arg);
                                    dispatches.push(ensureGraphLoadedRecurseActionThunk(arg, confirmed));
@@ -69,9 +70,9 @@ function ensureGraphLoadedRecurseActionThunk(symbolId, confirmed) {
                            });
                        }
                        else {
-                           if(!confirmed.has(arg_list[1])) {
-                               confirmed.add(arg_list[1]);
-                               dispatches.push(ensureGraphLoadedRecurseActionThunk(arg_list[1], confirmed));
+                           if(!confirmed.has(argArr[1])) {
+                               confirmed.add(argArr[1]);
+                               dispatches.push(ensureGraphLoadedRecurseActionThunk(argArr[1], confirmed));
                            }
                        }
                     });
