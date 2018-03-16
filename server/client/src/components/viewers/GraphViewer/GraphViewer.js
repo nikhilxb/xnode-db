@@ -230,8 +230,17 @@ class GraphViewer extends Component {
                 </div>
             );
         }
+
         let components = this.buildNodeComponents(graph.nodes).concat(this.buildEdgeComponents(graph.edges));
         components = components.asMutable().sort(({zOrder: zOrder1}, {zOrder: zOrder2}) => zOrder1 - zOrder2).map(({component}) => component);
+
+        let inspector;
+        const inspectorObj = this.state.hoverObj || this.state.selectedObj;
+        if(!inspectorObj) {
+            inspector = "No elements hovered/selected.";
+        } else {
+            inspector = [<span>a</span>, <span>b</span>, <span>a</span>, <span>b</span>, <span>a</span>, <span>b</span>, <span>a</span>, <span>b</span>,];
+        };
 
         return (
             <div className={classes.container}>
@@ -269,7 +278,7 @@ class GraphViewer extends Component {
                     </svg>
                 </div>
                 <div className={classes.inspector}>
-                    {`HoverId: ${this.state.hoverObj && this.state.hoverObj.symbolId}, SelectedId: ${this.state.selectedObj && this.state.selectedObj.symbolId}`}
+                    {inspector}
                 </div>
             </div>
         );
@@ -298,16 +307,21 @@ const styles = theme => ({
     inspector: {
         flex: 'none',
         overflow: 'auto',
+        maxHeight: 50,
 
         boxSizing: 'border-box',
-        padding: 4,
-
+        padding: '4px 12px',
         backgroundColor: ColorGrey[50],
         borderTopWidth: 1,
         borderTopStyle: 'solid',
         borderTopColor: ColorGrey[200],
-
         fontSize: '9pt',
+        textAlign: 'left',
+
+        display: 'flex',
+        flexDirection: 'column',
+        flexWrap: 'wrap',
+        alignItems: 'flex-start',
     },
     progress: {
         display: 'flex',
