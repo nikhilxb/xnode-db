@@ -12,15 +12,17 @@ class StackLSTM(nn.Module):
         self.dims = dims
         self.layers = [gt.OpGenerator(nn.LSTMCell(dims[0], dims[1]))]
         for i in range(1, len(dims) - 1):
-            self.layers.append(gt.OpGenerator(nn.LSTMCell(dims[i], dims[i + 1])))
+            self.layers.append(gt.OpGenerator(nn.LSTMCell(dims[i], dims[i + 1]),
+                                              output_props_to_surface=[{'self': None, 'data': 'data', 'grad': 'grad'},
+                                                                       {'self': None, 'data': 'data', 'grad': 'grad'}]))
         for i, l in enumerate(self.layers):
             self.add_module('LSTM_{}'.format(i), l)
 
     def forward(self, input_seq):
         older_hiddens = []
         older_states = []
-        hiddens = [gt.track_data(Variable(torch.randn(self.batch_size, dim)), {'obj': None}) for dim in self.dims[1:]]
-        states = [gt.track_data(Variable(torch.randn(self.batch_size, dim)), {'obj': None}) for dim in self.dims[1:]]
+        hiddens = [gt.track_data(Variable(torch.randn(self.batch_size, dim)), {'self': None}) for dim in self.dims[1:]]
+        states = [gt.track_data(Variable(torch.randn(self.batch_size, dim)), {'self': None}) for dim in self.dims[1:]]
         for token in input_seq:
             new_hiddens = []
             new_states = []

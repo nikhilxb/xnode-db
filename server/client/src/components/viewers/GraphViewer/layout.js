@@ -129,16 +129,20 @@ function getNodesAndUnslicedEdges(headSymbolId, symbolTable) {
     let dataLeafContainers = {};
     let opOutputs = {};
     let checkedOps = new Set();
-
-    // Add info for the head data node, since we iterate over ops
-    edges.push([symbolIdToNodeId(getCreatorOp(headSymbolId, symbolTable)),
-                getCreatorPos(headSymbolId, symbolTable),
-                symbolIdToNodeId(headSymbolId),
-                getViewerObj(headSymbolId, symbolTable),
-                '']);
-    opsToCheck.push(getCreatorOp(headSymbolId, symbolTable));
-    dataLeafContainers[headSymbolId] = getFirstTemporalContainerSymbolId(getCreatorOp(headSymbolId, symbolTable), symbolTable);
-    opOutputs[symbolIdToNodeId(getCreatorOp(headSymbolId, symbolTable))] = new Set([headSymbolId]);
+    if (getCreatorOp(headSymbolId, symbolTable)) {
+        // Add info for the head data node, since we iterate over ops
+        edges.push([symbolIdToNodeId(getCreatorOp(headSymbolId, symbolTable)),
+            getCreatorPos(headSymbolId, symbolTable),
+            symbolIdToNodeId(headSymbolId),
+            getViewerObj(headSymbolId, symbolTable),
+            '']);
+        opsToCheck.push(getCreatorOp(headSymbolId, symbolTable));
+        dataLeafContainers[headSymbolId] = getFirstTemporalContainerSymbolId(getCreatorOp(headSymbolId, symbolTable), symbolTable);
+        opOutputs[symbolIdToNodeId(getCreatorOp(headSymbolId, symbolTable))] = new Set([headSymbolId]);
+    }
+    else {
+        dataLeafContainers[headSymbolId] = null;
+    }
     while (opsToCheck.length > 0) {
         let opSymbolId = opsToCheck.pop();
         if (checkedOps.has(opSymbolId) || opSymbolId === null) {
@@ -157,7 +161,6 @@ function getNodesAndUnslicedEdges(headSymbolId, symbolTable) {
             ...getContainerNodes(opSymbolId, symbolTable),
         };
         let args = getArgs(opSymbolId, symbolTable).concat(getKwargs(opSymbolId, symbolTable));
-        console.log(args);
         args.forEach(([argName, arg]) => {
             if (Array.isArray(arg)) {
                 arg.forEach(dataSymbolId => {
@@ -364,7 +367,10 @@ function createElkNode(nodeId, nodes, edges, graphState) {
         // Trying to map over nodeObj.contents leads to unexpected behavior; TODO look into this
         for (let i=0; i < nodeObj.contents.length; i++) {
             let childNodeId = nodeObj.contents[i];
-            elkNode.children.push(createElkNode(childNodeId, nodes, edges, graphState));
+            // not all of a container's contents have to be in the graph
+            if (childNodeId in nodes) {
+                elkNode.children.push(createElkNode(childNodeId, nodes, edges, graphState));
+            }
         }
     }
     for (let i=0; i < nodeObj.inPorts; i++) {
