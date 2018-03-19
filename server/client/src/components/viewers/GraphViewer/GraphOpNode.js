@@ -27,8 +27,8 @@ class GraphOpNode extends Component {
         name:           PropTypes.string,
         payload:        PropTypes.object.isRequired,
 
-        selectedIds:    PropTypes.object,
-        hoverIds:       PropTypes.object,
+        selectedIds:    PropTypes.array,
+        hoverIds:       PropTypes.array,
         setSelected:    PropTypes.func.isRequired,
         setHover:       PropTypes.func.isRequired,
     };
@@ -42,8 +42,8 @@ class GraphOpNode extends Component {
                 <rect x={x} y={y} width={width} height={height}
                       className={classNames({
                           [classes.normal]:   true,
-                          [classes.hover]:    hoverIds.has(symbolId),
-                          [classes.selected]: selectedIds.has(symbolId),
+                          [classes.hover]:    hoverIds.includes(symbolId),
+                          [classes.selected]: selectedIds.includes(symbolId),
                       })}
                       onClick={() => setSelected()}
                       onMouseEnter={() => setHover(true)}

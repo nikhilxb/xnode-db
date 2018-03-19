@@ -29,8 +29,8 @@ class GraphDataEdge extends Component {
         str:            PropTypes.string.isRequired,
         payload:        PropTypes.object.isRequired,
 
-        selectedIds:    PropTypes.object,
-        hoverIds:       PropTypes.object,
+        selectedIds:    PropTypes.array,
+        hoverIds:       PropTypes.array,
         setSelected:    PropTypes.func.isRequired,
         setHover:       PropTypes.func.isRequired,
     };
@@ -49,9 +49,14 @@ class GraphDataEdge extends Component {
             let linearGenerator = line().curve(curveLinear);
             pathString = linearGenerator(points.map(({x, y}) => [x, y]));  // [{x:3, y:4},...] => [[3, 4],...]
         }
-        const isHovered = hoverIds.has(symbolId) || hoverIds.has(sourceSymbolId) || hoverIds.has(targetSymbolId) || selectedIds.has(sourceSymbolId) || selectedIds.has(targetSymbolId);
-        const isSelected = selectedIds.has(symbolId);
-        const isOthersActive = hoverIds.size && selectedIds.size && !isHovered && !isSelected;
+
+        const isHovered = hoverIds.includes(symbolId) ||
+            hoverIds.includes(sourceSymbolId) ||
+            hoverIds.includes(targetSymbolId) ||
+            selectedIds.includes(sourceSymbolId) ||
+            selectedIds.includes(targetSymbolId);
+        const isSelected = selectedIds.includes(symbolId);
+        const isOthersActive = (hoverIds.size || selectedIds.size) && !isHovered && !isSelected;
 
         return (
             <g>
@@ -65,7 +70,7 @@ class GraphDataEdge extends Component {
                       pointerEvents="none"
                       className={classNames({
                           [classes.edge]:           true,
-                          [classes.temporal]:       isTemporal,
+                          [classes.temporal]:       isTemporal && !isSelected,
                           [classes.dimmed]:         isOthersActive,
                           [classes.edgeHovered]:    isHovered,
                           [classes.edgeSelected]:   isSelected,
@@ -76,10 +81,10 @@ class GraphDataEdge extends Component {
                       className={classNames({
                           [classes.label]:          true,
                           [classes.dimmed]:         isOthersActive,
-                          [classes.edgeHovered]:    isHovered,
-                          [classes.edgeSelected]:   isSelected,
+                          [classes.labelHovered]:   isHovered,
+                          [classes.labelSelected]:  isSelected,
                       })} >
-                    <textPath xlinkHref={`#${edgeId}`} startOffset="97%">
+                    <textPath xlinkHref={`#${edgeId}`} startOffset="95%">
                         {argName}
                     </textPath>
                 </text>

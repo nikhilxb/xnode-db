@@ -30,8 +30,8 @@ class GraphContainerNode extends Component {
         isExpanded:     PropTypes.bool.isRequired,
         isTemporal:     PropTypes.bool.isRequired,
 
-        selectedIds:    PropTypes.object,
-        hoverIds:       PropTypes.object,
+        selectedIds:    PropTypes.array,
+        hoverIds:       PropTypes.array,
         setSelected:    PropTypes.func.isRequired,
         setHover:       PropTypes.func.isRequired,
     };
@@ -41,17 +41,18 @@ class GraphContainerNode extends Component {
         const { toggleExpanded, isExpanded, isTemporal } = this.props;
         const { symbolId, payload, selectedIds, hoverIds, setSelected, setHover } = this.props;
         const { functionname } = payload;
+
         return (
             <g>
                 <rect width={width} height={height} x={x} y={y}
                       className={classNames({
                           [classes.normal]:    true,
                           [classes.collapsed]: !isExpanded,
-                          [classes.hover]:     hoverIds.has(symbolId),
-                          [classes.selected]:  selectedIds.has(symbolId),
+                          [classes.hover]:     hoverIds.includes(symbolId),
+                          [classes.selected]:  selectedIds.includes(symbolId),
                       })}
                       onClick={() => {
-                          if(selectedIds.has(symbolId))
+                          if(selectedIds.includes(symbolId))
                               toggleExpanded();
                           else
                               setSelected();

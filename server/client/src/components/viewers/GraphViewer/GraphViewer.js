@@ -5,6 +5,7 @@ import { bindActionCreators } from 'redux';
 import { withStyles } from 'material-ui/styles';
 import { createSelector } from "reselect";
 import ELK from 'elkjs';
+import Immutable from 'seamless-immutable';
 
 import { ensureGraphLoadedActionThunk } from "../../../actions/symboltable";
 import { setInViewerPayloadAction } from '../../../actions/canvas';
@@ -56,8 +57,8 @@ class GraphViewer extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            selectedIds: new Set([]),
-            hoverIds: new Set([]),
+            selectedIds: [],
+            hoverIds: [],
             isInspectorExpanded: true,
         };
         this.setSelectedId = this.setSelectedId.bind(this);
@@ -84,21 +85,21 @@ class GraphViewer extends Component {
             let elk = new ELK();
             layoutGraph(elk, nextGraphSkeleton, viewerId, setInPayload);
             this.setState({
-                selectedIds: new Set(),
-                hoverIds: new Set(),
+                selectedIds: [],
+                hoverIds: [],
             });
         }
     }
 
     setSelectedId(id) {
         this.setState(prev => ({
-            selectedIds: id ? new Set([id]) : new Set([id]),
+            selectedIds: id ? [id] : [],
         }));
     }
 
     setHoverId(id) {
         this.setState(prev => ({
-            hoverIds: id ? prev.hoverIds.add(id) : new Set(),
+            hoverIds: id ? prev.hoverIds.concat([id]) : [],
         }));
     }
 
@@ -227,6 +228,7 @@ class GraphViewer extends Component {
     }
 
     // TODO on button hover, set hovered symbol id to that argument
+    // TODO is there abetter way to build this? e.g. factor out stuff? Also, need a unique key on each element in arr
     buildInspectorComponents(classes, inspectorObj) {
         let arr = [];
         if (inspectorObj) {
@@ -286,7 +288,8 @@ class GraphViewer extends Component {
         let graphComponents = this.buildNodeComponents(graph.nodes).concat(this.buildEdgeComponents(graph.edges));
         graphComponents = graphComponents.asMutable().sort(({zOrder: z1}, {zOrder: z2}) => z1 - z2).map(({component}) => component);
 
-        let inspectorComponents = this.buildInspectorComponents(classes, this.state.hoverObj || this.state.selectedObj);
+        const inspectorId = this.state.hoverIds[0] || this.state.selectedIds[0];
+        let inspectorComponents = this.buildInspectorComponents(classes, this.props.symbolTable[inspectorId]);
 
         let buildArrowheadMarker = (id, color) => (
             <marker id={id} viewBox="-5 -3 5 6" refX="0" refY="0"
