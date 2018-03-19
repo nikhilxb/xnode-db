@@ -16,7 +16,7 @@
     "react-grid-layout": "^0.16.5",
     "react-redux": "^5.0.7",
     "react-scripts": "1.1.0",
-    "react-vis": "^1.9.1",
+    "react-vis": "^1.9.2",
     "redux": "^3.7.2",
     "redux-devtools-extension": "^2.13.2",
     "redux-pack": "^0.1.5",

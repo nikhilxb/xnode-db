@@ -60,11 +60,13 @@ class GraphViewer extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            selectedObj: null,  // {type, symbolId, ...} or null
-            hoverObj: null,     // {type, , ...} or null
+            selectedIds: new Set([]),
+            hoverIds: new Set([]),
             isInspectorExpanded: true,
             expandedArgListItems: new Set(),
         };
+        this.setSelectedId = this.setSelectedId.bind(this);
+        this.setHoverId = this.setHoverId.bind(this);
     }
 
     componentDidMount() {
@@ -87,22 +89,22 @@ class GraphViewer extends Component {
             let elk = new ELK();
             layoutGraph(elk, nextGraphSkeleton, viewerId, setInPayload);
             this.setState({
-                selectedObj: null,
-                hoverObj: null,
+                selectedIds: new Set(),
+                hoverIds: new Set(),
             });
         }
     }
 
-    setSelectedObj(obj) {
-        this.setState({
-            selectedObj: obj,
-        });
+    setSelectedId(id) {
+        this.setState(prev => ({
+            selectedIds: id ? new Set([id]) : new Set([id]),
+        }));
     }
 
-    setHoverObj(obj, isHovered) {
-        this.setState({
-            hoverObj: isHovered ? obj : null,
-        });
+    setHoverId(id) {
+        this.setState(prev => ({
+            hoverIds: id ? prev.hoverIds.add(id) : new Set(),
+        }));
     }
 
     toggleInspectorExpanded() {
@@ -148,13 +150,13 @@ class GraphViewer extends Component {
                 sourceSymbolId,
                 targetSymbolId,
                 argName,
-                setSelected:    this.setSelectedObj.bind(this, tooltipObj),
-                setHover:       this.setHoverObj.bind(this, tooltipObj),
-                selectedId:     this.state.selectedObj && this.state.selectedObj.symbolId,
-                hoverId:        this.state.hoverObj && this.state.hoverObj.symbolId,
+                setSelected:    (isSelected = true) => this.setSelectedId(isSelected ? viewerObj.symbolId : null),
+                setHover:       (isHovered = true) => this.setHoverId(isHovered ? viewerObj.symbolId : null),
+                selectedIds:    this.state.selectedIds,
+                hoverIds:       this.state.hoverIds,
             };
             return ({
-                component: <GraphDataEdge key={key} {...viewerObj} {...layoutObj} />,
+                component: <GraphDataEdge key={key} edgeId={key} {...viewerObj} {...layoutObj} />,
                 zOrder,
             });
         });
@@ -185,10 +187,10 @@ class GraphViewer extends Component {
                 isExpanded,
             };
             const interactionProps = {
-                setSelected:    this.setSelectedObj.bind(this, viewerObj),
-                setHover:       this.setHoverObj.bind(this, viewerObj),
-                selectedId:     this.state.selectedObj && this.state.selectedObj.symbolId,
-                hoverId:        this.state.hoverObj && this.state.hoverObj.symbolId,
+                setSelected:    (isSelected = true) => this.setSelectedId(isSelected ? viewerObj.symbolId : null),
+                setHover:       (isHovered = true) => this.setHoverId(isHovered ? viewerObj.symbolId : null),
+                selectedIds:    this.state.selectedIds,
+                hoverIds:       this.state.hoverIds,
             };
 
             switch(type) {
@@ -362,7 +364,7 @@ class GraphViewer extends Component {
                             {buildArrowheadMarker("arrowheadBlue", ColorBlue[600])}
                         </defs>
                         <rect x={0} y={0} width={graph.width} height={graph.height} fill="transparent"
-                              onClick={() => this.setSelectedObj(null)}/>
+                              onClick={() => this.setSelectedId(null)}/>
                         {graphComponents}
                     </svg>
                 </div>

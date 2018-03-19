@@ -27,23 +27,23 @@ class GraphOpNode extends Component {
         name:           PropTypes.string,
         payload:        PropTypes.object.isRequired,
 
-        selectedId:     PropTypes.string,
-        hoverId:        PropTypes.string,
+        selectedIds:    PropTypes.object,
+        hoverIds:       PropTypes.object,
         setSelected:    PropTypes.func.isRequired,
         setHover:       PropTypes.func.isRequired,
     };
 
     render() {
         const { classes, width, height, x, y } = this.props;
-        const { symbolId, payload, selectedId, hoverId, setSelected, setHover } = this.props;
+        const { symbolId, payload, selectedIds, hoverIds, setSelected, setHover } = this.props;
         const { functionname } = payload;
         return (
             <g>
                 <rect x={x} y={y} width={width} height={height}
                       className={classNames({
                           [classes.normal]:   true,
-                          [classes.hover]:    hoverId === symbolId,
-                          [classes.selected]: selectedId === symbolId,
+                          [classes.hover]:    hoverIds.has(symbolId),
+                          [classes.selected]: selectedIds.has(symbolId),
                       })}
                       onClick={() => setSelected()}
                       onMouseEnter={() => setHover(true)}

@@ -17,6 +17,7 @@ class GraphDataEdge extends Component {
     /** Prop expected types object. */
     static propTypes = {
         classes:        PropTypes.object.isRequired,
+        edgeId:         PropTypes.string.isRequired,
         points:         PropTypes.array.isRequired,
         isTemporal:     PropTypes.bool.isRequired,
         sourceSymbolId: PropTypes.string.isRequired,
@@ -28,15 +29,15 @@ class GraphDataEdge extends Component {
         str:            PropTypes.string.isRequired,
         payload:        PropTypes.object.isRequired,
 
-        selectedId:     PropTypes.string,
-        hoverId:        PropTypes.string,
+        selectedIds:    PropTypes.object,
+        hoverIds:       PropTypes.object,
         setSelected:    PropTypes.func.isRequired,
         setHover:       PropTypes.func.isRequired,
     };
 
     render() {
-        const { classes, points, isTemporal, sourceSymbolId, targetSymbolId, argName } = this.props;
-        const { symbolId, selectedId, hoverId, setSelected, setHover } = this.props;
+        const { classes, edgeId, points, isTemporal, sourceSymbolId, targetSymbolId, argName } = this.props;
+        const { symbolId, selectedIds, hoverIds, setSelected, setHover } = this.props;
         let pathString = null;
         if (isTemporal) {
             let curveGenerator = line().curve(curveBasis);
@@ -48,7 +49,9 @@ class GraphDataEdge extends Component {
             let linearGenerator = line().curve(curveLinear);
             pathString = linearGenerator(points.map(({x, y}) => [x, y]));  // [{x:3, y:4},...] => [[3, 4],...]
         }
-        const hovered = hoverId === symbolId || hoverId === sourceSymbolId || hoverId === targetSymbolId || selectedId === sourceSymbolId || selectedId === targetSymbolId;
+        const isHovered = hoverIds.has(symbolId) || hoverIds.has(sourceSymbolId) || hoverIds.has(targetSymbolId) || selectedIds.has(sourceSymbolId) || selectedIds.has(targetSymbolId);
+        const isSelected = selectedIds.has(symbolId);
+        const isOthersActive = hoverIds.size && selectedIds.size && !isHovered && !isSelected;
 
         return (
             <g>
@@ -57,15 +60,29 @@ class GraphDataEdge extends Component {
                       onClick={() => setSelected()}
                       onMouseEnter={() => setHover(true)}
                       onMouseLeave={() => setHover(false)} />
-                <path d={pathString}
+                <path id={edgeId}
+                      d={pathString}
                       pointerEvents="none"
                       className={classNames({
-                          [classes.normal]:   true,
-                          [classes.temporal]: isTemporal,
-                          [classes.dimmed]:   (hoverId || selectedId) && !hovered,
-                          [classes.hover]:    hovered,
-                          [classes.selected]: selectedId === symbolId,
+                          [classes.edge]:           true,
+                          [classes.temporal]:       isTemporal,
+                          [classes.dimmed]:         isOthersActive,
+                          [classes.edgeHovered]:    isHovered,
+                          [classes.edgeSelected]:   isSelected,
                       })} />
+                <text dy="-1.5"
+                      textAnchor="end"
+                      pointerEvents="none"
+                      className={classNames({
+                          [classes.label]:          true,
+                          [classes.dimmed]:         isOthersActive,
+                          [classes.edgeHovered]:    isHovered,
+                          [classes.edgeSelected]:   isSelected,
+                      })} >
+                    <textPath xlinkHref={`#${edgeId}`} startOffset="97%">
+                        {argName}
+                    </textPath>
+                </text>
             </g>
         );
     }
@@ -82,29 +99,43 @@ const styles = theme => ({
         stroke: 'transparent',
         strokeWidth: 12,
     },
-    normal: {
+    edge: {
         fill: 'none',
         stroke: ColorGrey[600],
         strokeWidth: 2.5,
         markerEnd: 'url(#arrowheadGrey)',
     },
+    edgeHovered: {
+        opacity: 1,
+        strokeWidth: 3.5,
+    },
+    edgeSelected: {
+        opacity: 1,
+        stroke: ColorBlue[600],
+        strokeWidth: 3.5,
+        markerEnd: 'url(#arrowheadBlue)',
+    },
     temporal: {
         opacity: 0.5,
-        strokeWidth: 2.5,
     },
     dimmed: {
         opacity: 0.1,
     },
-    hover: {
-        opacity: 1,
-        strokeWidth: 3.5,
+    label: {
+        opacity: 0,
+        textAlign: 'right',
+        fontFamily: theme.typography.monospace.fontFamily,
+        fontSize: '7pt',
+        color: ColorGrey[600],
     },
-    selected: {
-        stroke: ColorBlue[600],
+    labelHovered: {
         opacity: 1,
-        strokeWidth: 3.5,
-        markerEnd: 'url(#arrowheadBlue)',
+        fontWeight: theme.typography.fontWeightMedium,
     },
+    labelSelected: {
+        opacity: 1,
+        color: ColorBlue[600],
+    }
 });
 
 export default withStyles(styles)(GraphDataEdge);
