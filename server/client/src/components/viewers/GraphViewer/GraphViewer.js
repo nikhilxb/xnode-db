@@ -8,7 +8,7 @@ import ELK from 'elkjs';
 import Immutable from 'seamless-immutable';
 
 import { ensureGraphLoadedActionThunk } from "../../../actions/symboltable";
-import { setInViewerPayloadAction } from '../../../actions/canvas';
+import { setInViewerPayloadAction, addViewerActionThunk } from '../../../actions/canvas';
 import { makeGetElkGraphFromHead, layoutGraph } from "./layout";
 
 import GraphOpNode from './GraphOpNode';
@@ -20,9 +20,13 @@ import GraphDataViewer from './GraphDataViewer';
 import Tooltip from '../../Tooltip';
 import Typography from 'material-ui/Typography';
 import { CircularProgress } from 'material-ui/Progress';
-import List, { ListItem, ListItemText } from 'material-ui/List';
+import List, { ListItem, ListItemIcon } from 'material-ui/List';
+import DropDownIcon from 'material-ui-icons/ArrowDropDown';
+import Divider from 'material-ui/Divider';
+import Collapse from 'material-ui/transitions/Collapse';
 import ColorGrey from 'material-ui/colors/grey';
 import ColorBlue from "material-ui/colors/blue";
+import ColorBlueGrey from "material-ui/colors/blueGrey";
 
 
 /**
@@ -60,6 +64,7 @@ class GraphViewer extends Component {
             selectedIds: [],
             hoverIds: [],
             isInspectorExpanded: true,
+            expandedArgListItems: new Set(),
         };
         this.setSelectedId = this.setSelectedId.bind(this);
         this.setHoverId = this.setHoverId.bind(this);
@@ -212,23 +217,78 @@ class GraphViewer extends Component {
         });
     }
 
+    toggleArgListItemSelected(itemName) {
+        const { expandedArgListItems } = this.state;
+        if (expandedArgListItems.has(itemName)) {
+            expandedArgListItems.delete(itemName);
+        }
+        else {
+            expandedArgListItems.add(itemName);
+        }
+        this.setState({
+            expandedArgListItems,
+        });
+    }
+
+    // TODO make item naming unique, or refresh set each time
+
+    getArgComponent(classes, argName, arg, i=0) {
+        const { addViewerToCanvas, symbolTable } = this.props;
+        const { expandedArgListItems } = this.state;
+        const keyValueComponents = Object.entries(symbolTable[arg].data.viewer.kvpairs).map(([key, value]) => {
+            let str = value === null ? 'None' : value;
+            let onClick = () => {};
+
+            if (value && value.startsWith('@id:')) {
+                str = symbolTable[value].str;
+                onClick = () => addViewerToCanvas(value);
+            }
+            return (
+                <ListItem button className={classes.argListItem} style={{paddingLeft: 20}} onClick={onClick}>
+                                <span className={classes.keyValueItem} >
+                                    <span className={classes.varName}>{key}</span>
+                                    <span className={classes.varSeparator}>:&nbsp;</span>
+                                    <span className={classes.varString}>{str}</span>
+                                </span>
+                </ListItem>
+            );
+        });
+
+        const itemName = `${argName}[${i}]`;
+        const expanded = expandedArgListItems.has(itemName);
+        return (
+            <div key={itemName}>
+                <ListItem button
+                          className={classes.argListItem}
+                          onClick={() => this.toggleArgListItemSelected(itemName)}>
+                    <span className={classes.monospace}>{itemName}</span>
+                </ListItem>
+                <Collapse in={expanded} timeout={50}>
+                    <List classes={{dense: classes.argListItem}} dense>
+                        {keyValueComponents}
+                    </List>
+                </Collapse>
+            </div>
+        );
+    }
+
     argArrToComponents(classes, argArr) {
         let arr = [];
         const [ argName, argVal ] = argArr;
         if (Array.isArray(argVal)) {
             argVal.forEach((arg, i) => {
-                arr.push(<ListItem button className={classes.argListItem}><span className={classes.monospace}>{`${argName}[${i}]`}</span></ListItem> );
+                arr.push(this.getArgComponent(classes, argName, arg, i))
             });
-
         }
         else {
-            arr.push(<ListItem button className={classes.argListItem}><span className={classes.monospace}>{`${argName}`}</span></ListItem> );
+            arr.push(this.getArgComponent(classes, argName, argVal))
         }
         return arr;
     }
 
     // TODO on button hover, set hovered symbol id to that argument
     // TODO is there abetter way to build this? e.g. factor out stuff? Also, need a unique key on each element in arr
+    // TODO add inspector for graphdata nodes and edges
     buildInspectorComponents(classes, inspectorObj) {
         let arr = [];
         if (inspectorObj) {
@@ -245,7 +305,7 @@ class GraphViewer extends Component {
                     args.forEach(argArr => {
                         argListItems = argListItems.concat(this.argArrToComponents(classes, argArr));
                     });
-                    arr.push(<List className={classes.argList}>{argListItems}</List>);
+                    arr.push(<List dense className={classes.argList}>{argListItems}</List>);
                 }
 
                 if (kwargs.length > 0) {
@@ -254,7 +314,7 @@ class GraphViewer extends Component {
                     kwargs.forEach(argArr => {
                         kwargListItems = kwargListItems.concat(this.argArrToComponents(classes, argArr));
                     });
-                    arr.push(<List className={classes.argList}>{kwargListItems}</List>);
+                    arr.push(<List dense className={classes.argList}>{kwargListItems}</List>);
                 }
             }
         }
@@ -374,14 +434,29 @@ const styles = theme => ({
         height: 'auto',
         overflowY: 'auto',
         overflowX: 'hidden',
-
-
         paddingTop: 0,
         paddingBottom: 0,
     },
     argListItem: {
         paddingTop: 0,
         paddingBottom: 0,
+    },
+    keyValueItem: {
+        overflow:'hidden',
+        textOverflow:'ellipsis',
+        whiteSpace:'nowrap',
+        width: '100%',
+        fontFamily: theme.typography.monospace.fontFamily,
+    },
+    varName: {
+    },
+    varSeparator: {
+    },
+    varString: {
+        color: ColorBlueGrey[500],
+    },
+    rotated: {
+        transform: 'rotate(-90deg)',
     },
 });
 
@@ -394,7 +469,7 @@ function makeMapStateToProps() {
     return (state, props) => {
         return {
             graphSkeleton: getGraphFromHead(state, props),
-            symbolTable: state.symboltable,  // TODO don't hold on to the whole symbol table -- we're only using it for arg strs!
+            symbolTable: state.symboltable,  // TODO be smarter about how much of the symbol table we need
         }
     }
 }
@@ -404,6 +479,7 @@ function mapDispatchToProps(dispatch) {
     return bindActionCreators({
         ensureGraphLoaded: ensureGraphLoadedActionThunk,
         setInPayload: setInViewerPayloadAction,
+        addViewerToCanvas: addViewerActionThunk,
     }, dispatch);
 }
 
