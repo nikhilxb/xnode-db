@@ -2,10 +2,11 @@ import React, { Component, PureComponent } from 'react';
 import { withStyles } from 'material-ui/styles';
 import Icon from 'material-ui/Icon';
 import IconButton from 'material-ui/IconButton';
+import Tooltip from 'material-ui/Tooltip';
 import CompareArrowsIcon from 'material-ui-icons/CompareArrows';
 import PropTypes from 'prop-types';
 import { scaleLinear, color } from 'd3';
-import { XYPlot, XAxis, YAxis, HorizontalGridLines, VerticalGridLines, LineSeries } from 'react-vis';
+import { XYPlot, XAxis, YAxis, HorizontalGridLines, VerticalGridLines, AreaSeries, LineSeries } from 'react-vis';
 
 
 // Configurable units
@@ -210,14 +211,17 @@ class TensorViewer extends Component {
                 <XYPlot
                     width={300}
                     height={300}>
-                    <XAxis />
-                    <YAxis />
+                    <XAxis title={'Tensor Value'}/>
+                    <YAxis title={'Appearances in Tensor'}/>
                     <VerticalGridLines />
                     <HorizontalGridLines />
+                    <AreaSeries
+                        color={'#f4a653'}
+                        opacity={0.3}
+                        curve={'curveMonotoneX'}
+                        data={distribution}/>
                     <LineSeries
-                        color={'blue'}
-                        fill={'blue'}
-                        stroke={'red'}
+                        color={'#f4a653'}
                         curve={'curveMonotoneX'}
                         data={distribution}/>
                 </XYPlot>
@@ -226,9 +230,11 @@ class TensorViewer extends Component {
         return (
           <div className={classes.container}>
               {contents}
-              <IconButton onClick={() => this.switchViews()} caria-label="Change View" color="black">
-                  <CompareArrowsIcon />
-              </IconButton>
+              <Tooltip title="Change View" placement="bottom">
+                  <IconButton onClick={() => this.switchViews()} aria-label="Change View">
+                      <CompareArrowsIcon />
+                  </IconButton>
+              </Tooltip>
           </div>
         );
     }
@@ -240,6 +246,7 @@ class TensorViewer extends Component {
 /** CSS-in-JS styling object. */
 const styles = theme => ({
     container: {
+        margin: 'auto',
         overflow: 'auto',
     }
 });

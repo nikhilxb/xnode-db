@@ -12,6 +12,7 @@ import NumberViewer from '../../../components/viewers/NumberViewer';
 import StringViewer from '../../../components/viewers/StringViewer';
 import TensorViewer from '../../../components/viewers/TensorViewer';
 import GraphViewer  from '../../../components/viewers/GraphViewer';
+import ListViewer  from '../../../components/viewers/ListViewer';
 
 import { addViewerActionThunk, removeViewerAction, updateLayoutAction } from "../../../actions/canvas";
 
@@ -37,22 +38,32 @@ class Canvas extends Component {
             symbolId: viewer.symbolId,
             viewerId: viewer.viewerId,
             payload: viewer.payload,
+            str: viewer.str,
         };
 
         switch(viewer.type) {
             case "number":
                 return <NumberViewer {...props}/>;
-            case "str":
+            case "string":
                 return <StringViewer {...props}/>;
             case "tensor":
                 return <TensorViewer {...props}/>;
             case "graphdata":
                 return <GraphViewer {...props}/>;
+            case "list":
+            case "tuple":
+            case "set":
+                return <ListViewer {...props}/>;
             default:
                 return null;
             // TODO: Add more viewers
         }
     }
+
+
+
+
+
 
     /**
      * Renders the inspector canvas and any viewers currently registered to it.
