@@ -180,7 +180,7 @@ class VisualizationEngine:
                          for arg in obj.kwargs],
                 'container': self._sanitize_for_data_object(obj.container, refs),
                 'functionname': self._sanitize_for_data_object(obj.fn_name, refs),
-                'outputs': self._sanitize_for_data_object(obj.outputs, refs),
+                'outputs': [self._sanitize_for_data_object(output, refs) for output in obj.outputs],
             },
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)
         }
@@ -347,7 +347,7 @@ class VisualizationEngine:
                                         str_fn=lambda obj: 'class <{}>'.format(obj.__name__),
                                         data_fn=_generate_data_class)
     INSTANCE        = VisualizationType('obj', test_fn=lambda obj: True,
-                                        str_fn=lambda obj: 'object <{}>'.format(obj.__class__.__name__, str(obj)),
+                                        str_fn=lambda obj: '<{}>'.format(obj.__class__.__name__, str(obj)),
                                         data_fn=_generate_data_instance)
 
     # A list of all `VisualizationType` objects, in the order in which type should be tested. For example, the

@@ -5,7 +5,6 @@ import { bindActionCreators } from 'redux';
 import { withStyles } from 'material-ui/styles';
 import { createSelector } from "reselect";
 import ELK from 'elkjs';
-import Immutable from 'seamless-immutable';
 
 import { ensureGraphLoadedActionThunk } from "../../../actions/symboltable";
 import { setInViewerPayloadAction, addViewerActionThunk } from '../../../actions/canvas';
@@ -15,14 +14,12 @@ import GraphOpNode from './GraphOpNode';
 import GraphDataEdge from './GraphDataEdge';
 import GraphDataNode from './GraphDataNode';
 import GraphContainerNode from './GraphContainerNode';
-import GraphDataViewer from './GraphDataViewer';
 
-import Tooltip from '../../Tooltip';
 import Typography from 'material-ui/Typography';
 import { CircularProgress } from 'material-ui/Progress';
 import List, { ListItem, ListItemIcon } from 'material-ui/List';
 import DropDownIcon from 'material-ui-icons/ArrowDropDown';
-import Divider from 'material-ui/Divider';
+import NotInterestedIcon from 'material-ui-icons/NotInterested';
 import Collapse from 'material-ui/transitions/Collapse';
 import ColorGrey from 'material-ui/colors/grey';
 import ColorBlue from "material-ui/colors/blue";
@@ -52,6 +49,10 @@ class GraphViewer extends Component {
 
     /** Prop expected types object. */
     static propTypes = {
+        viewerId:           PropTypes.number.isRequired,
+        symbolId:           PropTypes.string.isRequired,
+        payload:            PropTypes.object.isRequired,
+
         classes:            PropTypes.object.isRequired,
         graphSkeleton:      PropTypes.object,
         ensureGraphLoaded:  PropTypes.func.isRequired,
@@ -139,11 +140,11 @@ class GraphViewer extends Component {
      *     edge is offset not by `elkNode`'s position, but by the position of the container node.
      */
     buildEdgeComponents(edges) {
+        const { viewerId } = this.props;
+        const { selectedIds } = this.state;
         return edges.map(edge => {
             const { key, points, zOrder, isTemporal, viewerObj, sourceSymbolId, targetSymbolId, argName } = edge;
-            const tooltipObj = {
-                ...viewerObj,
-            };
+            const edgeId = viewerId + key;
             const layoutObj = {
                 points,
                 zOrder,
@@ -151,13 +152,13 @@ class GraphViewer extends Component {
                 sourceSymbolId,
                 targetSymbolId,
                 argName,
-                setSelected:    (isSelected = true) => this.setSelectedId(isSelected ? viewerObj.symbolId : null),
+                setSelected:    () => this.setSelectedId(selectedIds.includes(viewerObj.symbolId) ? null : viewerObj.symbolId),
                 setHover:       (isHovered = true) => this.setHoverId(isHovered ? viewerObj.symbolId : null),
                 selectedIds:    this.state.selectedIds,
                 hoverIds:       this.state.hoverIds,
             };
             return ({
-                component: <GraphDataEdge key={key} edgeId={key} {...viewerObj} {...layoutObj} />,
+                component: <GraphDataEdge key={key} edgeId={edgeId} {...viewerObj} {...layoutObj} />,
                 zOrder,
             });
         });
@@ -177,6 +178,7 @@ class GraphViewer extends Component {
      *     node's global position should be equal to its parent's global position, plus the node's `x` and `y` values.
      */
     buildNodeComponents(nodes) {
+        const { selectedIds } = this.state;
         return nodes.map(node => {
             const { type, key, viewerObj, x, y, width, height, zOrder, isTemporal, isExpanded } = node;
             const layoutProps = {
@@ -188,7 +190,7 @@ class GraphViewer extends Component {
                 isExpanded,
             };
             const interactionProps = {
-                setSelected:    (isSelected = true) => this.setSelectedId(isSelected ? viewerObj.symbolId : null),
+                setSelected:    () => this.setSelectedId(selectedIds.includes(viewerObj.symbolId) ? null : viewerObj.symbolId),
                 setHover:       (isHovered = true) => this.setHoverId(isHovered ? viewerObj.symbolId : null),
                 selectedIds:    this.state.selectedIds,
                 hoverIds:       this.state.hoverIds,
@@ -217,54 +219,57 @@ class GraphViewer extends Component {
         });
     }
 
-    toggleArgListItemSelected(itemName) {
+    toggleArgListItemSelected(itemKey) {
         const { expandedArgListItems } = this.state;
-        if (expandedArgListItems.has(itemName)) {
-            expandedArgListItems.delete(itemName);
+        if (expandedArgListItems.has(itemKey)) {
+            expandedArgListItems.delete(itemKey);
         }
         else {
-            expandedArgListItems.add(itemName);
+            expandedArgListItems.add(itemKey);
         }
         this.setState({
             expandedArgListItems,
         });
     }
 
+    getKeyValueComponents(classes, symbolId) {
+        const { symbolTable } = this.props;
+        return symbolId ? Object.entries(symbolTable[symbolId].data.viewer.kvpairs).map(([key, value]) => {
+            return this.symbolIdToListItem(classes, value, key, symbolId);
+        }) : [];
+    }
+
+
     // TODO make item naming unique, or refresh set each time
-
-    getArgComponent(classes, argName, arg, i=0) {
-        const { addViewerToCanvas, symbolTable } = this.props;
+    getArgListItem(classes, argName, argSymbolId, opName, i=-1) {
         const { expandedArgListItems } = this.state;
-        const keyValueComponents = Object.entries(symbolTable[arg].data.viewer.kvpairs).map(([key, value]) => {
-            let str = value === null ? 'None' : value;
-            let onClick = () => {};
-
-            if (value && value.startsWith('@id:')) {
-                str = symbolTable[value].str;
-                onClick = () => addViewerToCanvas(value);
-            }
-            return (
-                <ListItem button className={classes.argListItem} style={{paddingLeft: 20}} onClick={onClick}>
-                                <span className={classes.keyValueItem} >
-                                    <span className={classes.varName}>{key}</span>
-                                    <span className={classes.varSeparator}>:&nbsp;</span>
-                                    <span className={classes.varString}>{str}</span>
-                                </span>
-                </ListItem>
-            );
-        });
-
-        const itemName = `${argName}[${i}]`;
-        const expanded = expandedArgListItems.has(itemName);
+        const keyValueComponents = this.getKeyValueComponents(classes, argSymbolId);
+        const itemName = `${argName}${i >= 0 ? `[${i}]` : ''}`;
+        const itemIsTracked = typeof argSymbolId !== 'undefined';
+        const itemKey = `${argSymbolId}:${argName}:${i}:${opName ? opName : ''}`;
+        const expanded = expandedArgListItems.has(itemKey);
+        const onClick = (e) => {
+            e.stopPropagation();
+            e.nativeEvent.stopImmediatePropagation();
+            if (itemIsTracked)
+                this.toggleArgListItemSelected(itemKey);
+        };
         return (
-            <div key={itemName}>
+            <div key={itemKey}>
                 <ListItem button
-                          className={classes.argListItem}
-                          onClick={() => this.toggleArgListItemSelected(itemName)}>
-                    <span className={classes.monospace}>{itemName}</span>
+                          className={classes.argItem}
+                          onClick={onClick}>
+                    <ListItemIcon onClick={onClick} className={classes.arrows}>
+                        {itemIsTracked ?
+                            (expanded ? <DropDownIcon/> : <DropDownIcon className={classes.rotated}/>) : (<NotInterestedIcon/>)}
+                    </ListItemIcon>
+                    <span className={classes.argItemText}>
+                        <span className={classes.argItemLabel}>{itemName}</span>
+                        <span className={classes.argItemDetail}>{opName ? ` (${opName})` : ''}</span>
+                    </span>
                 </ListItem>
                 <Collapse in={expanded} timeout={50}>
-                    <List classes={{dense: classes.argListItem}} dense>
+                    <List className={classes.inspectorList} dense>
                         {keyValueComponents}
                     </List>
                 </Collapse>
@@ -272,53 +277,132 @@ class GraphViewer extends Component {
         );
     }
 
-    argArrToComponents(classes, argArr) {
+    argArrToListItems(classes, argArr, opName=null) {
         let arr = [];
         const [ argName, argVal ] = argArr;
         if (Array.isArray(argVal)) {
             argVal.forEach((arg, i) => {
-                arr.push(this.getArgComponent(classes, argName, arg, i))
+                arr.push(this.getArgListItem(classes, argName, arg, opName, i))
             });
         }
         else {
-            arr.push(this.getArgComponent(classes, argName, argVal))
+            arr.push(this.getArgListItem(classes, argName, argVal, opName))
         }
         return arr;
     }
 
-    // TODO on button hover, set hovered symbol id to that argument
-    // TODO is there abetter way to build this? e.g. factor out stuff? Also, need a unique key on each element in arr
-    // TODO add inspector for graphdata nodes and edges
-    buildInspectorComponents(classes, inspectorObj) {
-        let arr = [];
-        if (inspectorObj) {
-            const { name, type, payload } = inspectorObj;
-            arr.push(
-                <Typography className={classes.label} variant="caption">Type</Typography>,
-                <span>{type ? type : <br/>}</span>
-            );
-            if (inspectorObj.type === 'graphop') {
-                const { args, kwargs } = payload;
+    symbolIdToListItem(classes, symbolId, itemLabel=null, keyPrefix='') {
+        const { addViewerToCanvas, symbolTable } = this.props;
+        let onClick = () => symbolId ? addViewerToCanvas(symbolId) : {};
+        let str = symbolId ? symbolTable[symbolId].str : 'None';
+        let key = `${keyPrefix}:${(itemLabel ? itemLabel : '')}:${symbolId}`;
+        return (
+            <ListItem button
+                  className={classes.symbolItem}
+                  onClick={onClick}
+                  key={key}>
+                    <span className={classes.symbolItemText} >
+                        <span className={classes.symbolItemLabel}>{itemLabel}</span>
+                        <span className={classes.symbolItemSeparator}>{itemLabel ? ': ' : null}</span>
+                        <span className={classes.symbolItemString}>{str}</span>
+                    </span>
+            </ListItem>
+        );
+    }
+
+    buildInspectorList(classes, listName, listItems) {
+        return (
+            <div>
+                <Typography className={classes.inspectorLabel} variant="caption">{listName}</Typography>
+                <List dense component={'nav'} className={classes.inspectorList}>
+                    {listItems}
+                </List>
+            </div>
+        );
+    }
+
+    // TODO is there abetter way to build this? e.g. factor out stuff?
+    buildInspectorComponent(classes, symbolId) {
+        const { symbolTable } = this.props;
+        const symbolObj = symbolTable[symbolId];
+        if (symbolObj) {
+            const { name, type } = symbolObj;
+            if (type === 'graphop') {
+                const { args, kwargs, functionname, outputs } = symbolObj.data.viewer;
+
+                let argComponent = null;
                 if (args.length > 0) {
-                    arr.push( <Typography className={classes.label} variant="caption">Positional Args</Typography> );
                     let argListItems = [];
-                    args.forEach(argArr => {
-                        argListItems = argListItems.concat(this.argArrToComponents(classes, argArr));
-                    });
-                    arr.push(<List dense className={classes.argList}>{argListItems}</List>);
+                    args.forEach(argArr => argListItems = argListItems.concat(this.argArrToListItems(classes, argArr)));
+                    argComponent = this.buildInspectorList(classes, 'Positional Args', argListItems);
                 }
 
+                let kwargComponent = null;
                 if (kwargs.length > 0) {
-                    arr.push( <Typography className={classes.label} variant="caption">Keyword Args</Typography> );
                     let kwargListItems = [];
-                    kwargs.forEach(argArr => {
-                        kwargListItems = kwargListItems.concat(this.argArrToComponents(classes, argArr));
-                    });
-                    arr.push(<List dense className={classes.argList}>{kwargListItems}</List>);
+                    kwargs.forEach(argArr => kwargListItems = kwargListItems.concat(this.argArrToListItems(classes, argArr)));
+                    kwargComponent = this.buildInspectorList(classes, 'Keyword Args', kwargListItems);
                 }
+
+                let outputComponent = null;
+                if (outputs.length > 0) {
+                    let outputListItems = outputs.map(symbolId => this.symbolIdToListItem(classes, symbolId));
+                    outputComponent = this.buildInspectorList(classes, 'Outputs', outputListItems);
+                }
+                return (
+                    <div className={classes.inspector}>
+                        <Typography className={classes.inspectorLabel} variant="caption">Function Name</Typography>
+                        <span className={classes.inspectorText}>{functionname}</span>
+                        {argComponent}
+                        {kwargComponent}
+                        {outputComponent}
+                    </div>
+                );
+            }
+            if (type === 'graphdata') {
+                let nameComponent = name ? (
+                    <div>
+                        <Typography className={classes.inspectorLabel} variant="caption">Object Name</Typography>
+                        <span className={classes.inspectorText}>{name}</span>
+                    </div>) : null;
+
+                return (
+                    <div className={classes.inspector}>
+                        {nameComponent}
+                        {this.buildInspectorList(classes, 'Data', this.getKeyValueComponents(classes, symbolId))}
+                    </div>
+                )
+            }
+            if (type === 'graphcontainer') {
+                const { functionname, contents } = symbolObj.data.viewer;
+
+                let argComponent = null;
+                let argListItems = [];
+                let opNameAppearances = {};
+                for (let i=0; i < contents.length; i++) {
+                    let opSymbolId = contents[i];
+                    const { functionname, args } = symbolTable[opSymbolId].data.viewer;
+                    if (!(functionname in opNameAppearances)) {
+                        opNameAppearances[functionname] = 0;
+                    }
+                    if (args.length > 0) {
+                        args.forEach(argArr => argListItems = argListItems.concat(this.argArrToListItems(classes, argArr, `${functionname}[${opNameAppearances[functionname]}]`)));
+                        opNameAppearances[functionname] += 1;
+                    }
+                }
+                if (argListItems.length > 0) {
+                    argComponent = this.buildInspectorList(classes, 'Positional Args', argListItems);
+                }
+
+                return (
+                    <div className={classes.inspector}>
+                        <Typography className={classes.inspectorLabel} variant="caption">Function Name</Typography>
+                        <span className={classes.inspectorText}>{functionname}</span>
+                        {argComponent}
+                    </div>
+                );
             }
         }
-        return arr;
     };
 
     toggleExpanded(symbolId) {
@@ -348,8 +432,8 @@ class GraphViewer extends Component {
         let graphComponents = this.buildNodeComponents(graph.nodes).concat(this.buildEdgeComponents(graph.edges));
         graphComponents = graphComponents.asMutable().sort(({zOrder: z1}, {zOrder: z2}) => z1 - z2).map(({component}) => component);
 
-        const inspectorId = this.state.hoverIds[0] || this.state.selectedIds[0];
-        let inspectorComponents = this.buildInspectorComponents(classes, this.props.symbolTable[inspectorId]);
+        const inspectorId = this.state.selectedIds[0];
+        let inspectorComponent = this.buildInspectorComponent(classes, inspectorId);
 
         let buildArrowheadMarker = (id, color) => (
             <marker id={id} viewBox="-5 -3 5 6" refX="0" refY="0"
@@ -371,9 +455,7 @@ class GraphViewer extends Component {
                         {graphComponents}
                     </svg>
                 </div>
-                <div className={classes.inspector}>
-                    {inspectorComponents}
-                </div>
+                {inspectorComponent}
             </div>
         );
     }
@@ -404,56 +486,83 @@ const styles = theme => ({
         textAlign: 'left', // so SVG doesn't move
     },
     inspector: {
-        flex: 'initial',
         minWidth: 150,
         overflow: 'auto',
 
         boxSizing: 'border-box',
-        padding: '4px 12px',
         backgroundColor: ColorGrey[50],
         borderLeftWidth: 1,
         borderLeftStyle: 'solid',
         borderLeftColor: ColorGrey[200],
         fontSize: '9pt',
         textAlign: 'left',
-
-        display: 'flex',
-        flexDirection: 'column',
-        flexWrap: 'wrap',
-        alignItems: 'flex-start',
     },
-    label: {
+    inspectorLabel: {
         paddingTop: 8,
+        paddingLeft: 12,
     },
-    monospace: {
+    inspectorText: {
+        paddingLeft: 12,
         fontFamily: theme.typography.monospace.fontFamily,
-        textTransform: 'lowercase',
     },
-    argList: {
+    inspectorList: {
         width: '100%',
-        height: 'auto',
         overflowY: 'auto',
         overflowX: 'hidden',
         paddingTop: 0,
         paddingBottom: 0,
     },
-    argListItem: {
+    argItem: {
         paddingTop: 0,
         paddingBottom: 0,
     },
-    keyValueItem: {
+    argItemText: {
         overflow:'hidden',
         textOverflow:'ellipsis',
         whiteSpace:'nowrap',
         width: '100%',
         fontFamily: theme.typography.monospace.fontFamily,
     },
-    varName: {
+    argItemLabel: {
+
     },
-    varSeparator: {
+    argItemDetail: {
+        fontStyle: 'italic',
+        fontSize: '7pt',
+        color: ColorBlueGrey[300],
     },
-    varString: {
+    symbolItem: {
+        paddingTop: 0,
+        paddingBottom: 0,
+    },
+    symbolItemText: {
+        overflow:'hidden',
+        textOverflow:'ellipsis',
+        whiteSpace:'nowrap',
+        width: '100%',
+        marginLeft: '8px',
+        fontFamily: theme.typography.monospace.fontFamily,
+    },
+    symbolItemLabel: {
+    },
+    symbolItemSeparator: {
+    },
+    symbolItemString: {
         color: ColorBlueGrey[500],
+    },
+    icon: {
+        visibility: 'hidden',
+    },
+    itemhover: {
+        '&:hover $icon': {
+            visibility: 'inherit',
+        }
+    },
+    arrows: {
+        height: 15,
+        width: 15,
+        marginLeft: '-10px',
+        marginRight: 0,
     },
     rotated: {
         transform: 'rotate(-90deg)',

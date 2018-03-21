@@ -58,6 +58,7 @@ class GraphDataEdge extends Component {
         const isSelected = selectedIds.includes(symbolId);
         const isOthersActive = (hoverIds.size || selectedIds.size) && !isHovered && !isSelected;
 
+        // edge id needs to be globally unique, not just within this svg component
         return (
             <g>
                 <path d={pathString}
@@ -92,7 +93,6 @@ class GraphDataEdge extends Component {
         );
     }
 }
-
 
 // To inject styles into component
 // -------------------------------

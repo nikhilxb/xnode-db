@@ -52,13 +52,19 @@ class GraphContainerNode extends Component {
                           [classes.selected]:  selectedIds.includes(symbolId),
                       })}
                       onClick={() => {
-                          if(selectedIds.includes(symbolId))
-                              toggleExpanded();
-                          else
-                              setSelected();
+                          setSelected();
                       }}
-                      onMouseEnter={() => setHover(true)}
-                      onMouseLeave={() => setHover(false)} />
+                      onDoubleClick={() => {
+                          toggleExpanded();
+                      }}
+                      onMouseEnter={() => {
+                          if (!isTemporal)
+                            setHover(true)
+                      }}
+                      onMouseLeave={() => {
+                          if (!isTemporal)
+                            setHover(false)
+                      }} />
 
                 <foreignObject x={x} y={y} width={width} height={height} pointerEvents="none">
                     <div className={classes.label}>

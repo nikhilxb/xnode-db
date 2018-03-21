@@ -19,7 +19,7 @@ class ViewerFrame extends Component {
         classes:  PropTypes.object.isRequired,
         viewerId: PropTypes.number.isRequired,
         type:     PropTypes.string.isRequired,
-        name:     PropTypes.string.isRequired,
+        name:     PropTypes.string,
     };
 
     /**

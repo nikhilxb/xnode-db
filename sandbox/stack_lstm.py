@@ -10,11 +10,14 @@ class StackLSTM(nn.Module):
         super(StackLSTM, self).__init__()
         self.batch_size = batch_size
         self.dims = dims
-        self.layers = [gt.OpGenerator(nn.LSTMCell(dims[0], dims[1]))]
+        self.layers = [gt.OpGenerator(nn.LSTMCell(dims[0], dims[1]),
+                                      output_props_to_surface=[{'self': None, 'data': 'data', 'grad': 'grad'},
+                                                               {'self': None, 'data': 'data', 'grad': 'grad'}])]
         for i in range(1, len(dims) - 1):
             self.layers.append(gt.OpGenerator(nn.LSTMCell(dims[i], dims[i + 1]),
                                               output_props_to_surface=[{'self': None, 'data': 'data', 'grad': 'grad'},
-                                                                       {'self': None, 'data': 'data', 'grad': 'grad'}]))
+                                                                       {'self': None, 'data': 'data', 'grad': 'grad'}]
+                                              ))
         for i, l in enumerate(self.layers):
             self.add_module('LSTM_{}'.format(i), l)
 
@@ -45,15 +48,19 @@ class PseudoLogLSTM(nn.Module):
         super(PseudoLogLSTM, self).__init__()
         self.batch_size = batch_size
         self.dims = dims
-        self.layers = [gt.OpGenerator(nn.LSTMCell(dims[0], dims[1]))]
+        self.layers = [gt.OpGenerator(nn.LSTMCell(dims[0], dims[1]),
+                                      output_props_to_surface=[{'self': None, 'data': 'data', 'grad': 'grad'},
+                                                               {'self': None, 'data': 'data', 'grad': 'grad'}])]
         for i in range(1, len(dims) - 1):
-            self.layers.append(gt.OpGenerator(nn.LSTMCell(dims[i], dims[i + 1])))
+            self.layers.append(gt.OpGenerator(nn.LSTMCell(dims[i], dims[i + 1]),
+                                              output_props_to_surface=[{'self': None, 'data': 'data', 'grad': 'grad'},
+                                                                       {'self': None, 'data': 'data', 'grad': 'grad'}]))
         for i, l in enumerate(self.layers):
             self.add_module('LSTM_{}'.format(i), l)
 
     def cell_forward(self, l, x, i, hidden_in, state_in, older_hiddens, older_states):
-        hidden_in = gt.OpGenerator(operator.__add__)(hidden_in, older_hiddens)
-        state_in = gt.OpGenerator(operator.__add__)(state_in, older_states)
+        hidden_in = gt.OpGenerator(operator.__add__, output_props_to_surface=[{'self': None}])(hidden_in, older_hiddens)
+        state_in = gt.OpGenerator(operator.__add__, output_props_to_surface=[{'self': None}])(state_in, older_states)
         return l(x, (hidden_in, state_in))
 
     def forward(self, input_seq):

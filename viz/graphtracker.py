@@ -396,7 +396,7 @@ class OpGenerator(wrapt.ObjectProxy):
                               self._self_output_props[0] if self._self_output_props is not None else None,
                               creator_op=op,
                               creator_pos=0)
-        op.outputs = ret_graphdata
+        op.outputs = ret_graphdata if isinstance(ret_graphdata, tuple) else (ret_graphdata, )
         return ret_graphdata
 
 
