@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from "prop-types";
+import classNames from 'classnames';
 import { withStyles } from 'material-ui/styles';
 
 import Paper from 'material-ui/Paper';
@@ -38,7 +39,7 @@ class ViewerFrame extends Component {
                         <CloseIcon style={{width: 15, height: 15, color: '#FFFFFF'}}/>
                     </IconButton>
                 </div>
-                <div className={classes.content}>
+                <div className={classNames(classes.content, "ReactGridLayoutNoDrag")}>
                     {children}
                 </div>
             </Paper>
@@ -59,12 +60,16 @@ const styles = theme => ({
         overflow: 'hidden',
     },
     header: {
+        '&:hover': {
+            background: '#404040',
+        },
         background: '#232323',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: 4,
         minHeight: 15,
+        userSelect: 'none',
     },
     title: {
         flex: 1,

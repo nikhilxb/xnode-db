@@ -481,7 +481,7 @@ const styles = theme => ({
         justifyContent: 'center',
     },
     graph: {
-        flex: 'auto',
+        flex: 'auto',  // makes graph fill remaining space so sidebar is on side
         overflow: 'auto',
         textAlign: 'left', // so SVG doesn't move
     },
