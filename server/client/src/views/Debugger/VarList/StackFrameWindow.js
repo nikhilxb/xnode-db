@@ -14,7 +14,7 @@ import ControlBar from '../ControlBar';
 /**
  * This smart component displays information about the Python program's current execution state.
  */
-class ContextWindow extends Component {
+class StackFrameWindow extends Component {
 
     /** Prop expected types object. */
     static propTypes = {
@@ -27,12 +27,13 @@ class ContextWindow extends Component {
      * the top-most being the top of the stack.
      * @param classes: the CSS classes to be used.
      * @param frame: the frame object, taken from the `stackFrame` prop, which is mapped from the Redux store.
+     * @param key: a string unique among all other frame components.
      * @returns a component to be rendered.
      */
-    buildFrameComponent(classes, frame) {
+    buildFrameComponent(classes, frame, key) {
         const { functionName, args, returningTo, lineNo, fileName } = frame;
         return (
-          <Typography className={classes.frame}>
+          <Typography className={classes.frame} key={key}>
               <span>{"in "}</span>
               <span className={classes.monospace}>{`${functionName}${args}`}</span>
               <span className={classes.monospace}>{returningTo ? `-> ${returningTo}` : ''}</span>
@@ -60,10 +61,8 @@ class ContextWindow extends Component {
                     {`Waiting at breakpoint`}
                 </Typography>
             );
-            console.log(stackFrame);
-            console.log(stackFrame.filter((f, i) => i > 0));
-            topFrame = this.buildFrameComponent(classes, stackFrame[0]);
-            additionalFrames = stackFrame.filter((f, i) => i > 0).map(frame => this.buildFrameComponent(classes, frame));
+            topFrame = this.buildFrameComponent(classes, stackFrame[0], 0);
+            additionalFrames = stackFrame.filter((f, i) => i > 0).map((frame, i) => this.buildFrameComponent(classes, frame, i + 1));
         }
         else {
             statusComponent = (
@@ -147,4 +146,4 @@ function mapDispatchToProps(dispatch) {
     }, dispatch);
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(withStyles(styles)(ContextWindow));
+export default connect(mapStateToProps, mapDispatchToProps)(withStyles(styles)(StackFrameWindow));
