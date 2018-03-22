@@ -789,7 +789,6 @@ function layoutGraphRecurse(elk, toLayout, viewerId, setInPayload) {
     if (rootNode.id === 'root' || (rootNode.children.length > 0 && rootNode.children[0].temporalStep >= 0)) {
         elk.layout(rootNode).then(
             () => {
-                rootNode.properties['elk.algorithm'] = 'elk.fixed';
                 if (rootNode.children && rootNode.children.length > 0 && rootNode.children[0].temporalStep >= 0) {
                     let sortedContainers = new Array(rootNode.children.length).fill(0);
                     rootNode.children.forEach(child => sortedContainers.splice(child.temporalStep, 1, child));
@@ -814,12 +813,19 @@ function layoutGraphRecurse(elk, toLayout, viewerId, setInPayload) {
                         child.y = rootNode.height - kContainerPadding - child.height;
                     });
                 }
+                rootNode.properties['elk.algorithm'] = 'elk.fixed';
+                if (rootNode.children) {
+                    rootNode.children.forEach(child => {
+                        child.properties['elk.algorithm'] = 'elk.fixed';
+                    });
+                }
                 if (toLayout.length > 1) {
                     layoutGraphRecurse(elk, toLayout.splice(1), viewerId, setInPayload);
                 }
                 else {
                     let positions = getNodeAndPortPositions(rootNode);
                     rootNode.edges = rootNode.edges.concat(buildTemporalEdges(rootNode, positions, rootNode.temporalEdges));
+                    console.log(rootNode);
                     setInPayload(viewerId, ['graph'], {
                         width: rootNode.width,
                         height: rootNode.height,
@@ -835,14 +841,14 @@ function layoutGraphRecurse(elk, toLayout, viewerId, setInPayload) {
     }
 }
 
-function getToLayoutArray(rootNode) {
-    let toLayout = [rootNode];
-    for (let i = 0; i < toLayout.length; i++) {
-        toLayout[i].children.forEach(child => {
-            toLayout.push(child);
-        })
+function getElkNodeLayoutOrder(toLayout, i=0) {
+    if (i === toLayout.length) {
+        return toLayout.reverse();
     }
-    return toLayout.reverse();
+    toLayout[i].children.forEach(child => {
+        toLayout.push(child);
+    });
+    return getElkNodeLayoutOrder(toLayout, i + 1);
 }
 
 
@@ -854,6 +860,5 @@ function getToLayoutArray(rootNode) {
  * @param setInPayload
  */
 export function layoutGraph(elk, rootNode, viewerId, setInPayload) {
-    let toLayout = getToLayoutArray(rootNode);
-    layoutGraphRecurse(elk, toLayout, viewerId, setInPayload);
+    layoutGraphRecurse(elk, getElkNodeLayoutOrder([rootNode]), viewerId, setInPayload);
 }

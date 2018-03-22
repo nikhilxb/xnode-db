@@ -380,12 +380,12 @@ class GraphViewer extends Component {
                 let argListItems = [];
                 let opNameAppearances = {};
                 for (let i=0; i < contents.length; i++) {
-                    let opSymbolId = contents[i];
-                    const { functionname, args } = symbolTable[opSymbolId].data.viewer;
+                    let contentSymbolId = contents[i];
+                    const { functionname, args } = symbolTable[contentSymbolId].data.viewer;
                     if (!(functionname in opNameAppearances)) {
                         opNameAppearances[functionname] = 0;
                     }
-                    if (args.length > 0) {
+                    if (args && args.length > 0) {  // could be container
                         args.forEach(argArr => argListItems = argListItems.concat(this.argArrToListItems(classes, argArr, `${functionname}[${opNameAppearances[functionname]}]`)));
                         opNameAppearances[functionname] += 1;
                     }

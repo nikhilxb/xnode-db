@@ -134,7 +134,6 @@ class VisualizationEngine:
         except AttributeError:
             graphdata_obj = obj
             obj = graphdata_obj.obj
-        print(type(obj), type(graphdata_obj))
         return {
             self.VIEWER_KEY: {
                 'creatorop': self._sanitize_for_data_object(graphdata_obj.creator_op, refs),
