@@ -1,4 +1,4 @@
-import { updateNamespaceAction } from './symboltable.js';
+import { updateNamespaceAction } from './program.js';
 import { resetVarListAction } from './varlist.js';
 
 function executeCommandAndFetchNewNamespace(commandName) {

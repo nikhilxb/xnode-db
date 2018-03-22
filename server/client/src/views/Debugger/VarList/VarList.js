@@ -3,10 +3,17 @@ import PropTypes from "prop-types";
 import { withStyles } from 'material-ui/styles';
 import { connect }            from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { updateNamespaceActionThunk } from '../../../actions/symboltable.js';
+import { updateNamespaceActionThunk } from '../../../actions/program.js';
 
+import ExpansionPanel, { ExpansionPanelSummary, ExpansionPanelDetails, } from 'material-ui/ExpansionPanel';
 import List, {ListItem, ListItemText, ListSubheader} from 'material-ui/List';
+import Typography from 'material-ui/Typography';
+import Paper from 'material-ui/Paper';
+import Divider from 'material-ui/Divider';
+import ExpandMoreIcon from 'material-ui-icons/ExpandMore';
+
 import VarListItem from './VarListItem.js';
+import ContextWindow from './StackFrameWindow.js';
 import blueGrey from 'material-ui/colors/blueGrey';
 
 
@@ -32,16 +39,19 @@ class VarList extends Component {
      * Renders a nested list of variable names and data (if expanded).
      */
     render() {
-        const {classes, topLevelItemIds} = this.props;
+        const { classes, topLevelItemIds } = this.props;
         let listItems = topLevelItemIds.map(itemId => {
             return <VarListItem key={itemId} itemId={itemId} nestedlevel={0}/>;
         });
 
         return (
-            <List className={classes.root} dense>
-                <ListSubheader>Variables</ListSubheader>
-                {listItems}
-            </List>
+            <div className={classes.root} >
+                <ContextWindow />
+                <Divider/>
+                <List className={classes.list} dense>
+                    {listItems}
+                </List>
+            </div>
         );
     }
 }
@@ -53,13 +63,17 @@ class VarList extends Component {
 /** CSS-in-JS styling object. */
 const styles = theme => ({
     root: {
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+    },
+    list: {
+        backgroundColor: theme.palette.background.paper,
         overflowY: 'auto',
         overflowX: 'hidden',
-        height: '100%',
-        backgroundColor: theme.palette.background.paper,
         paddingTop: 0,
         paddingBottom: 0,
-    },
+    }
 });
 
 

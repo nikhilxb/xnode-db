@@ -38,7 +38,6 @@ class Debugger extends Component {
                         <VarList />
                     </div>
                     <div className={classes.rightContainer}>
-                        <ControlBar />
                         <Canvas />
                     </div>
                 </div>

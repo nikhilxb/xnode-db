@@ -2,6 +2,7 @@ import atexit
 import bdb
 import socket
 import sys
+import os
 from subprocess import Popen
 from socketIO_client import SocketIO
 
@@ -339,17 +340,59 @@ class VisualDebugger(bdb.Bdb):
         )
 
     def _get_context(self):
-        """Returns some object, for now a string, capturing the state of the program.
+        """Returns some object, for now a list describing the stack frame, capturing the state of the program.
 
         The client will need to show users where the program has stopped, and some context information is required.
         This information is sent as part of a typical callback after program flow was manipulated at the server's
         request.
 
         Returns:
-            (str): The file and line number of the Python program's current line.
+            (list): A list of objects which represent the stack sequence (see `format_stack_entry` for structure).
+                The first element of the list is the top of the stack.
         """
         # TODO send more information than just the filename and linenumber, like time spent running
-        return self.format_stack_entry(self.current_stack[self.current_stack_index])
+        return [self.format_stack_entry(self.current_stack[i]) for i in range(self.current_stack_index, -1, -1)]
+
+    def format_stack_entry(self, frame_lineno, lprefix=': '):
+        """Returns an object describing the a particular frame in the stack.
+
+        The default `bdb` implementation returns a string, whereas we would like the client to be able to render the
+        context information in a flexible way. We therefore return an object with each property of the program state
+        (file, line no, etc.) assigned to a different key.
+
+        The returned dict is of the form:
+        {
+            fileName: the path of the Python file be executed, relative to the current working directory
+            lineNo: the line number of in the file
+            functionName: the function in which the line resides
+            args: maybe some arguments passed to the frame? I haven't seen this ever be non-empty. TODO figure out what
+                these look like
+            returningTo: the frame being returned to, if one exists
+            line: the code at the line being executed
+        }
+
+        Args:
+            frame_lineno (frame): The current stack frame.
+            lprefix (str): A requirement of the `bdb` implementation; not used here.
+
+        Returns:
+            (dict): A dict mapping property names to their values for the current Python program.
+        """
+        import linecache
+        import reprlib
+        program_state = dict()
+        frame, lineno = frame_lineno
+        filename = self.canonic(frame.f_code.co_filename)
+
+        program_state['fileName'] = os.path.relpath(filename, os.getcwd())  # get file path relative to working dir
+        program_state['lineNo'] = lineno
+        program_state['functionName'] = frame.f_code.co_name if frame.f_code.co_name else '<lambda>'
+        # use `reprlib` (like in the `bdb` implementation) to convert the args tuple to a string
+        program_state['args'] = reprlib.repr(frame.f_locals['__args__']) if '__args__' in frame.f_locals else '()'
+        program_state['returningTo'] = reprlib.repr(frame.f_locals['__return__'])\
+            if '__return__' in frame.f_locals else None
+        program_state['line'] = linecache.getline(filename, lineno, frame.f_globals).strip()
+        return program_state
 
     def _get_namespace_shells(self):
         """Returns a dict mapping string symbol IDs to dict shell representations.

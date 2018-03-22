@@ -1,20 +1,33 @@
 import { handle } from 'redux-pack';
 import Immutable from 'seamless-immutable';
-import { SymbolTableActions } from '../actions/symboltable';
+import { SymbolTableActions } from '../actions/program';
 
 /**
- * State slice structure for `symboltable`: {
- *     "@id:12345" : {
- *         type: "number",
- *         name: "myInt",
- *         str:  "86",
- *         data: null/{viewer:{}, attributes{}}
+ * State slice structure for `program`: {
+ *     symbolTable: {
+ *         "@id:12345" : {
+ *             type: "number",
+ *             name: "myInt",
+ *             str:  "86",
+ *             data: null/{viewer:{}, attributes{}}
+ *         }
  *     }
+ *     stackFrame: [{
+ *         fileName: "c:\\...",
+ *         lineNo: 37,
+ *         functionName: "myFn"
+ *         args: "(arg1, arg2)",
+ *         returningTo: "myFn2" or null,
+ *         line: "return 10",
+ *     }, ...] or null,
  * }
  */
 
 /** Root reducer's initial state slice. */
-const initialState = Immutable({});
+const initialState = Immutable({
+    symbolTable: {},
+    context: null,
+});
 
 /** TODO: Short description of root reducer for state slice. */
 export default function rootReducer(state = initialState, action) {
@@ -31,15 +44,17 @@ export default function rootReducer(state = initialState, action) {
 function ensureSymbolDataLoadedReducer(state, action) {
     const { symbolId, data, shells } = action;
     // It's important that `shells` be the first argument, so existing symbols are not overwritten
-    return Immutable.merge(shells, state, {deep: true}).setIn([symbolId, "data"], data);
+    return Immutable.merge({symbolTable: shells}, state, {deep: true}).setIn(['symbolTable', symbolId, 'data'], data);
 }
 
 /** Given a new namespace dict, reset the entire symbol table to only contain that namespace.
     TODO be smarter with updating; don't wipe data that you don't need to */
 function updateNamespaceReducer(state, action) {
-    const { context, namespace } = action;
-    // TODO: figure out where context string goes
-    return Immutable(namespace);
+    const { stackFrame, namespace } = action;
+    return Immutable({
+        symbolTable: namespace,
+        stackFrame,
+    });
 }
 
 /** TODO: Reducer for synchronous action. */

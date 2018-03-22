@@ -29,10 +29,10 @@ function fetchNamespace() {
 }
 
 /** Action which resets the symbol table to contain a new namespace. */
-export function updateNamespaceAction(context, namespace) {
+export function updateNamespaceAction(stackFrame, namespace) {
     return {
         type: SymbolTableActions.UPDATE_NAMESPACE,
-        context,
+        stackFrame,
         namespace,
     };
 }
@@ -47,8 +47,8 @@ function ensureGraphLoadedRecurseActionThunk(symbolId, confirmed) {
         return dispatch(ensureSymbolDataLoadedActionThunk(symbolId)).then(
             () => {
                 confirmed.add(symbolId);
-                let type = getState().symboltable[symbolId].type;
-                let viewerData = getState().symboltable[symbolId].data.viewer;
+                let type = getState().program.symbolTable[symbolId].type;
+                let viewerData = getState().program.symbolTable[symbolId].data.viewer;
                 let dispatches = [];
                 if (type === 'graphdata' && viewerData.creatorop !== null) {
                     confirmed.add(viewerData.creatorop);
@@ -110,7 +110,7 @@ export function ensureGraphLoadedActionThunk(symbolId, viewerId) {
     has not already been loaded. */
 export function ensureSymbolDataLoadedActionThunk(symbolId) {
     return (dispatch, getState) => {
-        const dataInCache = getState().symboltable[symbolId].data;
+        const dataInCache = getState().program.symbolTable[symbolId].data;
         if (dataInCache !== null) {
             // You don’t have to return Promises, but it’s a handy convention
             // so the caller can always call .then() on async dispatch result.

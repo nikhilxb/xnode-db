@@ -1,4 +1,4 @@
-import { ensureSymbolDataLoadedActionThunk } from "./symboltable";
+import { ensureSymbolDataLoadedActionThunk } from "./program";
 
 /** Action type definitions. */
 export const CanvasActions = {

@@ -141,7 +141,7 @@ function getItemStrSelectorGen() {
     return createSelector(
         [
             (state, props) => state.varlist.varListItems[props.itemId].symbolId,
-            (state) => state.symboltable,
+            (state) => state.program.symbolTable,
         ],
         (symbolId, symbolTable) => {
             return (symbolId in symbolTable) ? symbolTable[symbolId].str : null;

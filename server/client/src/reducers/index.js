@@ -1,11 +1,11 @@
 import { combineReducers } from 'redux-seamless-immutable';
-import symbolTableReducer  from './symboltable.js';
+import programReducer  from './program.js';
 import canvasReducer       from './canvas.js';
 import varListReducer      from './varlist.js';
 
 /** Highest-level reducer for store root. Simply dispatches to other reducers. */
 const mainReducer = combineReducers({
-    symboltable:    symbolTableReducer,
+    program:        programReducer,
     canvas:         canvasReducer,
     varlist:        varListReducer,
 });

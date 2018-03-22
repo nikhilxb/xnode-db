@@ -122,7 +122,7 @@ class ListViewer extends Component {
 /** Connects application state objects to component props. */
 function mapStateToProps(state, props) {
     return {
-        symbolTable: state.symboltable,  // TODO make a selector for only relevant portions of the symbol table
+        symbolTable: state.program.symbolTable,  // TODO make a selector for only relevant portions of the symbol table
     };
 }
 
