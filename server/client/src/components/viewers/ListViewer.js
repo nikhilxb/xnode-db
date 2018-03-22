@@ -1,59 +1,36 @@
 import React, { Component } from 'react';
+import PropTypes from 'prop-types';
+import classNames from 'classnames';
 import { withStyles } from 'material-ui/styles';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
+import { createSelector } from "reselect";
+
+import { addViewerActionThunk, removeViewerAction, updateLayoutAction } from "../../actions/canvas";
+import { REF } from '../../services/mockdata.js';
+
 import Button from 'material-ui/Button';
 import Typography from 'material-ui/Typography';
-import {connect} from "react-redux";
-import {addViewerActionThunk, removeViewerAction, updateLayoutAction} from "../../actions/canvas";
-import {bindActionCreators} from "redux";
-import { REF } from '../../services/mockdata.js';
-import Tooltip    from 'material-ui/Tooltip';
-import {color} from "d3";
 
-const listItemWidth = 60;
-const listItemMargin = 5;
+const kListItemWidth = 60;
+const kListItemMargin = 5;
 
-const styles = theme => ({
-    root: {
-        width: '100%',
-        height: '100%',
-        margin: 'auto 0',
-        overflow: 'auto',
-    },
-    list : {
-        display: 'flex',
-        flexDirection: 'row',
-        flexWrap: 'nowrap',
-        justifyContent: 'left',
-        height: '100%',
-    },
-    listItem: {
-        margin: `${listItemMargin}px`,
-        width: `${listItemWidth}px`,
-        minWidth: `${listItemWidth}px`,
-        maxWidth: `${listItemWidth}px`,
-    },
-    listItemText: {
-        textAlign:'center',
-        overflow:'hidden',
-        textOverflow:'ellipsis',
-        whiteSpace:'nowrap',
-        textTransform: 'none',
-    },
-    tooltip: {
-
-    },
-    tooltipStr: {
-
-    },
-    tooltipDetail: {
-        fontStyle: 'italic'
-    }
-});
 
 /**
- * This class renders a list variable in the Canvas.
+ * This smart component renders an sequence variable (tuple, list, set).
  */
 class ListViewer extends Component {
+
+    /** Prop expected types object. */
+    static propTypes = {
+        classes:    PropTypes.object.isRequired,
+        symbolId:   PropTypes.string.isRequired,
+        viewerId:   PropTypes.number.isRequired,
+        str:        PropTypes.string.isRequired,
+        payload:    PropTypes.object.isRequired,
+    };
+
+    /** Constructor. */
     constructor(props) {
         super(props);
         this.state = {
@@ -99,17 +76,23 @@ class ListViewer extends Component {
         });
     }
 
+    /**
+     * Renders the list, with each item being a fixed-width button. When clicked, the button opens the viewer, if
+     * the clicked entry is a non-primitive.
+     */
     render() {
         const { classes, payload, symbolTable, addViewerToCanvas } = this.props;
         const { contents } = payload;
         const { hover } = this.state;
         let listItems = this.buildListComponents(classes, contents, symbolTable, addViewerToCanvas);
-        const contentWidth = listItems.length * (listItemWidth + listItemMargin * 2);
-        const listOffset = this.rootElem ? Math.max(0, (this.rootElem.offsetWidth - contentWidth) / 2) : 0;
+        // const contentWidth = listItems.length * (kListItemWidth + kListItemMargin * 2);
+        // const listOffset = this.rootElem ? Math.max(0, (this.rootElem.offsetWidth - contentWidth) / 2) : 0;
         return (
-            <div className={classes.root} ref={rootElem => {this.rootElem = rootElem}}>
-                <div className={classes.list} style={{marginLeft: listOffset}}>
-                    {listItems}
+            <div className={classes.container} >
+                <div className={classes.listBox}>
+                    <div className={classes.list}>
+                        {listItems}
+                    </div>
                 </div>
                 <div className={classes.tooltip}>
                     <span className={classes.tooltipStr}>{hover ? hover : '-'}</span>
@@ -119,18 +102,70 @@ class ListViewer extends Component {
     }
 }
 
+
+// To inject styles into component
+// -------------------------------
+
+/** CSS-in-JS styling object. */
+const styles = theme => ({
+    container: {
+        width: '100%',
+        margin: 'auto',  // center vertically
+
+        display: 'flex',
+        flexDirection: 'column',
+    },
+    listBox: {
+        overflow: 'auto',
+        textAlign: 'center',
+        paddingTop: 16,
+        paddingBottom: 16,
+    },
+    list : {
+        display: 'inline-flex',
+        flexDirection: 'row',
+        flexWrap: 'nowrap',
+    },
+    listItem: {
+        margin: `${kListItemMargin}px`,
+        width: `${kListItemWidth}px`,
+    },
+    listItemText: {
+        textAlign:'center',
+        overflow:'hidden',
+        textOverflow:'ellipsis',
+        whiteSpace:'nowrap',
+        textTransform: 'none',
+    },
+    tooltip: {
+
+    },
+    tooltipStr: {
+
+    },
+    tooltipDetail: {
+        fontStyle: 'italic'
+    }
+});
+
+
+// To inject application state into component
+// ------------------------------------------
+
 /** Connects application state objects to component props. */
-function mapStateToProps(state, props) {
-    return {
-        symbolTable: state.program.symbolTable,  // TODO make a selector for only relevant portions of the symbol table
+function makeMapStateToProps() {  // Second argument `props` is manually set prop
+    return (state, props) => {
+        return {
+            symbolTable: state.program.symbolTable,  // TODO make a selector for only relevant portions of the symbol table
+        };
     };
 }
 
 /** Connects bound action creator functions to component props. */
 function mapDispatchToProps(dispatch) {
     return bindActionCreators({
-        addViewerToCanvas:    addViewerActionThunk,
+        addViewerToCanvas:  addViewerActionThunk,
     }, dispatch);
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(withStyles(styles)(ListViewer));
+export default connect(makeMapStateToProps, mapDispatchToProps)(withStyles(styles)(ListViewer));

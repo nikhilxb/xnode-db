@@ -227,6 +227,7 @@ class TensorViewer extends Component {
                 </XYPlot>
             );
         }
+
         return (
           <div className={classes.container}>
               {contents}
@@ -248,6 +249,7 @@ const styles = theme => ({
     container: {
         margin: 'auto',
         overflow: 'auto',
+        width: '100%',
     }
 });
 
