@@ -35,42 +35,40 @@ class ControlBar extends Component {
         return (
             <div className={classes.container}>
                 <div className={classes.controls}>
-                    <Paper className={classes.paper}>
-                        <Tooltip title="Continue">
-                            <IconButton aria-label="Continue"
-                                        onClick={() => executeDebuggerCommand('continue')}>
-                                <img src={ContinueIcon}/>
-                            </IconButton>
-                        </Tooltip>
+                    <Tooltip title="Continue">
+                        <IconButton aria-label="Continue"
+                                    onClick={() => executeDebuggerCommand('continue')}>
+                            <img src={ContinueIcon}/>
+                        </IconButton>
+                    </Tooltip>
 
-                        <Tooltip title="Step Next">
-                            <IconButton aria-label="Step Next"
-                                        onClick={() => executeDebuggerCommand('step_over')}>
-                                <img src={StepNextIcon}/>
-                            </IconButton>
-                        </Tooltip>
+                    <Tooltip title="Step Next">
+                        <IconButton aria-label="Step Next"
+                                    onClick={() => executeDebuggerCommand('step_over')}>
+                            <img src={StepNextIcon}/>
+                        </IconButton>
+                    </Tooltip>
 
-                        <Tooltip title="Step In">
-                            <IconButton aria-label="Step In"
-                                        onClick={() => executeDebuggerCommand('step_into')}>
-                                <img src={StepInIcon}/>
-                            </IconButton>
-                        </Tooltip>
+                    <Tooltip title="Step In">
+                        <IconButton aria-label="Step In"
+                                    onClick={() => executeDebuggerCommand('step_into')}>
+                            <img src={StepInIcon}/>
+                        </IconButton>
+                    </Tooltip>
 
-                        <Tooltip title="Step Out">
-                            <IconButton aria-label="Step Out"
-                                        onClick={() => executeDebuggerCommand('step_out')}>
-                               <img src={StepOutIcon}/>
-                            </IconButton>
-                        </Tooltip>
+                    <Tooltip title="Step Out">
+                        <IconButton aria-label="Step Out"
+                                    onClick={() => executeDebuggerCommand('step_out')}>
+                           <img src={StepOutIcon}/>
+                        </IconButton>
+                    </Tooltip>
 
-                        <Tooltip title="Stop">
-                            <IconButton aria-label="Stop"
-                                        onClick={() => executeDebuggerCommand('stop')}>
-                                <img src={StopIcon}/>
-                            </IconButton>
-                        </Tooltip>
-                    </Paper>
+                    <Tooltip title="Stop">
+                        <IconButton aria-label="Stop"
+                                    onClick={() => executeDebuggerCommand('stop')}>
+                            <img src={StopIcon}/>
+                        </IconButton>
+                    </Tooltip>
                 </div>
             </div>
         );

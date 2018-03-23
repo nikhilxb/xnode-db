@@ -1,4 +1,4 @@
-import { ensureSymbolDataLoadedActionThunk } from './symboltable.js';
+import { ensureSymbolDataLoadedActionThunk } from './program.js';
 
 /** Action type definitions. */
 export const VarListActions = {
@@ -46,7 +46,7 @@ function ensureVarListItemChildrenLoadedActionThunk(itemId) {
             return Promise.resolve();
         }
         let symbolId = getState().varlist.varListItems[itemId].symbolId;
-        let itemAttributes = getState().symboltable[symbolId].data.attributes;
+        let itemAttributes = getState().program.symbolTable[symbolId].data.attributes;
         return Promise.resolve().then(() => dispatch(updateVarListItemChildrenAction(itemId, itemAttributes)));
     }
 }

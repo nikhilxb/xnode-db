@@ -60,7 +60,6 @@ class Canvas extends Component {
         }
     }
 
-
     /**
      * Renders the inspector canvas and any viewers currently registered to it.
      */
@@ -124,7 +123,7 @@ const styles = theme => ({
  * ]
  */
 const viewersSelector = createSelector(
-    [(state) => state.canvas.viewerObjects, (state) => state.canvas.viewerPositions, (state) => state.symboltable],
+    [(state) => state.canvas.viewerObjects, (state) => state.canvas.viewerPositions, (state) => state.program.symbolTable],
     (viewerObjects, viewerPositions, symbolTable) => {
         return viewerPositions.map((viewerPosition) => {
             let viewerId = parseInt(viewerPosition.i);

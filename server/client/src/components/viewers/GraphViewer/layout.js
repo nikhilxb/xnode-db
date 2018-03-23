@@ -594,7 +594,7 @@ function makeGetFullGraphFromHead() {
     return createSelector(
         [
             (state, props) => props.payload.graphLoaded,
-            (state) => state.symboltable,
+            (state) => state.program.symbolTable,
             (state, props) => props.symbolId,
         ],
         (graphLoaded, symbolTable, headSymbolId) => {

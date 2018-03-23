@@ -153,10 +153,10 @@ const styles = theme => ({
 // ------------------------------------------
 
 /** Connects application state objects to component props. */
-function makeMapStateToProps(state, props) {  // Second argument `props` is manually set prop
+function makeMapStateToProps() {  // Second argument `props` is manually set prop
     return (state, props) => {
         return {
-            symbolTable:    state.symboltable,  // TODO make a selector for only relevant portions of the symbol table
+            symbolTable: state.program.symbolTable,  // TODO make a selector for only relevant portions of the symbol table
         };
     };
 }

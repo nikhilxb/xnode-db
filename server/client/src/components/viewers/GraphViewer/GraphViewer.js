@@ -6,7 +6,7 @@ import { withStyles } from 'material-ui/styles';
 import { createSelector } from "reselect";
 import ELK from 'elkjs';
 
-import { ensureGraphLoadedActionThunk } from "../../../actions/symboltable";
+import { ensureGraphLoadedActionThunk } from "../../../actions/program";
 import { setInViewerPayloadAction, addViewerActionThunk } from '../../../actions/canvas';
 import { makeGetElkGraphFromHead, layoutGraph } from "./layout";
 
@@ -578,7 +578,7 @@ function makeMapStateToProps() {
     return (state, props) => {
         return {
             graphSkeleton: getGraphFromHead(state, props),
-            symbolTable: state.symboltable,  // TODO be smarter about how much of the symbol table we need
+            symbolTable: state.program.symbolTable,  // TODO be smarter about how much of the symbol table we need
         }
     }
 }
