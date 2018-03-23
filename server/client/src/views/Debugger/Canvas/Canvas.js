@@ -61,10 +61,6 @@ class Canvas extends Component {
     }
 
 
-
-
-
-
     /**
      * Renders the inspector canvas and any viewers currently registered to it.
      */
@@ -78,7 +74,7 @@ class Canvas extends Component {
                                  type={viewer.type}
                                  name={viewer.name}
                                  removeViewerFn={removeViewerFn}>
-                        {this.createViewerComponent(viewer, viewer)}
+                        {this.createViewerComponent(viewer)}
                     </ViewerFrame>
                 </div>
             )

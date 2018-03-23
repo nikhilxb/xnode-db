@@ -62,7 +62,12 @@ const theme = createMuiTheme({
         monospace: {
             fontFamily: '"Roboto Mono", "Courier", monospace',
         }
-    }
+    },
+    // transitions: {
+    //     duration: {
+    //         short: 1000,
+    //     }
+    // }
 });
 
 /** CSS-in-JS styling object. */

@@ -38,8 +38,10 @@ export default function rootReducer(state = initialState, action) {
     return state;  // No effect by default
 };
 
-const DEFAULT_VIEWER_WIDTH = 2;
-const DEFAULT_VIEWER_HEIGHT = 4;
+const DEFAULT_W = 4;
+const DEFAULT_H = 6;
+const DEFAULT_MIN_W = 2;
+const DEFAULT_MIN_H = 2;
 
 /** Reducer for adding a viewer to `canvas`. Assumes `data` for symbol is already loaded.  */
 function addViewerReducer(state, action) {
@@ -53,8 +55,10 @@ function addViewerReducer(state, action) {
             i: `${state.nextViewerId}`,
             x: 0,
             y: Infinity,
-            w: DEFAULT_VIEWER_WIDTH,
-            h: DEFAULT_VIEWER_HEIGHT,
+            w: DEFAULT_W,
+            h: DEFAULT_H,
+            minW: DEFAULT_MIN_W,
+            minH: DEFAULT_MIN_H,
         }]));
 }
 

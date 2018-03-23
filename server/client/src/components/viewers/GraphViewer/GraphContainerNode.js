@@ -37,6 +37,7 @@ class GraphContainerNode extends Component {
     };
 
     render() {
+
         const { classes, width, height, x, y } = this.props;
         const { toggleExpanded, isExpanded, isTemporal } = this.props;
         const { symbolId, payload, selectedIds, hoverIds, setSelected, setHover } = this.props;
@@ -47,6 +48,7 @@ class GraphContainerNode extends Component {
                 <rect width={width} height={height} x={x} y={y}
                       className={classNames({
                           [classes.normal]:    true,
+                          [classes.smooth]:    isExpanded,
                           [classes.collapsed]: !isExpanded,
                           [classes.hover]:     hoverIds.includes(symbolId),
                           [classes.selected]:  selectedIds.includes(symbolId),
@@ -72,6 +74,12 @@ class GraphContainerNode extends Component {
 
 /** CSS-in-JS styling object. */
 const styles = theme => ({
+    smooth: {
+        transition: [
+            theme.transitions.create(['width', 'height', 'x', 'y'], { duration: theme.transitions.duration.short }),
+            theme.transitions.create(['fill-opacity'], { duration: theme.transitions.duration.shortest, delay: theme.transitions.duration.short })
+        ].join(", "),
+    },
     normal: {
         fill: ColorLightBlue[200],
         fillOpacity: 0.2,

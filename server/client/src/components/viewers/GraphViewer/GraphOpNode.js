@@ -42,6 +42,7 @@ class GraphOpNode extends Component {
                 <rect x={x} y={y} width={width} height={height}
                       className={classNames({
                           [classes.normal]:   true,
+                          [classes.smooth]:   true,
                           [classes.hover]:    hoverIds.includes(symbolId),
                           [classes.selected]: selectedIds.includes(symbolId),
                       })}
@@ -64,6 +65,12 @@ class GraphOpNode extends Component {
 
 /** CSS-in-JS styling object. */
 const styles = theme => ({
+    smooth: {
+        // transition: [
+        //     theme.transitions.create(['width', 'height', 'x', 'y'], { duration: theme.transitions.duration.short }),
+        //     theme.transitions.create(['fill-opacity'], { duration: theme.transitions.duration.shortest, delay: theme.transitions.duration.short })
+        // ].join(", "),
+    },
     normal: {
         fill: ColorPink[500],
         stroke: 'transparent',

@@ -62,7 +62,10 @@ class GraphDataEdge extends Component {
         return (
             <g>
                 <path d={pathString}
-                      className={classes.hotspot}
+                      className={classNames({
+                          [classes.hotspot]: true,
+                          [classes.smooth]:  true,
+                      })}
                       onClick={() => setSelected()}
                       onMouseEnter={() => setHover(true)}
                       onMouseLeave={() => setHover(false)} />
@@ -71,6 +74,7 @@ class GraphDataEdge extends Component {
                       pointerEvents="none"
                       className={classNames({
                           [classes.edge]:           true,
+                          [classes.smooth]:  true,
                           [classes.temporal]:       isTemporal && !isSelected,
                           [classes.dimmed]:         isOthersActive,
                           [classes.edgeHovered]:    isHovered,
@@ -81,6 +85,7 @@ class GraphDataEdge extends Component {
                       pointerEvents="none"
                       className={classNames({
                           [classes.label]:          true,
+                          [classes.smooth]:  true,
                           [classes.dimmed]:         isOthersActive,
                           [classes.labelHovered]:   isHovered,
                           [classes.labelSelected]:  isSelected,
@@ -99,6 +104,11 @@ class GraphDataEdge extends Component {
 
 /** CSS-in-JS styling object. */
 const styles = theme => ({
+    smooth: {
+        // transition: [
+        //     theme.transitions.create(['width', 'height', 'x', 'y'], { duration: theme.transitions.duration.short }),
+        // ].join(", "),
+    },
     hotspot: {
         fill: 'none',
         stroke: 'transparent',
