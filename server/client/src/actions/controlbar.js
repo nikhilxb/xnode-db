@@ -7,7 +7,7 @@ function executeCommandAndFetchNewNamespace(commandName) {
 
 export function executeDebuggerCommand(commandName) {
     return (dispatch, getState) => {
-        dispatch(updateNamespaceAction('', {}));
+        dispatch(updateNamespaceAction(null, {}));
         dispatch(resetVarListAction({}));
         // TODO clear the canvas
         executeCommandAndFetchNewNamespace(commandName).then(
