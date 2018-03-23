@@ -13,7 +13,7 @@ import Divider from 'material-ui/Divider';
 import ExpandMoreIcon from 'material-ui-icons/ExpandMore';
 
 import VarListItem from './VarListItem.js';
-import ContextWindow from './StackFrameWindow.js';
+import StackFrameWindow from './StackFrameWindow.js';
 import blueGrey from 'material-ui/colors/blueGrey';
 
 
@@ -46,7 +46,7 @@ class VarList extends Component {
 
         return (
             <div className={classes.root} >
-                <ContextWindow />
+                <StackFrameWindow />
                 <Divider/>
                 <List className={classes.list} dense>
                     {listItems}

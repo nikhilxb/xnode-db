@@ -11,9 +11,12 @@ import { REF } from '../../services/mockdata.js';
 
 import Button from 'material-ui/Button';
 import Typography from 'material-ui/Typography';
+import ColorLightBlue from "material-ui/colors/lightBlue";
+import ColorBlue from "material-ui/colors/blue";
 
-const kListItemWidth = 60;
-const kListItemMargin = 5;
+const kListItemWidth  = 80;
+const kListItemHeight = 40;
+const kListItemMargin = 2;
 
 
 /**
@@ -35,13 +38,20 @@ class ListViewer extends Component {
         super(props);
         this.state = {
             hover: null,
+            selected: null,
         }
     }
 
     buildListComponents(classes, contents, symbolTable, addViewerToCanvas) {
+        const { hover, selected } = this.state;
         return contents.map((ref, i) => {
             let str = ref;
-            let onClick = () => {};
+            let onClick = () => {
+                this.setState({
+                    selected: i,
+                })
+            };
+            let onDoubleClick = () => {};
             if (ref === null) {
                 str = 'None';
             }
@@ -53,25 +63,25 @@ class ListViewer extends Component {
             }
             else if (ref.startsWith(REF)) {
                 str = symbolTable[ref].str;
-                onClick = () => addViewerToCanvas(ref);
+                onDoubleClick = () => addViewerToCanvas(ref);
             }
             else {
                 str = `"${str}"`;
             }
+
             return (
-                <Button
-                    variant={'raised'}
-                    className={classes.listItem}
-                    onClick={onClick}
-                    onMouseEnter={() => this.setState({hover: str})}
-                    onMouseLeave={() => this.setState({hover: null})}
-                    key={i}>
-                    <Typography
-                        component="span"
-                        className={classes.listItemText}>
-                        {str}
-                    </Typography>
-                </Button>
+                <div className={classNames({
+                    [classes.listItem]: true,
+                    [classes.hover]: hover === i,
+                    [classes.selected]: selected === i,
+                })}
+                     onClick={onClick}
+                     onDoubleClick={onDoubleClick}
+                     onMouseEnter={() => this.setState({hover: i})}
+                     onMouseLeave={() => this.setState({hover: null})}
+                     key={i}>
+                    <Typography className={classes.listItemText}>{str}</Typography>
+                </div>
             );
         });
     }
@@ -85,17 +95,12 @@ class ListViewer extends Component {
         const { contents } = payload;
         const { hover } = this.state;
         let listItems = this.buildListComponents(classes, contents, symbolTable, addViewerToCanvas);
-        // const contentWidth = listItems.length * (kListItemWidth + kListItemMargin * 2);
-        // const listOffset = this.rootElem ? Math.max(0, (this.rootElem.offsetWidth - contentWidth) / 2) : 0;
         return (
             <div className={classes.container} >
                 <div className={classes.listBox}>
                     <div className={classes.list}>
                         {listItems}
                     </div>
-                </div>
-                <div className={classes.tooltip}>
-                    <span className={classes.tooltipStr}>{hover ? hover : '-'}</span>
                 </div>
             </div>
         );
@@ -127,15 +132,31 @@ const styles = theme => ({
         flexWrap: 'nowrap',
     },
     listItem: {
-        margin: `${kListItemMargin}px`,
-        width: `${kListItemWidth}px`,
+        margin: kListItemMargin,
+        width:  kListItemWidth,
+        height: kListItemHeight,
+        background: ColorLightBlue[50],
+        borderColor: 'transparent',
+        borderStyle: 'solid',
+        borderRadius: 4,
+
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        userSelect: 'none',
+    },
+    hover: {
+        borderColor: ColorLightBlue[400],
+    },
+    selected: {
+        borderColor: ColorBlue[600],
     },
     listItemText: {
-        textAlign:'center',
-        overflow:'hidden',
-        textOverflow:'ellipsis',
-        whiteSpace:'nowrap',
-        textTransform: 'none',
+        textAlign:      'center',
+        overflow:       'hidden',
+        textOverflow:   'ellipsis',
+        whiteSpace:     'nowrap',
+        textTransform:  'none',
     },
     tooltip: {
 

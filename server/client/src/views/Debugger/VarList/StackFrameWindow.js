@@ -7,6 +7,9 @@ import { bindActionCreators } from 'redux';
 import List from 'material-ui/List';
 import Collapse from 'material-ui/transitions/Collapse';
 import Typography from 'material-ui/Typography';
+import ColorGreen from 'material-ui/colors/green';
+import ColorYellow from 'material-ui/colors/amber';
+import ColorRed from 'material-ui/colors/red';
 
 import ControlBar from '../ControlBar';
 
@@ -60,23 +63,23 @@ class StackFrameWindow extends Component {
         let additionalFrames = null;
         if (stackFrame) {
             statusComponent = (
-                <Typography variant="subheading" className={classes.waiting}>
-                    {`Waiting at breakpoint`}
+                <Typography variant="body" className={classes.waiting}>
+                    {'Paused at breakpoint'}
                 </Typography>
             );
             topFrame = this.buildFrameComponent(classes, stackFrame[0], 0);
-            additionalFrames = stackFrame.filter((f, i) => i > 0).map((frame, i) => this.buildFrameComponent(classes, frame, i + 1));
+            additionalFrames = stackFrame.slice(1).map((frame, i) => this.buildFrameComponent(classes, frame, i + 1));
         }
         else if (programState === 'running'){
             statusComponent = (
-                <Typography variant="subheading" className={classes.running}>
-                    {'Running...'}
+                <Typography variant="body" className={classes.running}>
+                    {'Running'}
                 </Typography>
             );
         }
         else {
             statusComponent = (
-                <Typography variant="subheading" className={classes.disconnected}>
+                <Typography variant="body" className={classes.disconnected}>
                     {'Disconnected'}
                 </Typography>
             );
@@ -88,7 +91,7 @@ class StackFrameWindow extends Component {
                 {statusComponent}
                 {topFrame}
                 <Collapse in={true} timeout={50}>
-                    <List classes={{dense: classes.list}} dense>
+                    <List classes={{dense: classes.list}} dense disablePadding>
                         {additionalFrames}
                     </List>
                 </Collapse>
@@ -119,22 +122,20 @@ const styles = theme => ({
         textAlign: 'center',
     },
     waiting: {
-        backgroundColor: '#4d9b26',
-        color: 'white',
-        padding: '2px',
-        marginBottom: '2px',
+        backgroundColor: ColorGreen[200],
+        color: 'black',
+        padding: 8,
+        marginBottom: 8,
     },
     running: {
-        backgroundColor: '#ede921',
-        color: 'white',
-        padding: '2px',
-        marginBottom: '2px',
+        backgroundColor: ColorYellow[200],
+        color: 'black',
+        padding: 8,
     },
     disconnected: {
-        backgroundColor: '#b7243d',
-        color: 'white',
-        padding: '2px',
-        marginBottom: '2px',
+        backgroundColor: ColorRed[200],
+        color: 'black',
+        padding: 8,
     },
     monospace: {
         fontFamily: theme.typography.monospace.fontFamily,
