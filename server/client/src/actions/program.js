@@ -29,9 +29,10 @@ function fetchNamespace() {
 }
 
 /** Action which resets the symbol table to contain a new namespace. */
-export function updateNamespaceAction(stackFrame, namespace) {
+export function updateNamespaceAction(programState, stackFrame, namespace) {
     return {
         type: SymbolTableActions.UPDATE_NAMESPACE,
+        programState,
         stackFrame,
         namespace,
     };
@@ -130,10 +131,15 @@ export function updateNamespaceActionThunk() {
         return fetchNamespace().then(
             resp => resp.json().then(
                 ({ context, namespace }) => {
-                    dispatch(updateNamespaceAction(context, namespace));
+                    dispatch(updateNamespaceAction('waiting', context, namespace));
                     dispatch(resetVarListAction(namespace));
                 }
-            ),
+            )
+        ).catch(
+            error => {
+                // TODO currently end-of-program behavior is addressed here and in controlbar.js. Find a way to unify
+                dispatch(updateNamespaceAction('disconnected', null, {}))
+            }
         );
     }
 }

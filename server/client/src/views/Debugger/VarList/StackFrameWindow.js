@@ -19,6 +19,8 @@ class StackFrameWindow extends Component {
     /** Prop expected types object. */
     static propTypes = {
         classes: PropTypes.object.isRequired,
+
+        programState: PropTypes.string.isRequired,
         stackFrame: PropTypes.array,
     };
 
@@ -49,9 +51,10 @@ class StackFrameWindow extends Component {
      * @param classes: the CSS classes to be used.
      * @param stackFrame: a list of frame objects; typically pulled directly from the Redux store, at
      *      `program.stackFrame`.
+     * @param programState: a string representing whether the Python program is "running", "waiting", or "disconnected."
      * @returns a component to be rendered above the variable list.
      */
-    buildStackComponent(classes, stackFrame) {
+    buildStackComponent(classes, stackFrame, programState) {
         let statusComponent = null;
         let topFrame = null;
         let additionalFrames = null;
@@ -64,10 +67,17 @@ class StackFrameWindow extends Component {
             topFrame = this.buildFrameComponent(classes, stackFrame[0], 0);
             additionalFrames = stackFrame.filter((f, i) => i > 0).map((frame, i) => this.buildFrameComponent(classes, frame, i + 1));
         }
+        else if (programState === 'running'){
+            statusComponent = (
+                <Typography variant="subheading" className={classes.running}>
+                    {'Running...'}
+                </Typography>
+            );
+        }
         else {
             statusComponent = (
-                <Typography variant="subheading" className={classes.executing}>
-                    {'Executing...'}
+                <Typography variant="subheading" className={classes.disconnected}>
+                    {'Disconnected'}
                 </Typography>
             );
         }
@@ -82,7 +92,7 @@ class StackFrameWindow extends Component {
                         {additionalFrames}
                     </List>
                 </Collapse>
-                <ControlBar />
+                {programState === 'waiting' ? <ControlBar /> : null}
             </div>
         );
     }
@@ -94,8 +104,8 @@ class StackFrameWindow extends Component {
      * frame strings.
      */
     render() {
-        const {classes, stackFrame} = this.props;
-        return this.buildStackComponent(classes, stackFrame);
+        const { classes, stackFrame, programState } = this.props;
+        return this.buildStackComponent(classes, stackFrame, programState);
     }
 }
 
@@ -114,8 +124,14 @@ const styles = theme => ({
         padding: '2px',
         marginBottom: '2px',
     },
-    executing: {
+    running: {
         backgroundColor: '#ede921',
+        color: 'white',
+        padding: '2px',
+        marginBottom: '2px',
+    },
+    disconnected: {
+        backgroundColor: '#b7243d',
         color: 'white',
         padding: '2px',
         marginBottom: '2px',
@@ -135,6 +151,7 @@ const styles = theme => ({
 /** Connects application state objects to component props. */
 function mapStateToProps(state) {
     return {
+        programState: state.program.programState,
         stackFrame: state.program.stackFrame,
     };
 }

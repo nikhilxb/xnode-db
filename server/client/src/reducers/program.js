@@ -20,6 +20,7 @@ import { SymbolTableActions } from '../actions/program';
  *         returningTo: "myFn2" or null,
  *         line: "return 10",
  *     }, ...] or null,
+ *     state: "waiting" or "running" or "disconnected",
  * }
  */
 
@@ -27,6 +28,7 @@ import { SymbolTableActions } from '../actions/program';
 const initialState = Immutable({
     symbolTable: {},
     context: null,
+    programState: 'disconnected',
 });
 
 /** TODO: Short description of root reducer for state slice. */
@@ -50,10 +52,11 @@ function ensureSymbolDataLoadedReducer(state, action) {
 /** Given a new namespace dict, reset the entire symbol table to only contain that namespace.
     TODO be smarter with updating; don't wipe data that you don't need to */
 function updateNamespaceReducer(state, action) {
-    const { stackFrame, namespace } = action;
+    const { programState, stackFrame, namespace } = action;
     return Immutable({
         symbolTable: namespace,
         stackFrame,
+        programState,
     });
 }
 

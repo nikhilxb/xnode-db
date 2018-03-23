@@ -7,19 +7,20 @@ function executeCommandAndFetchNewNamespace(commandName) {
 
 export function executeDebuggerCommand(commandName) {
     return (dispatch, getState) => {
-        dispatch(updateNamespaceAction(null, {}));
+        dispatch(updateNamespaceAction('running', null, {}));
         dispatch(resetVarListAction({}));
         // TODO clear the canvas
         executeCommandAndFetchNewNamespace(commandName).then(
             resp => resp.json().then(
                 ({context, namespace}) => {
-                    dispatch(updateNamespaceAction(context, namespace));
+                    dispatch(updateNamespaceAction('waiting', context, namespace));
                     dispatch(resetVarListAction(namespace));
-                },
-                error => {
-                    // TODO handle end-of-program here
                 }
             )
+        ).catch(
+            error => {
+                dispatch(updateNamespaceAction('disconnected', null, {}))
+            }
         )
     };
 }
