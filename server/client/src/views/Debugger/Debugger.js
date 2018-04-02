@@ -3,15 +3,17 @@ import PropTypes              from 'prop-types';
 import { connect }            from 'react-redux';
 import { bindActionCreators } from 'redux';
 
-import { withStyles }   from 'material-ui/styles';
-import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
-import createMuiTheme   from 'material-ui/styles/createMuiTheme';
-import ColorGrey        from 'material-ui/colors/grey';
-import '../../../node_modules/react-vis/dist/style.css';  // this is required for `react-vis` to function properly
+import { withStyles }       from 'material-ui/styles';
+import MuiThemeProvider     from 'material-ui/styles/MuiThemeProvider';
+import createMuiTheme       from 'material-ui/styles/createMuiTheme';
+import ColorGrey            from 'material-ui/colors/grey';
+import Divider              from 'material-ui/Divider';
 
-import VarList          from './VarList';
-import Canvas           from './Canvas';
-import ControlBar       from './ControlBar';
+import '../../../node_modules/react-vis/dist/style.css';  // required for `react-vis` (data visualization library)
+
+import VarList              from './VarList';
+import Canvas               from './Canvas';
+import ProgramStatePanel    from './DebugStatePanel';
 
 
 /**
@@ -25,8 +27,9 @@ class Debugger extends Component {
     };
 
     /**
-     * Renders the debugger as a two-column layout. The left column displays the variable list; the right column
-     * displays the control buttons (step, continue, etc.) and canvas where viewers are displayed.
+     * Renders the debugger as a two-column layout. The left column displays the variable list, the control buttons,
+     * and the debugged program's execution state . The right column displays the canvas used for inspecting data
+     * structures visually.
      */
     render() {
         const { classes } = this.props;
@@ -35,7 +38,13 @@ class Debugger extends Component {
             <MuiThemeProvider theme={theme}>
                 <div className={classes.mainContainer}>
                     <div className={classes.leftContainer}>
-                        <VarList />
+                        <div className={classes.debugStateContainer}>
+                            <ProgramStatePanel/>
+                            <Divider/>
+                        </div>
+                        <div className={classes.varListContainer}>
+                            <VarList/>
+                        </div>
                     </div>
                     <div className={classes.rightContainer}>
                         <Canvas />
@@ -62,11 +71,6 @@ const theme = createMuiTheme({
             fontFamily: '"Roboto Mono", "Courier", monospace',
         }
     },
-    // transitions: {
-    //     duration: {
-    //         short: 1000,
-    //     }
-    // }
 });
 
 /** CSS-in-JS styling object. */
@@ -81,15 +85,27 @@ const styles = theme => ({
     leftContainer: {
         maxWidth: '350px',
         width: '100%',
+        height: '100%',
+
+        display: 'flex',
+        flexDirection: 'column',
     },
     rightContainer: {
         backgroundColor: ColorGrey[100],
         textAlign: 'center',
         flexGrow: 1,
+
         display: 'flex',
         flexDirection: 'column',
+    },
+    debugStateContainer: {
+        flex: 'none',
+    },
+    varListContainer: {
+        flex: 1,
+        overflowY: 'auto',
+        overflowX: 'hidden',
     }
-
 });
 
 

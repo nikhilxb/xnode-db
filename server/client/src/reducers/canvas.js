@@ -38,6 +38,7 @@ export default function rootReducer(state = initialState, action) {
     return state;  // No effect by default
 };
 
+/* Constants for default React Grid Layout element sizes. */
 const DEFAULT_W = 4;
 const DEFAULT_H = 6;
 const DEFAULT_MIN_W = 2;

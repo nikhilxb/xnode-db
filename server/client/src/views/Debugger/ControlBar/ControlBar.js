@@ -5,7 +5,6 @@ import { executeDebuggerCommand } from '../../../actions/controlbar';
 import { connect }            from 'react-redux';
 import { bindActionCreators } from 'redux';
 
-import Paper      from 'material-ui/Paper';
 import Tooltip    from 'material-ui/Tooltip';
 import IconButton from 'material-ui/IconButton';
 

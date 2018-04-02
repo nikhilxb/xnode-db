@@ -20,8 +20,8 @@ import { addViewerActionThunk, removeViewerAction, updateLayoutAction } from "..
 const FlexibleGridLayout = WidthProvider(GridLayout);
 
 /**
- * This smart component serves as an interactive workspace for inspecting variable viewers. It displays in sequence
- * a list of `[*]Viewer` objects (each instantiated within a `Frame`).
+ * This smart component serves as an interactive workspace for inspecting variable viewers. It displays a collection
+ * of `ViewerFrame` objects using React Grid Layout.
  */
 class Canvas extends Component {
 

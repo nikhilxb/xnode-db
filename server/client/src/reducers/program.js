@@ -31,7 +31,7 @@ const initialState = Immutable({
     programState: 'disconnected',
 });
 
-/** TODO: Short description of root reducer for state slice. */
+/** Root reducer for state related to the paused program's state and symbols that have been loaded. */
 export default function rootReducer(state = initialState, action) {
     const { type } = action;
     switch(type) {
@@ -57,20 +57,5 @@ function updateNamespaceReducer(state, action) {
         symbolTable: namespace,
         stackFrame,
         programState,
-    });
-}
-
-/** TODO: Reducer for synchronous action. */
-function syncReducer(state, action) {
-    return state;
-}
-
-/** TODO: Reducer for asynchronous action. */
-function asyncReducer(state, action) {
-    return handle(state, action, {
-        start:   state => ({...state}),  // of form `state ==> (state)`
-        finish:  state => ({...state}),
-        failure: state => ({...state}),
-        success: state => ({...state}),
     });
 }

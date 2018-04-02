@@ -5,21 +5,17 @@ import { connect }            from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { updateNamespaceActionThunk } from '../../../actions/program.js';
 
-import ExpansionPanel, { ExpansionPanelSummary, ExpansionPanelDetails, } from 'material-ui/ExpansionPanel';
-import List, {ListItem, ListItemText, ListSubheader} from 'material-ui/List';
-import Typography from 'material-ui/Typography';
-import Paper from 'material-ui/Paper';
-import Divider from 'material-ui/Divider';
-import ExpandMoreIcon from 'material-ui-icons/ExpandMore';
+import List from 'material-ui/List';
 
-import VarListItem from './VarListItem.js';
-import StackFrameWindow from './StackFrameWindow.js';
-import blueGrey from 'material-ui/colors/blueGrey';
-
+import VarListItem from './VarListItem';
 
 /**
- * This smart component displays a list of all variables in the debugged program's namespace when execution is paused
- * (e.g. at a breakpoint). The list is recursively nested and lazy-loaded, so only on expansion will data requested.
+ * This smart component displays a list of variables and their attributes. The list is recursively nested and
+ * lazy-loaded, so the complete data is only requested for a variable when it is expanded. Before then, just a bit of
+ * metadata (i.e. a "shell") is needed for proper display.
+ *
+ * The list may be very tall (has many elements), so users may want to wrap this component in a `div` with overflow
+ * properties.
  */
 class VarList extends Component {
 
@@ -45,13 +41,9 @@ class VarList extends Component {
         });
 
         return (
-            <div className={classes.root} >
-                <StackFrameWindow />
-                <Divider/>
-                <List className={classes.list} dense>
-                    {listItems}
-                </List>
-            </div>
+            <List className={classes.list} dense>
+                {listItems}
+            </List>
         );
     }
 }
@@ -62,15 +54,8 @@ class VarList extends Component {
 
 /** CSS-in-JS styling object. */
 const styles = theme => ({
-    root: {
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-    },
     list: {
         backgroundColor: theme.palette.background.paper,
-        overflowY: 'auto',
-        overflowX: 'hidden',
         paddingTop: 0,
         paddingBottom: 0,
     }

@@ -1,5 +1,5 @@
 import { combineReducers } from 'redux-seamless-immutable';
-import programReducer  from './program.js';
+import programReducer      from './program.js';
 import canvasReducer       from './canvas.js';
 import varListReducer      from './varlist.js';
 

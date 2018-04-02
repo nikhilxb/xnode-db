@@ -11,13 +11,13 @@ import ColorGreen from 'material-ui/colors/green';
 import ColorYellow from 'material-ui/colors/amber';
 import ColorRed from 'material-ui/colors/red';
 
-import ControlBar from '../ControlBar';
+import ControlBar from '../ControlBar/index';
 
 
 /**
  * This smart component displays information about the Python program's current execution state.
  */
-class StackFrameWindow extends Component {
+class DebugStatePanel extends Component {
 
     /** Prop expected types object. */
     static propTypes = {
@@ -164,4 +164,4 @@ function mapDispatchToProps(dispatch) {
     }, dispatch);
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(withStyles(styles)(StackFrameWindow));
+export default connect(mapStateToProps, mapDispatchToProps)(withStyles(styles)(DebugStatePanel));
