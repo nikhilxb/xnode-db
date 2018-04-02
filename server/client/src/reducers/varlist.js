@@ -3,6 +3,16 @@ import { VarListActions } from '../actions/varlist';
 
 import { REF } from '../services/mockdata.js';
 
+/**
+ * State slice structure for `program`: {
+ *     topLevelItemIds: [..],
+ *     varListItems: {},
+ *     nextVarListItemId: 0,
+ * }
+ *
+ * TODO: What kind of data is in each of these structures?
+ */
+
 /** Root reducer's initial state slice. */
 const initialState = Immutable({
     topLevelItemIds: [],
@@ -10,7 +20,7 @@ const initialState = Immutable({
     nextVarListItemId: 0,
 });
 
-/** TODO: Short description of root reducer for state slice. */
+/** Root reducer for updating the state for varlist for the current paused program's namespace. */
 export default function rootReducer(state = initialState, action) {
     const { type } = action;
     switch(type) {
