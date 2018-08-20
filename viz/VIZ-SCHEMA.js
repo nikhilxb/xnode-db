@@ -187,11 +187,13 @@
 	"data": {
 		"viewer": {
             "function": "xnode$98750897202" // reference to function which performed the operation represented by graphop
-			"args": [None, "xnode$02395897342"] // list of arguments to the op, containing only None or references to graphdata
+			"args": [["arg1"], ["arg2", "xnode$02395897342"]] // list of arguments to the op, containing only None or references to graphdata
 			"kwargs": {
 				"dim": "xnode$3032099235" // keyword : graphdata ref pairs for each keyword argument input; assumed None for any keys not present
 			},
-			"container":"xnode$98750897202"
+			"container":"xnode$98750897202",
+			"functionname": "funky_the_function",
+			"outputs": ["xnode$23509321590"] // list of graphdata objects output by the op
 		},
 		"attributes": {
 			// every non function attribute
@@ -205,7 +207,9 @@
 		"viewer": {
             "contents": ["xnode$98750", "xnode$97750"], // list of graphop.graphcontainer grouped by this container.
             "container": "xnode$3032099235",
-            "temporal": true
+            "temporalstep": 1,  // -1 for abstractive containers, >=0 for temporal
+            "height": 5,
+			"functionname": "funky_the_function",
 		},
 		"attributes": {
 			// every non function attribute
