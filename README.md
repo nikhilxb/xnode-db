@@ -13,9 +13,7 @@ viable product that nevertheless extends the opportunity to test:
 
 ![Xnode DB Screenshot](./screenshot.png)
 
-`pip install -r requirements.txt`
-
-# Usage
+## Usage
 1. Clone the repo and install all dependencies.
     - Ensure Python 3.6 and PyTorch are installed.
     - Run `pip install -r requirements.txt`.
