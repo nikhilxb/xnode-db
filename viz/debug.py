@@ -2,6 +2,7 @@ import atexit
 import bdb
 import socket
 import sys
+import os
 from subprocess import Popen
 from socketIO_client import SocketIO
 
@@ -78,7 +79,7 @@ class VisualDebuggerServerHandle:
     LOCALHOST = 'localhost'
 
     # TODO make this deployment-ready
-    SERVER_PROGRAM_PATH = r'..\server\server.js'
+    SERVER_PROGRAM_PATH = r'./server/server.js'
 
     def __init__(self, program_port_range, client_port_range):
         """Creates a new server process with the specified ports.
@@ -128,7 +129,6 @@ class VisualDebugger(bdb.Bdb):
     DBG_STEP_OUT = 'dbg-step-out'                   # continue normal program flow until the current function exits
     DBG_LOAD_SYMBOL = 'dbg-load-symbol'             # return the data object for a given symbol
     DBG_GET_NAMESPACE = 'dbg-get-namespace'         # return the shells of all Python objects in the current namespace
-    DBG_GET_CONTEXT = 'dbg-get-context'             # return the context object defining the current program state
 
     def __init__(self, program_port_range=(3000, 5000), client_port_range=(8000, 9000)):
         """Instantiates the debugging server if not already running, connects to it via a socket, and prepares for
@@ -142,9 +142,8 @@ class VisualDebugger(bdb.Bdb):
         if self._server is None:
             VisualDebugger._server = VisualDebuggerServerHandle(program_port_range, client_port_range)
 
-        # TODO un-hardcode this string
         # This line will hang until the socket connection is established.
-        self.socket = SingleRequestSocketIO(self._server.LOCAL_ADDRESS, self._server.program_port)
+        self.socket = SingleRequestSocketIO(self._server.LOCALHOST, self._server.program_port)
         self._attach_socket_callbacks()
 
         # Instance variables.
@@ -191,7 +190,6 @@ class VisualDebugger(bdb.Bdb):
         self.socket.on(self.DBG_CONTINUE, self.callback_continue)
         self.socket.on(self.DBG_LOAD_SYMBOL, self.callback_load_symbol)
         self.socket.on(self.DBG_GET_NAMESPACE, self.callback_get_namespace_shells)
-        self.socket.on(self.DBG_GET_CONTEXT, self.callback_get_context)
 
     def forget_frame(self):
         """Wipes the debugger's knowledge of the current frame and stack.
@@ -270,6 +268,7 @@ class VisualDebugger(bdb.Bdb):
         self.set_continue()
         self.next_breakpoint_callbacks.append(self._server_command_callback_wrapper(callback_fn))
 
+    # TODO update documentation to reflex callback change
     def _server_command_callback_wrapper(self, callback_fn):
         """Wraps a callback function which expects a debugger context and a namespace as a 0-argument function.
 
@@ -281,9 +280,14 @@ class VisualDebugger(bdb.Bdb):
         generality), so we create a 0-argument version of the runtime update callback here.
         """
         def _callback():
-            context = self._get_context()
-            namespace = self._get_namespace_shells()
-            callback_fn(context, namespace)
+            callback_fn(
+                self.viz_engine.to_json(
+                    {
+                        'context': self._get_context(),
+                        'namespace': self._get_namespace_shells()
+                    }
+                )
+            )
         return _callback
 
     # ==================================================================================================================
@@ -296,25 +300,22 @@ class VisualDebugger(bdb.Bdb):
         """Gets the lightweight shell representations of all symbols in the program's current namespace.
 
         The server might at any time request the shells of all objects in the namespace (for example, when a new
-        client connects, it would make this request). This function is called when such a request is made.
+        client connects, it would make this request). This function is called when such a request is made,
+        and returns those shells as well as a string representing the program's current context (see `_get_context()`).
 
         Args:
-            callback_fn (fn): A (str) => None function from the server which expects the JSON string representation
-                of the dict mapping symbol IDs to shells for each symbol in the namespace.
+            callback_fn (fn): A (str, str) => None function from the server which expects a context string for the
+                program and the JSON string representation of the dict mapping symbol IDs to shells for each symbol in
+                the namespace.
         """
-        callback_fn(self.viz_engine.to_json(self._get_namespace_shells()))
-
-    def callback_get_context(self, callback_fn):
-        """Gets a string representation of the program's current state of execution.
-
-        The server might at any time request the status of the program, such as line number (all newly-connecting
-        clients would need this information). This function is called when such a request is made.
-
-        Args:
-            callback_fn (fn): A (str) => None function from the server which expects the string representation
-                of the program's current context object.
-        """
-        callback_fn(self._get_context())
+        callback_fn(
+            self.viz_engine.to_json(
+                {
+                    'context': self._get_context(),
+                    'namespace': self._get_namespace_shells()
+                }
+            )
+        )
 
     def callback_load_symbol(self, symbol_id, callback_fn):
         """Load a symbol's data object and pass it into the given callback.
@@ -328,20 +329,70 @@ class VisualDebugger(bdb.Bdb):
             callback_fn (fn): A (str, str) => None function which accepts a JSON string of the requested symbol's
                 data object and the JSON string mapping any symbols referenced by the data object to their shells.
         """
-        callback_fn(*self._load_symbol(symbol_id))
+        data, shells = self._load_symbol(symbol_id)
+        callback_fn(
+            self.viz_engine.to_json(
+                {
+                    'data': data,
+                    'shells': shells,
+                }
+            )
+        )
 
     def _get_context(self):
-        """Returns some object, for now a string, capturing the state of the program.
+        """Returns some object, for now a list describing the stack frame, capturing the state of the program.
 
         The client will need to show users where the program has stopped, and some context information is required.
         This information is sent as part of a typical callback after program flow was manipulated at the server's
         request.
 
         Returns:
-            (str): The file and line number of the Python program's current line.
+            (list): A list of objects which represent the stack sequence (see `format_stack_entry` for structure).
+                The first element of the list is the top of the stack.
         """
         # TODO send more information than just the filename and linenumber, like time spent running
-        return self.format_stack_entry(self.current_stack[self.current_stack_index])
+        return [self.format_stack_entry(self.current_stack[i]) for i in range(self.current_stack_index, -1, -1)]
+
+    def format_stack_entry(self, frame_lineno, lprefix=': '):
+        """Returns an object describing the a particular frame in the stack.
+
+        The default `bdb` implementation returns a string, whereas we would like the client to be able to render the
+        context information in a flexible way. We therefore return an object with each property of the program state
+        (file, line no, etc.) assigned to a different key.
+
+        The returned dict is of the form:
+        {
+            fileName: the path of the Python file be executed, relative to the current working directory
+            lineNo: the line number of in the file
+            functionName: the function in which the line resides
+            args: maybe some arguments passed to the frame? I haven't seen this ever be non-empty. TODO figure out what
+                these look like
+            returningTo: the frame being returned to, if one exists
+            line: the code at the line being executed
+        }
+
+        Args:
+            frame_lineno (frame): The current stack frame.
+            lprefix (str): A requirement of the `bdb` implementation; not used here.
+
+        Returns:
+            (dict): A dict mapping property names to their values for the current Python program.
+        """
+        import linecache
+        import reprlib
+        program_state = dict()
+        frame, lineno = frame_lineno
+        filename = self.canonic(frame.f_code.co_filename)
+
+        program_state['fileName'] = os.path.relpath(filename, os.getcwd())  # get file path relative to working dir
+        program_state['lineNo'] = lineno
+        program_state['functionName'] = frame.f_code.co_name if frame.f_code.co_name else '<lambda>'
+        # use `reprlib` (like in the `bdb` implementation) to convert the args tuple to a string
+        program_state['args'] = reprlib.repr(frame.f_locals['__args__']) if '__args__' in frame.f_locals else '()'
+        program_state['returningTo'] = reprlib.repr(frame.f_locals['__return__'])\
+            if '__return__' in frame.f_locals else None
+        program_state['line'] = linecache.getline(filename, lineno, frame.f_globals).strip()
+        return program_state
 
     def _get_namespace_shells(self):
         """Returns a dict mapping string symbol IDs to dict shell representations.
@@ -368,7 +419,7 @@ class VisualDebugger(bdb.Bdb):
         """
         # The actual work of visualization is done by the `VisualizationEngine` instance owned by the `VisualDebugger`.
         symbol_data, new_shells = self.viz_engine.get_symbol_data(symbol_id)
-        return self.viz_engine.to_json(symbol_data), self.viz_engine.to_json(new_shells)
+        return symbol_data, new_shells
 
     # ==================================================================================================================
     # `bdb` overrides.

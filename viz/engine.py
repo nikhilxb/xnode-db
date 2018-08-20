@@ -2,6 +2,8 @@ import json
 from collections import defaultdict
 import types
 import inspect
+from torch import _TensorBase
+from viz.graphtracker import GraphData, GraphContainer, GraphOp, get_graphdata, has_graphdata
 
 
 class VisualizationType:
@@ -103,10 +105,86 @@ class VisualizationEngine:
         refs = set()
         return {
             self.VIEWER_KEY: {
-                'contents': obj,
+                'contents': self._sanitize_for_data_object(obj, refs),
             },
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs),
         }, refs
+
+    def _generate_data_tensor(self, obj):
+        """Data generation function for tensors."""
+        refs = set()
+        return {
+            self.VIEWER_KEY: {
+                # This is deliberately not datafied to prevent the lists from being turned into references.
+                'contents': obj.cpu().numpy().tolist(),
+                'size': list(obj.size()),
+                'type': self._sanitize_for_data_object(self.TENSOR_TYPES[obj.type()], refs),
+                'maxmag': obj.abs().max(),
+            },
+            self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)
+        }, refs
+
+    def _generate_data_graphdata(self, obj):
+        """Data generation function for graph data nodes."""
+        refs = set()
+        # We consider both `GraphData` instances and objects which have associated `GraphData` instances to be
+        # graphdata for schema purposes, so we need to figure out which one `obj` is
+        try:
+            graphdata_obj = get_graphdata(obj)
+        except AttributeError:
+            graphdata_obj = obj
+            obj = graphdata_obj.obj
+        return {
+            self.VIEWER_KEY: {
+                'creatorop': self._sanitize_for_data_object(graphdata_obj.creator_op, refs),
+                'creatorpos': self._sanitize_for_data_object(graphdata_obj.creator_pos, refs),
+                'kvpairs': {
+                    self._sanitize_for_data_object(key, refs): self._sanitize_for_data_object(value, refs)
+                    for key, value in graphdata_obj.get_visualization_dict().items()
+                }
+            },
+            self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)
+        }, refs
+
+    def _generate_data_graphcontainer(self, obj):
+        """Data generation function for graph containers."""
+        refs = set()
+        return {
+            self.VIEWER_KEY: {
+                'contents': [self._sanitize_for_data_object(op, refs) for op in obj.contents],
+                'container': self._sanitize_for_data_object(obj.container, refs),
+                'temporalstep': self._sanitize_for_data_object(obj.temporal_step, refs),
+                'height': self._sanitize_for_data_object(obj.height, refs),
+                'functionname': self._sanitize_for_data_object(obj.fn_name, refs),
+            },
+            self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)
+        }, refs
+
+    def _generate_data_graphop(self, obj):
+        """Data generation function for graph op nodes."""
+        refs = set()
+        print(obj.args)
+        d = {
+            self.VIEWER_KEY: {
+                'function': self._sanitize_for_data_object(obj.fn, refs),
+                'args': [[self._sanitize_for_data_object(arg[0], refs),
+                          self._sanitize_for_data_object(arg[1], refs) if not isinstance(arg[1], list) else
+                          [self._sanitize_for_data_object(arg_item, refs) for arg_item in arg[1]]] if len(arg) > 1 else
+                         [self._sanitize_for_data_object(arg[0], refs)]
+                         for arg in obj.args],
+                'kwargs': [[self._sanitize_for_data_object(arg[0], refs),
+                          self._sanitize_for_data_object(arg[1], refs) if not isinstance(arg[1], list) else
+                          [self._sanitize_for_data_object(arg_item, refs) for arg_item in arg[1]]] if len(arg) > 1 else
+                         [self._sanitize_for_data_object(arg[0], refs)]
+                         for arg in obj.kwargs],
+                'container': self._sanitize_for_data_object(obj.container, refs),
+                'functionname': self._sanitize_for_data_object(obj.fn_name, refs),
+                'outputs': [self._sanitize_for_data_object(output, refs) for output in obj.outputs],
+            },
+            self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)
+        }
+        print(d)
+        return d, refs
 
     def _generate_data_dict(self, obj):
         """Data generation function for dicts."""
@@ -117,7 +195,7 @@ class VisualizationEngine:
         return {
             self.VIEWER_KEY: {
                 'contents': contents,
-                'length': len(obj),
+                'length': self._sanitize_for_data_object(len(obj), refs),
             },
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs),
         }, refs
@@ -131,7 +209,7 @@ class VisualizationEngine:
         return {
             self.VIEWER_KEY: {
                 'contents': contents,
-                'length': len(obj),
+                'length': self._sanitize_for_data_object(len(obj), refs),
             },
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs),
         }, refs
@@ -145,11 +223,15 @@ class VisualizationEngine:
         }
         argnames = obj.__code__.co_varnames
         default_arg_values = obj.__defaults__
-        viewer_data['args'] = argnames[:-len(default_arg_values)]
-        viewer_data['kwargs'] = {
-            self._sanitize_for_data_object(argname, refs): self._sanitize_for_data_object(value, refs)
-            for argname, value in zip(argnames[-len(default_arg_values)], default_arg_values)
+        if default_arg_values is not None:
+            viewer_data['args'] = argnames[:-len(default_arg_values)]
+            viewer_data['kwargs'] = {
+                self._sanitize_for_data_object(argname, refs): self._sanitize_for_data_object(value, refs)
+                for argname, value in zip(argnames[-len(default_arg_values)], default_arg_values)
             }
+        else:
+            viewer_data['args'] = []
+            viewer_data['kwargs'] = {}
         return {
             self.VIEWER_KEY: viewer_data,
             self.ATTRIBUTES_KEY: self._get_data_object_attributes(obj, refs)
@@ -196,8 +278,12 @@ class VisualizationEngine:
         refs = set()
         for attr in dir(obj):
             value = getattr(obj, attr)
-            if not self.FUNCTION.test_fn(value) and (
-                            attr not in instance_class_attrs or getattr(instance_class, attr, None) != value):
+            try:
+                if not self.FUNCTION.test_fn(value) and (
+                                attr not in instance_class_attrs or getattr(instance_class, attr, None) != value):
+                    contents[self._sanitize_for_data_object(attr, refs)] = \
+                        self._sanitize_for_data_object(getattr(obj, attr), refs)
+            except TypeError:
                 contents[self._sanitize_for_data_object(attr, refs)] = \
                     self._sanitize_for_data_object(getattr(obj, attr), refs)
         return {
@@ -209,36 +295,66 @@ class VisualizationEngine:
 
     # `VisualizationType` objects.
     # ----------------------------
-    NUMBER   = VisualizationType('number', test_fn=lambda obj: issubclass(type(obj), (float, int)),
-                                 data_fn=_generate_data_primitive, is_primitive=True)
-    STRING   = VisualizationType('string', test_fn=lambda obj: issubclass(type(obj), str),
-                                 data_fn=_generate_data_primitive, is_primitive=True)
-    BOOL     = VisualizationType('bool', test_fn=lambda obj: issubclass(type(obj), bool),
-                                 data_fn=_generate_data_primitive, is_primitive=True)
-    DICT     = VisualizationType('dict', test_fn=lambda obj: issubclass(type(obj), dict),
-                                 data_fn=_generate_data_dict)
-    LIST     = VisualizationType('list', test_fn=lambda obj: issubclass(type(obj), list),
-                                 data_fn=_generate_data_sequence)
-    SET      = VisualizationType('set', test_fn=lambda obj: issubclass(type(obj), set),
-                                 data_fn=_generate_data_sequence)
-    TUPLE    = VisualizationType('tuple', test_fn=lambda obj: issubclass(type(obj), tuple),
-                                 data_fn=_generate_data_sequence)
-    FUNCTION = VisualizationType('fn', test_fn=lambda obj: type(obj) in (types.FunctionType, types.MethodType,
-                                                                         types.BuiltinFunctionType,
-                                                                         types.BuiltinFunctionType,
-                                                                         type(all.__call__)),
-                                 data_fn=_generate_data_function)
-    MODULE   = VisualizationType('module', test_fn=inspect.ismodule,
-                                 data_fn=_generate_data_module)
-    CLASS    = VisualizationType('class', test_fn=inspect.isclass,
-                                 data_fn=_generate_data_class)
-    INSTANCE = VisualizationType('obj', test_fn=lambda obj: True,
-                                 data_fn=_generate_data_instance)
+    NUMBER          = VisualizationType('number', test_fn=lambda obj: isinstance(obj, (float, int)),
+                                        data_fn=_generate_data_primitive, is_primitive=True)
+    STRING          = VisualizationType('string', test_fn=lambda obj: isinstance(obj, str),
+                                        data_fn=_generate_data_primitive,
+                                        str_fn=lambda obj: '"{}"'.format(obj),
+                                        is_primitive=True)
+    BOOL            = VisualizationType('bool', test_fn=lambda obj: isinstance(obj, bool),
+                                        data_fn=_generate_data_primitive, is_primitive=True)
+    NONE            = VisualizationType('none', test_fn=lambda obj: obj is None,
+                                        data_fn=_generate_data_primitive, is_primitive=True)
+    TENSOR          = VisualizationType('tensor', test_fn=lambda obj: isinstance(obj, _TensorBase),
+                                        str_fn=lambda obj: 'tensor <{}>{}'.format(VisualizationEngine.TENSOR_TYPES
+                                                                                  [obj.type()], list(obj.size())),
+                                        data_fn=_generate_data_tensor)
+    GRAPH_DATA      = VisualizationType('graphdata',
+                                        test_fn=lambda obj: isinstance(obj, GraphData) or has_graphdata(obj),
+                                        str_fn=lambda obj: VisualizationEngine._get_type_info_obj(obj, ['graphdata'])
+                                        .str_fn(obj),
+                                        data_fn=_generate_data_graphdata)
+    GRAPH_CONTAINER = VisualizationType('graphcontainer', test_fn=lambda obj: isinstance(obj, GraphContainer),
+                                        str_fn=lambda obj: 'graphcontainer[{}]'.format(len(obj.contents)),
+                                        data_fn=_generate_data_graphcontainer)
+    GRAPH_OP        = VisualizationType('graphop', test_fn=lambda obj: isinstance(obj, GraphOp),
+                                        str_fn=lambda obj: 'graphop <{}>'.format(obj.name),
+                                        data_fn=_generate_data_graphop)
+    DICT            = VisualizationType('dict', test_fn=lambda obj: isinstance(obj, dict),
+                                        str_fn=lambda obj: 'dict[{}]'.format(len(obj)),
+                                        data_fn=_generate_data_dict)
+    LIST            = VisualizationType('list', test_fn=lambda obj: isinstance(obj, list),
+                                        str_fn=lambda obj: 'list[{}]'.format(len(obj)),
+                                        data_fn=_generate_data_sequence)
+    SET             = VisualizationType('set', test_fn=lambda obj: isinstance(obj, set),
+                                        str_fn=lambda obj: 'set[{}]'.format(len(obj)),
+                                        data_fn=_generate_data_sequence)
+    TUPLE           = VisualizationType('tuple', test_fn=lambda obj: isinstance(obj, tuple),
+                                        str_fn=lambda obj: 'tuple[{}]'.format(len(obj)),
+                                        data_fn=_generate_data_sequence)
+    FUNCTION        = VisualizationType('fn', test_fn=lambda obj: isinstance(obj, (types.FunctionType, types.MethodType,
+                                                                                   types.BuiltinFunctionType,
+                                                                                   types.BuiltinFunctionType,
+                                                                                   type(all.__call__))),
+                                        str_fn=lambda obj: 'function {}{}'.format(obj.__name__, '()'
+                                        if inspect.isbuiltin(obj) else str(inspect.signature(obj))),
+                                        data_fn=_generate_data_function)
+    MODULE          = VisualizationType('module', test_fn=inspect.ismodule,
+                                        str_fn=lambda obj: 'module <{}>'.format(obj.__name__),
+                                        data_fn=_generate_data_module)
+    CLASS           = VisualizationType('class', test_fn=inspect.isclass,
+                                        str_fn=lambda obj: 'class <{}>'.format(obj.__name__),
+                                        data_fn=_generate_data_class)
+    INSTANCE        = VisualizationType('obj', test_fn=lambda obj: True,
+                                        str_fn=lambda obj: '<{}>'.format(obj.__class__.__name__, str(obj)),
+                                        data_fn=_generate_data_instance)
 
     # A list of all `VisualizationType` objects, in the order in which type should be tested. For example, the
     # INSTANCE should be last, as it returns `True` on any object and is the most general type. `BOOL` should be
-    # before `NUMBER`, as bool is a subclass of number.
-    TYPES = [BOOL, NUMBER, STRING, DICT, LIST, SET, TUPLE, FUNCTION, MODULE, CLASS, INSTANCE]
+    # before `NUMBER`, as bool is a subclass of number. `GRAPH_DATA` should be first, as it can wrap any type and
+    # will be mistaken for those types.
+    TYPES = [GRAPH_DATA, GRAPH_CONTAINER, GRAPH_OP, NONE, BOOL, NUMBER, STRING, TENSOR, DICT, LIST, SET, TUPLE, MODULE,
+             FUNCTION, CLASS, INSTANCE]
 
     # Utility functions for data generation.
     # --------------------------------------
@@ -260,8 +376,15 @@ class VisualizationEngine:
         """
         attributes = dict()
         for attr in dir(obj):
-            if exclude_fns and self.FUNCTION.test_fn(getattr(obj, attr)): continue
-            attributes[self._sanitize_for_data_object(attr, refs)] = self._sanitize_for_data_object(getattr(obj, attr), refs)
+            # There are some functions, like torch.Tensor.data, which exist just to throw errors. Testing these
+            # fields will throw the errors. We should consume them and keep moving if so.
+            try:
+                if exclude_fns and self.FUNCTION.test_fn(getattr(obj, attr)):
+                    continue
+            except RuntimeError:
+                continue
+            attributes[self._sanitize_for_data_object(attr, refs)] = \
+                self._sanitize_for_data_object(getattr(obj, attr), refs)
         return attributes
 
     def _is_primitive(self, obj):
@@ -324,6 +447,27 @@ class VisualizationEngine:
     # This dict follows the schema outlined in VIZ-SCHEMA.js.
     ATTRIBUTES_KEY = 'attributes'
 
+    # We convey the data type of a tensor in a generic way to remove dependency on the tensor's implementation. We
+    # need a way to look up the Python object's type to get the data type string the client will understand.
+    TENSOR_TYPES = {
+        'torch.HalfTensor': 'float16',
+        'torch.FloatTensor': 'float32',
+        'torch.DoubleTensor': 'float64',
+        'torch.ByteTensor': 'uint8',
+        'torch.CharTensor': 'int8',
+        'torch.ShortTensor': 'int16',
+        'torch.IntTensor': 'int32',
+        'torch.LongTensor': 'int64',
+        'torch.cuda.HalfTensor': 'float16',
+        'torch.cuda.FloatTensor': 'float32',
+        'torch.cuda.DoubleTensor': 'float64',
+        'torch.cuda.ByteTensor': 'uint8',
+        'torch.cuda.CharTensor': 'int8',
+        'torch.cuda.ShortTensor': 'int16',
+        'torch.cuda.IntTensor': 'int32',
+        'torch.cuda.LongTensor': 'int64',
+    }
+
     # ==================================================================================================================
     # Utility functions for public methods.
     # ==================================================================================================================
@@ -343,13 +487,13 @@ class VisualizationEngine:
         """
         return str(id(obj))
 
-    def _get_type_info(self, symbol_id):
+    def _get_type_info_symbol(self, symbol_id):
         """Returns the `VisualizationType` object associated with a particular symbol ID.
 
         If the symbol ID has not yet been associated with a `VisualizationType` object in the cache, the association is made
         here. Otherwise, the cached value is returned.
         Args:
-            symbol_id (str): ID for a symbol, as defined by self._get_symbol_id.
+            symbol_id (str): ID for a symbol, as defined by `self._get_symbol_id()`.
 
         Returns:
             (VisualizationType): the `VisualizationType` object associated with the symbol's type.
@@ -358,11 +502,25 @@ class VisualizationEngine:
             raise KeyError('Symbol id {} not found in cache.'.format(symbol_id))
         if self.TYPE_INFO not in self.cache[symbol_id]:
             obj = self.cache[symbol_id][self.OBJ]
-            for type_info in self.TYPES:
-                if type_info.test_fn(obj):
-                    self.cache[symbol_id][self.TYPE_INFO] = type_info
-                    break
+            self.cache[symbol_id][self.TYPE_INFO] = self._get_type_info_obj(obj)
         return self.cache[symbol_id][self.TYPE_INFO]
+
+    @staticmethod
+    def _get_type_info_obj(obj, exclude_types=None):
+        """Returns the `VisualizationType` object associated with a given object.
+
+        Does not perform any caching; if the object is associated with a symbol ID in the symbol table,
+        `get_type_info_symbol()` should be used.
+        Args:
+            obj (object): an object of unknown visualization type.
+            exclude_types (list or None): a list of visualization type names that may not be returned.
+
+        Returns:
+            (VisualizationType): the `VisualizationType` object associated with the object's type.
+        """
+        for type_info in VisualizationEngine.TYPES:
+            if (exclude_types is None or type_info.type_name not in exclude_types) and type_info.test_fn(obj):
+                return type_info
 
     def _load_symbol_data(self, symbol_id):
         """Builds the data object for a symbol.
@@ -376,7 +534,7 @@ class VisualizationEngine:
         Returns:
             (object): The symbol's data object.
         """
-        symbol_type_info = self._get_type_info(symbol_id)
+        symbol_type_info = self._get_type_info_symbol(symbol_id)
         symbol_obj = self.cache[symbol_id][self.OBJ]
         return symbol_type_info.data_fn(self, symbol_obj)
 
@@ -416,7 +574,7 @@ class VisualizationEngine:
         if self.OBJ not in self.cache[symbol_id]:
             raise KeyError('No object reference found for symbol {}'.format(symbol_id))
         if self.SHELL not in self.cache[symbol_id]:
-            symbol_type_info = self._get_type_info(symbol_id)
+            symbol_type_info = self._get_type_info_symbol(symbol_id)
             symbol_obj = self.cache[symbol_id][self.OBJ]
             self.cache[symbol_id][self.SHELL] = {
                 'type': symbol_type_info.type_name,
@@ -446,7 +604,7 @@ class VisualizationEngine:
         for obj_name, obj in namespace.items():
             symbol_id = self._get_symbol_id(obj)
             self.cache[symbol_id][self.OBJ] = obj
-            namespace_shells[symbol_id] = self.get_symbol_shell(symbol_id, name=obj_name)
+            namespace_shells[self.REF_PREFIX + symbol_id] = self.get_symbol_shell(symbol_id, name=obj_name)
             if self._is_primitive(obj):
                 data_obj, new_shells = self.get_symbol_data(symbol_id)
                 self.cache[symbol_id][self.SHELL]['data'] = data_obj
@@ -479,7 +637,7 @@ class VisualizationEngine:
             self.cache[symbol_id][self.DATA], self.cache[symbol_id][self.REFS] = self._load_symbol_data(symbol_id)
         shells = dict()
         for ref in self.cache[symbol_id][self.REFS]:
-            shells[ref] = self.get_symbol_shell(ref)
+            shells[self.REF_PREFIX + ref] = self.get_symbol_shell(ref)
         return self.cache[symbol_id][self.DATA], shells
 
     def to_json(self, obj):
